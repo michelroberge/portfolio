@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const  express = require( "express");
 const BlogEntry = require( "../models/BlogEntry.js");
 const authMiddleware = require("../middlewares/auth");
+const { getAllCached, getCachedById, addToCache, clearCache } = require("../cache");
 
 const router = express.Router();
 
@@ -10,6 +11,7 @@ router.post("/", authMiddleware, async (req, res) => {
   try {
     const newEntry = new BlogEntry(req.body);
     await newEntry.save();
+    addToCache("blogs", newEntry);
     res.status(201).json(newEntry);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -18,9 +20,13 @@ router.post("/", authMiddleware, async (req, res) => {
 
 // Get all blog entries
 router.get("/", async (req, res) => {
+  
   try {
-    const entries = await BlogEntry.find();
-    res.json(entries);
+    const blogs = await getAllCached("blogs", async () => {
+
+      return  await BlogEntry.find().sort({ createdAt: -1 });
+    });
+    res.json(blogs);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -29,12 +35,13 @@ router.get("/", async (req, res) => {
 // Get a single blog entry by ID
 router.get("/:id", async (req, res) => {
   try {
-    console.log("received id", req.params.id);
 
     const id = new mongoose.Types.ObjectId(req.params.id);
-    const entry = await BlogEntry.findById(id);
-    if (!entry) return res.status(404).json({ error: "Entry not found" });
-    res.json(entry);
+    const blog = await getCachedById("blogs", id, async (id) => {
+      return await BlogEntry.findById(id);
+    });
+    if (!blog) return res.status(404).json({ error: "Entry not found" });
+    res.json(blog);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -56,6 +63,9 @@ router.delete("/:id", authMiddleware, async (req, res) => {
   try {
     const deletedEntry = await BlogEntry.findByIdAndDelete(req.params.id);
     if (!deletedEntry) return res.status(404).json({ error: "Entry not found" });
+
+    clearCache("blogs");
+
     res.json({ message: "Entry deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
