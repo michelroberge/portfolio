@@ -26,11 +26,11 @@ npm run dev
 docker-compose up --build
 ```
 ## Features
-✅ Blog system with Markdown rendering
-✅ Admin panel for managing content
-✅ Fully containerized (Docker)
-✅ Dark mode (because why not?)
-✅ No bloated CMS—just speed!
+- ✅ Blog system with Markdown rendering
+- ✅ Admin panel for managing content
+- ✅ Fully containerized (Docker)
+- ✅ Dark mode (because why not?)
+- ✅ No bloated CMS—just speed!
 
 ## 📸 Screenshots
 🚧 Coming soon...
