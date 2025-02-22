@@ -8,6 +8,13 @@ interface BlogEntry {
   body: string;
 }
 
+type Props = {
+  params: Promise<{
+    slug: string;
+}>;
+};
+
+
 async function getBlog(id: string): Promise<BlogEntry | null> {
   try {
     const url = `${process.env.NEXT_PUBLIC_API_URL}/api/blogs/${id}`;
@@ -16,16 +23,14 @@ async function getBlog(id: string): Promise<BlogEntry | null> {
     const response = await fetch(url);
     if (!response.ok) return null;
     return response.json();
-
   } catch (error) {
     console.error("Error fetching blog:", error);
     return null;
   }
 }
 
-export default async function BlogPage({ params }: { params: Record<string, string> }) {
-  // Wait for params before accessing them
-  const { slug } = params;
+export default async function BlogPage({params} : Props) {
+  const { slug } = await params;
 
   if (!slug) return notFound();
 
@@ -40,14 +45,13 @@ export default async function BlogPage({ params }: { params: Record<string, stri
 
   return (
     <>
-        <Header />
-
+      <Header />
       <main className="container mx-auto px-6 py-10 flex flex-col lg:flex-row lg:gap-8 flex-1">
         <h1 className="text-3xl font-bold">{blog.title}</h1>
         <p className="text-gray-500">{blog.date}</p>
         <div className="mt-4" dangerouslySetInnerHTML={{ __html: blog.body }} />
-    </main>
-    <footer className="bg-gray-800 text-white text-center py-4 mt-6">
+      </main>
+      <footer className="bg-gray-800 text-white text-center py-4 mt-6">
         <p>&copy; {new Date().getFullYear()} My Portfolio. All Rights Reserved.</p>
       </footer>
     </>
