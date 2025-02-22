@@ -1,45 +1,33 @@
-const mongoose = require("mongoose");
-const  express = require( "express");
-const BlogEntry = require( "../models/BlogEntry.js");
+// portfolio.node/src/routes/blogRoutes.js
+const express = require("express");
 const authMiddleware = require("../middlewares/auth");
-const { getAllCached, getCachedById, addToCache, clearCache } = require("../cache");
-
+const blogService = require("../services/blogService");
 const router = express.Router();
 
-// Create a new blog entry
+// Create a new blog entry using the service module
 router.post("/", authMiddleware, async (req, res) => {
   try {
-    const newEntry = new BlogEntry(req.body);
-    await newEntry.save();
-    addToCache("blogs", newEntry);
+    const newEntry = await blogService.createBlogEntry(req.body);
     res.status(201).json(newEntry);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get all blog entries
+// Get all blog entries using the service module
 router.get("/", async (req, res) => {
-  
   try {
-    const blogs = await getAllCached("blogs", async () => {
-
-      return  await BlogEntry.find().sort({ createdAt: -1 });
-    });
+    const blogs = await blogService.getAllBlogEntries();
     res.json(blogs);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get a single blog entry by ID
+// Get a single blog entry by ID using the service module
 router.get("/:id", async (req, res) => {
   try {
-
-    const id = new mongoose.Types.ObjectId(req.params.id);
-    const blog = await getCachedById("blogs", id, async (id) => {
-      return await BlogEntry.findById(id);
-    });
+    const blog = await blogService.getBlogEntryById(req.params.id);
     if (!blog) return res.status(404).json({ error: "Entry not found" });
     res.json(blog);
   } catch (error) {
@@ -47,10 +35,10 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// Update a blog entry by ID
+// Update a blog entry by ID using the service module
 router.put("/:id", authMiddleware, async (req, res) => {
   try {
-    const updatedEntry = await BlogEntry.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const updatedEntry = await blogService.updateBlogEntry(req.params.id, req.body);
     if (!updatedEntry) return res.status(404).json({ error: "Entry not found" });
     res.json(updatedEntry);
   } catch (error) {
@@ -58,14 +46,11 @@ router.put("/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// Delete a blog entry by ID
+// Delete a blog entry by ID using the service module
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
-    const deletedEntry = await BlogEntry.findByIdAndDelete(req.params.id);
+    const deletedEntry = await blogService.deleteBlogEntry(req.params.id);
     if (!deletedEntry) return res.status(404).json({ error: "Entry not found" });
-
-    clearCache("blogs");
-
     res.json({ message: "Entry deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
