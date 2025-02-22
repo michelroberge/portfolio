@@ -1,19 +1,23 @@
 // portfolio.node/__tests__/blogService.test.js
 const mongoose = require("mongoose");
+const { MongoMemoryServer } = require("mongodb-memory-server");
 const BlogEntry = require("../src/models/BlogEntry");
 const blogService = require("../src/services/blogService");
 
-// Set up a test database connection (mock or use an in-memory MongoDB instance)
 beforeAll(async () => {
-  // For example, connect to a test MongoDB instance
-  await mongoose.connect(process.env.MONGO_URI);
-});
-
+    // Create an in-memory MongoDB instance
+    mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+    await mongoose.connect(uri);
+  });
+  
 afterAll(async () => {
-  await mongoose.connection.db.dropDatabase();
-  await mongoose.connection.close();
+    // Drop the test database and disconnect
+    await mongoose.connection.dropDatabase();
+    await mongoose.disconnect();
+    await mongoServer.stop();
 });
-
+  
 describe("Blog Service", () => {
   it("should create a new blog entry", async () => {
     const data = {
