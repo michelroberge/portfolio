@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  frontend:
+    build: ./portfolio.next
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  backend:
+    build: ./portfolio.node
+    ports:
+      - "5000:5000"

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 interface Project {
   _id: string;
@@ -123,10 +124,7 @@ export default function Home() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white text-center py-4 mt-6">
-        <p>&copy; {new Date().getFullYear()} michel-roberge.com. All Rights Reserved.</p>
-      </footer>
+      <Footer />
     </div>
   );
 }

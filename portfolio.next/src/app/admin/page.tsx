@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 export default function AdminDashboard() {
   const [authenticated, setAuthenticated] = useState(false);
@@ -59,6 +60,7 @@ export default function AdminDashboard() {
         </a>
       </div>
     </div>
+    <Footer />
     </>
   );
 }

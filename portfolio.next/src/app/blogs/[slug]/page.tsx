@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 interface BlogEntry {
   id: number;
@@ -51,9 +52,8 @@ export default async function BlogPage({params} : Props) {
         <p className="text-gray-500">{blog.date}</p>
         <div className="mt-4" dangerouslySetInnerHTML={{ __html: blog.body }} />
       </main>
-      <footer className="bg-gray-800 text-white text-center py-4 mt-6">
-        <p>&copy; {new Date().getFullYear()} My Portfolio. All Rights Reserved.</p>
-      </footer>
+            <Footer />
+      
     </>
   );
 }
