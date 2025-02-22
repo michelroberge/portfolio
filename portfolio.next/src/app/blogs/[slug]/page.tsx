@@ -1,43 +1,29 @@
+// portfolio.next/src/app/blogs/[slug]/page.tsx
 import { notFound } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { getBlog } from "@/services/blogService";
 
 interface BlogEntry {
   id: number;
   title: string;
   date: string;
   body: string;
+  excerpt?: string;
+  link: string;
 }
 
 type Props = {
-  params: Promise<{
-    slug: string;
-}>;
+  params: Promise<{ slug: string }>;
 };
 
-
-async function getBlog(id: string): Promise<BlogEntry | null> {
-  try {
-    const url = `${process.env.NEXT_PUBLIC_API_URL}/api/blogs/${id}`;
-
-    console.log("Get blog url", url);
-    const response = await fetch(url);
-    if (!response.ok) return null;
-    return response.json();
-  } catch (error) {
-    console.error("Error fetching blog:", error);
-    return null;
-  }
-}
-
-export default async function BlogPage({params} : Props) {
+export default async function BlogPage({ params }: Props) {
   const { slug } = await params;
 
   if (!slug) return notFound();
 
-  // Extract the last number after '-' in the slug
+  // Extract the last number after '-' in the slug as the id.
   const id = slug.split("-").pop();
-
   if (!id) return notFound();
 
   const blog = await getBlog(id);
@@ -52,8 +38,7 @@ export default async function BlogPage({params} : Props) {
         <p className="text-gray-500">{blog.date}</p>
         <div className="mt-4" dangerouslySetInnerHTML={{ __html: blog.body }} />
       </main>
-            <Footer />
-      
+      <Footer />
     </>
   );
 }
