@@ -1,34 +1,28 @@
-const  express = require( "express");
-const Project = require( "../models/Project.js");
-const authMiddleware = require("../middlewares/auth");
-const User = require('../models/User');
+const express = require("express");
+const userService = require("../services/userService");
 
 const router = express.Router();
 
-// Create a new project
+// Endpoint for user registration
 router.post("/", async (req, res) => {
-    try {
-      const { username, password } = req.body;
-  
-      if (!username || !password) {
-        return res.status(400).json({ error: "Username and password are required" });
-      }
-  
-      // Create user instance (password will be hashed automatically by Mongoose middleware)
-      const newUser = new User({ username, passwordHash: password });
-      await newUser.save();
-  
-      console.log("New User Created:", username);
-      res.status(201).json({ message: "User created successfully" });
-    } catch (error) {
-      console.error("Error creating user:", error);
-      res.status(500).json({ error: "Internal Server Error" });
-    }
+  try {
+    const { username, password } = req.body;
+
+    // Delegate the creation to the user service.
+    const newUser = await userService.createUser({ username, password });
+    console.log("New User Created:", newUser.username);
+    res.status(201).json({ message: "User created successfully" });
+  } catch (error) {
+    console.error("Error creating user:", error);
+    // Use 400 for client errors (e.g., missing fields or duplicate user)
+    res.status(error.message === "User already exists" || error.message === "Username and password are required" ? 400 : 500)
+       .json({ error: error.message });
+  }
 });
 
-// form to create user
+// A simple GET endpoint that serves a registration form.
 router.get("/create", async (req, res) => {
-    res.send(`
+  res.send(`
         <html>
         <head><title>Create User</title></head>
         <body>

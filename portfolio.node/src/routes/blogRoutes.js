@@ -3,9 +3,12 @@ const express = require("express");
 const authMiddleware = require("../middlewares/auth");
 const blogService = require("../services/blogService");
 const router = express.Router();
+const validate = require("../middlewares/validate");
+const { createBlogSchema } = require("../validators/blogValidator");
+
 
 // Create a new blog entry using the service module
-router.post("/", authMiddleware, async (req, res) => {
+router.post("/", authMiddleware, validate(createBlogSchema), async (req, res) => {
   try {
     const newEntry = await blogService.createBlogEntry(req.body);
     res.status(201).json(newEntry);
@@ -36,7 +39,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Update a blog entry by ID using the service module
-router.put("/:id", authMiddleware, async (req, res) => {
+router.put("/:id", authMiddleware, validate(createBlogSchema), async (req, res) => {
   try {
     const updatedEntry = await blogService.updateBlogEntry(req.params.id, req.body);
     if (!updatedEntry) return res.status(404).json({ error: "Entry not found" });
