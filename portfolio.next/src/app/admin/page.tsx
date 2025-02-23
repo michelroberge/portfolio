@@ -43,10 +43,10 @@ export default function AdminDashboard() {
   </Link>
 
   <button
-    onClick={() => router.push("/admin/projects/new")}
+    onClick={() => router.push("/admin/projects")}
     className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition"
   >
-    New Project
+    Manage Projects
   </button>
 
   <a
