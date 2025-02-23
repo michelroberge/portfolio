@@ -11,7 +11,9 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
+    "@tailwindcss/typography": "^0.5.16",
     "jest-environment-jsdom": "^29.7.0",
+    "marked": "^15.0.7",
     "next": "^15.1.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

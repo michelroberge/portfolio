@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import Link from "next/link";
+
+
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function AdminDashboard() {
   const [authenticated, setAuthenticated] = useState(false);
@@ -28,39 +30,33 @@ export default function AdminDashboard() {
   if (!authenticated) return <p>You are not authenticated.</p>;
 
   return (
-    <>
-    <Header />
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
       <p className="mb-6">Welcome to the admin panel! You can now manage your blog and projects.</p>
 
       <div className="flex gap-4">
-        {/* New Blog Entry Button */}
-        <button
-          onClick={() => router.push("/admin/blog/new")}
-          className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition"
-        >
-          New Blog Entry
-        </button>
+  <Link
+    href="/admin/blogs"
+    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition"
+  >
+    Manage Blogs
+  </Link>
 
-        {/* New Project Button */}
-        <button
-          onClick={() => router.push("/admin/projects/new")}
-          className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition"
-        >
-          New Project
-        </button>
+  <button
+    onClick={() => router.push("/admin/projects/new")}
+    className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition"
+  >
+    New Project
+  </button>
 
-        {/* Logout Button */}
-        <a
-          href="http://localhost:5000/api/auth/logout"
-          className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition"
-        >
-          Logout
-        </a>
-      </div>
+  <a
+    href={`${apiUrl}/api/auth/logout`}
+    className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition"
+  >
+    Logout
+  </a>
+</div>
+
     </div>
-    <Footer />
-    </>
   );
 }

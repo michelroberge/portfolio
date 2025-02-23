@@ -4,6 +4,8 @@ const bcrypt = require("bcrypt");
 const UserSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   passwordHash: { type: String, required: true },
+  // New field to indicate if the user has admin privileges.
+  isAdmin: { type: Boolean, default: false },
 });
 
 // Hash password before saving

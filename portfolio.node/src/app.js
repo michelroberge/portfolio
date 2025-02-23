@@ -3,11 +3,15 @@ require("dotenv").config();
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
+
 const connectDB = require("./config/db");
+const passport = require("./config/passport");
 
 const authRoutes = require("./routes/authRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const blogRoutes = require("./routes/blogRoutes");
+const oauthRoutes = require("./routes/oauthRoutes");
+const commentRoutes = require("./routes/commentRoutes");
 
 async function createApp() {
   // Connect to the database
@@ -25,8 +29,10 @@ async function createApp() {
 
   // Set up routes
   app.use("/api/auth", authRoutes);
+  app.use("/api/auth/oauth2", oauthRoutes);
   app.use("/api/projects", projectRoutes);
   app.use("/api/blogs", blogRoutes);
+  app.use("/api/comments", commentRoutes);
 
   return app;
 }

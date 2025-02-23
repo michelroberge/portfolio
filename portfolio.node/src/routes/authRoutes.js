@@ -5,8 +5,8 @@ const router = express.Router();
 // Register a new user using the auth service
 router.post("/register", async (req, res) => {
   try {
-    const { username, password } = req.body;
-    await authService.registerUser({ username, password });
+    const { username, password, isAdmin } = req.body;
+    await authService.registerUser({ username, password, isAdmin });
     res.status(201).json({ message: "User created successfully" });
   } catch (error) {
     res.status(400).json({ message: error.message });

@@ -2,7 +2,7 @@
 export interface BlogEntry {
     id: number;
     title: string;
-    date: string;
+    publishAt: string;
     body: string;
     excerpt?: string;
     link: string;

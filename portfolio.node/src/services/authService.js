@@ -6,16 +6,27 @@ const SECRET_KEY = process.env.SECRET_KEY || "your_secret_key";
 
 /**
  * Registers a new user.
- * @param {Object} param0 - Contains username and password.
+ * If `isAdmin` is true, ensures no admin user already exists.
+ * @param {Object} param0 - Contains username, password, and optional isAdmin flag.
  * @returns {Promise<Object>} - The created user.
  */
-async function registerUser({ username, password }) {
+async function registerUser({ username, password, isAdmin = false }) {
+  // If registering an admin, check that no admin exists yet.
+  if (isAdmin) {
+    const existingAdmin = await User.findOne({ isAdmin: true });
+    if (existingAdmin) {
+      throw new Error("An admin user already exists. Admin registration requires an existing admin.");
+    }
+  }
+
+  // Check for an existing user with the same username.
   const existingUser = await User.findOne({ username });
   if (existingUser) {
     throw new Error("User already exists");
   }
-  // Create a new user; the pre-save hook in User model will hash the password.
-  const user = new User({ username, passwordHash: password });
+  
+  // Create a new user; the User model's pre-save hook hashes the password.
+  const user = new User({ username, passwordHash: password, isAdmin });
   await user.save();
   return user;
 }
@@ -30,7 +41,7 @@ async function loginUser({ username, password }) {
   if (!user || !(await user.validatePassword(password))) {
     throw new Error("Invalid credentials");
   }
-  const token = jwt.sign({ id: user.id, username: user.username }, SECRET_KEY, {
+  const token = jwt.sign({ id: user.id, username: user.username, isAdmin: user.isAdmin }, SECRET_KEY, {
     expiresIn: "1h",
   });
   return token;
