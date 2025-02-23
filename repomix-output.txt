@@ -66,15 +66,22 @@ portfolio.next/public/next.svg
 portfolio.next/public/vercel.svg
 portfolio.next/public/window.svg
 portfolio.next/README.md
-portfolio.next/src/app/admin/blog/new/page.tsx
+portfolio.next/src/app/admin/blogs/edit/[id]/page.tsx
+portfolio.next/src/app/admin/blogs/new/page.tsx
+portfolio.next/src/app/admin/blogs/page.tsx
 portfolio.next/src/app/admin/login/page.tsx
 portfolio.next/src/app/admin/page.tsx
+portfolio.next/src/app/admin/projects/edit/[id]/page.tsx
+portfolio.next/src/app/admin/projects/new/page.tsx
+portfolio.next/src/app/admin/projects/page.tsx
+portfolio.next/src/app/admin/temp-layout.tsx
 portfolio.next/src/app/blogs/[slug]/page.tsx
 portfolio.next/src/app/globals.css
 portfolio.next/src/app/layout.tsx
 portfolio.next/src/app/page.tsx
 portfolio.next/src/components/Footer.tsx
 portfolio.next/src/components/Header.tsx
+portfolio.next/src/components/SectionToggle.tsx
 portfolio.next/src/services/apiService.ts
 portfolio.next/src/services/blogService.ts
 portfolio.next/tailwind.config.ts
@@ -84,6 +91,7 @@ portfolio.node/__tests__/app.test.js
 portfolio.node/__tests__/authServices.test.js
 portfolio.node/__tests__/blogService.test.js
 portfolio.node/__tests__/blogValidation.test.js
+portfolio.node/__tests__/commentRoutes.test.js
 portfolio.node/__tests__/jest-setup.test.js
 portfolio.node/__tests__/projectServices.test.js
 portfolio.node/__tests__/server.test.js
@@ -96,18 +104,23 @@ portfolio.node/package.json
 portfolio.node/src/app.js
 portfolio.node/src/cache.js
 portfolio.node/src/config/db.js
+portfolio.node/src/config/passport.js
 portfolio.node/src/middlewares/auth.js
 portfolio.node/src/middlewares/validate.js
 portfolio.node/src/models/BlogEntry.js
+portfolio.node/src/models/Comment.js
 portfolio.node/src/models/Project.js
 portfolio.node/src/models/User.js
 portfolio.node/src/routes/authRoutes.js
 portfolio.node/src/routes/blogRoutes.js
+portfolio.node/src/routes/commentRoutes.js
+portfolio.node/src/routes/oauthRoutes.js
 portfolio.node/src/routes/projectRoutes.js
 portfolio.node/src/routes/userRoutes.js
 portfolio.node/src/server.js
 portfolio.node/src/services/authService.js
 portfolio.node/src/services/blogService.js
+portfolio.node/src/services/commentService.js
 portfolio.node/src/services/projectService.js
 portfolio.node/src/services/userService.js
 portfolio.node/src/validators/blogValidator.js
@@ -1292,7 +1305,9 @@ File: portfolio.next/package.json
     "test:watch": "jest --watch"
   },
   "dependencies": {
+    "@tailwindcss/typography": "^0.5.16",
     "jest-environment-jsdom": "^29.7.0",
+    "marked": "^15.0.7",
     "next": "^15.1.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
@@ -1393,64 +1408,236 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
 ================
-File: portfolio.next/src/app/admin/blog/new/page.tsx
+File: portfolio.next/src/app/admin/blogs/edit/[id]/page.tsx
+================
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { marked } from "marked";
+
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+export default function EditBlogEntry() {
+  const router = useRouter();
+  const { id } = useParams();
+  const [title, setTitle] = useState("");
+  const [excerpt, setExcerpt] = useState("");
+  const [body, setBody] = useState("");
+  const [isDraft, setIsDraft] = useState(false);
+  const [publishAt, setPublishAt] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit"); // Tab state
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch(`${apiUrl}/api/auth/check`, { credentials: "include" });
+        if (!res.ok) {
+          router.push("/admin/login");
+        } else {
+          setAuthenticated(true);
+        }
+      } catch {
+        router.push("/admin/login");
+      }
+    }
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
+    if (!authenticated) return;
+
+    async function fetchBlog() {
+      try {
+        const response = await fetch(`${apiUrl}/api/blogs/${id}`);
+        if (!response.ok) throw new Error("Failed to fetch blog post");
+        const data = await response.json();
+
+        setTitle(data.title);
+        setExcerpt(data.excerpt);
+        setBody(data.body);
+        setIsDraft(data.isDraft);
+        setPublishAt(data.publishAt ? new Date(data.publishAt).toISOString().split("T")[0] : null);
+        setLoading(false);
+      } catch (err) {
+        setError((err as Error).message);
+        setLoading(false);
+      }
+    }
+
+    fetchBlog();
+  }, [authenticated, id]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const blogData = { title, excerpt, body, isDraft, publishAt };
+
+    try {
+      const response = await fetch(`${apiUrl}/api/blogs/${id}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(blogData),
+      });
+
+      if (!response.ok) throw new Error("Failed to update blog post");
+      router.push("/admin/blogs");
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  if (!authenticated) return <p>Checking authentication...</p>;
+  if (loading) return <p>Loading...</p>;
+
+  return (
+    <>
+      <h1 className="text-2xl font-bold mb-4">Edit Blog Entry</h1>
+      {error && <p className="text-red-500">{error}</p>}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input
+          type="text"
+          placeholder="Title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        />
+        <input
+          type="text"
+          placeholder="Excerpt"
+          value={excerpt}
+          onChange={(e) => setExcerpt(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        />
+
+        {/* Tab Selector */}
+        <div className="flex border-b mb-2">
+          <button
+            type="button"
+            className={`p-2 ${activeTab === "edit" ? "border-b-2 border-blue-500 font-bold" : "text-gray-500"}`}
+            onClick={() => setActiveTab("edit")}
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            className={`p-2 ${activeTab === "preview" ? "border-b-2 border-blue-500 font-bold" : "text-gray-500"}`}
+            onClick={() => setActiveTab("preview")}
+          >
+            Preview
+          </button>
+        </div>
+
+        {/* Markdown Editor / Preview */}
+        {activeTab === "edit" ? (
+          <textarea
+            placeholder="Body (Markdown supported)"
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            className="w-full p-2 border rounded h-40"
+            required
+          />
+        ) : (
+          <div
+            className="w-full p-2 border rounded h-40 bg-gray-100 overflow-auto prose max-w-none"
+            dangerouslySetInnerHTML={{ __html: marked.parse(body) }}
+          />
+        )}
+
+        <label className="block">
+          <input
+            type="checkbox"
+            checked={isDraft}
+            onChange={(e) => setIsDraft(e.target.checked)}
+            className="mr-2"
+          />
+          Save as Draft
+        </label>
+        <label className="block">
+          Publish Date:
+          <input
+            type="date"
+            value={publishAt || ""}
+            onChange={(e) => setPublishAt(e.target.value)}
+            className="w-full p-2 border rounded"
+          />
+        </label>
+        <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
+          Save Changes
+        </button>
+      </form>
+    </>
+  );
+}
+
+================
+File: portfolio.next/src/app/admin/blogs/new/page.tsx
 ================
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Header from "@/components/Header";
 
-export default function CreateBlogEntry() {
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+export default function NewBlogEntry() {
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
   const [body, setBody] = useState("");
+  const [isDraft, setIsDraft] = useState(false);
+  const [publishAt, setPublishAt] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [authenticated, setAuthenticated] = useState(false);
   const router = useRouter();
 
-    const [authenticated, setAuthenticated] = useState(false);
-  
-    useEffect(() => {
-      async function checkAuth() {
-        const res = await fetch("http://localhost:5000/api/auth/check", {
-          credentials: "include",
-        });
-  
-        if (res.ok) {
-          setAuthenticated(true);
-        } else {
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch(`${apiUrl}/api/auth/check`, { credentials: "include" });
+        if (!res.ok) {
           router.push("/admin/login");
+        } else {
+          setAuthenticated(true);
         }
+      } catch {
+        router.push("/admin/login");
       }
-  
-      checkAuth();
-    }, []);
-  
-    if (!authenticated) return <p>You are not authenticated.</p>;
+    }
+    checkAuth();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const response = await fetch("http://localhost:5000/api/blogs", {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ title, excerpt, body }),
-    });
 
-    if (response.ok) {
-      router.push("/admin");
-    } else {
-      alert("Failed to create blog entry");
+    const blogData = { title, excerpt, body, isDraft, publishAt };
+
+    try {
+      const response = await fetch(`${apiUrl}/api/blogs`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(blogData),
+      });
+
+      if (!response.ok) throw new Error("Failed to create blog post");
+
+      router.push("/admin/blogs");
+    } catch (err) {
+      setError((err as Error).message);
     }
   };
 
+  if (!authenticated) return <p>Checking authentication...</p>;
+
   return (
-    <>
-    <Header />
-    <div className="container mx-auto px-4 py-8">
+    <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Create a New Blog Entry</h1>
+      {error && <p className="text-red-500">{error}</p>}
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="text"
@@ -1469,18 +1656,163 @@ export default function CreateBlogEntry() {
           required
         />
         <textarea
-          placeholder="Body (HTML allowed)"
+          placeholder="Body (Markdown supported)"
           value={body}
           onChange={(e) => setBody(e.target.value)}
           className="w-full p-2 border rounded h-40"
           required
         />
+        <label className="block">
+          <input
+            type="checkbox"
+            checked={isDraft}
+            onChange={(e) => setIsDraft(e.target.checked)}
+            className="mr-2"
+          />
+          Save as Draft
+        </label>
+        <label className="block">
+          Publish Date:
+          <input
+            type="date"
+            onChange={(e) => setPublishAt(e.target.value)}
+            className="w-full p-2 border rounded"
+          />
+        </label>
         <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
-          Submit
+          Save
         </button>
       </form>
     </div>
-    </>
+  );
+}
+
+================
+File: portfolio.next/src/app/admin/blogs/page.tsx
+================
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+interface BlogEntry {
+  _id: string;
+  title: string;
+  excerpt: string;
+  isDraft: boolean;
+  publishAt?: string;
+}
+
+export default function BlogManagement() {
+
+  const [blogs, setBlogs] = useState<BlogEntry[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [authenticated, setAuthenticated] = useState(false);
+
+  const router = useRouter();
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch(`${apiUrl}/api/auth/check`, { credentials: "include" });
+        if (!res.ok) {
+          router.push("/admin/login"); // Redirect to login if not authenticated
+        } else {
+          setAuthenticated(true);
+        }
+      } catch {
+        router.push("/admin/login");
+      }
+    }
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
+    if (!authenticated) return;
+    async function fetchBlogs() {
+      try {
+        const response = await fetch(`${apiUrl}/api/blogs`);
+        if (!response.ok) throw new Error("Failed to fetch blogs");
+        const data = await response.json();
+        setBlogs(data);
+      } catch (err) {
+        setError((err as Error).message);
+      }
+    }
+    fetchBlogs();
+  }, [authenticated]);
+
+  if (!authenticated) return <p>Checking authentication...</p>;
+
+  const handleArchive = async (id: string) => {
+    if (!confirm("Are you sure you want to archive this blog post?")) return;
+
+    try {
+      const response = await fetch(`${apiUrl}/api/blogs/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to archive the blog post");
+
+      setBlogs((prevBlogs) => prevBlogs.filter((blog) => blog._id !== id));
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-6">Manage Blog Posts</h1>
+
+      <div className="flex justify-end mb-4">
+        <Link
+          href="/admin/blogs/new"
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+        >
+          + Add New Blog
+        </Link>
+      </div>
+
+      {error && <p className="text-red-500">{error}</p>}
+
+      <table className="w-full border-collapse border border-gray-300">
+        <thead>
+          <tr className="bg-gray-200">
+            <th className="border border-gray-300 p-2 text-left">Title</th>
+            <th className="border border-gray-300 p-2 text-left">Status</th>
+            <th className="border border-gray-300 p-2 text-left">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {blogs.map((blog) => (
+            <tr key={blog._id} className="border border-gray-300">
+              <td className="border border-gray-300 p-2">{blog.title}</td>
+              <td className="border border-gray-300 p-2">
+                {blog.isDraft ? "Draft" : "Published"}
+                {blog.publishAt ? ` (Scheduled: ${new Date(blog.publishAt).toLocaleDateString()})` : ""}
+              </td>
+              <td className="border border-gray-300 p-2">
+                <Link
+                  href={`/admin/blogs/edit/${blog._id}`}
+                  className="text-blue-500 hover:underline mr-4"
+                >
+                  Edit
+                </Link>
+                <button
+                  onClick={() => handleArchive(blog._id)}
+                  className="text-red-500 hover:underline"
+                >
+                  Archive
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -1491,20 +1823,23 @@ File: portfolio.next/src/app/admin/login/page.tsx
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function AdminLogin() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
+  // Use the environment variable for API URL
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    const res = await fetch("http://localhost:5000/api/auth/login", {
+    const res = await fetch(`${apiUrl}/api/auth/login`, {
       method: "POST",
-      credentials: "include", // Ensure the cookie is stored
+      credentials: "include", // Ensure the auth-token cookie is stored
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
@@ -1517,16 +1852,21 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="flex min-h-screen justify-center items-center bg-gray-100">
-      <form onSubmit={handleLogin} className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-2xl font-semibold mb-4">Admin Login</h2>
-        {error && <p className="text-red-500">{error}</p>}
+    <div className="flex min-h-screen flex-col justify-center items-center bg-gray-100 space-y-6">
+      {/* Traditional Login Form */}
+      <form
+        onSubmit={handleLogin}
+        className="bg-white p-6 rounded-lg shadow-md w-full max-w-md"
+      >
+        <h2 className="text-2xl font-semibold mb-4 text-center">Admin Login</h2>
+        {error && <p className="text-red-500 mb-4">{error}</p>}
         <input
           type="text"
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           className="border p-2 w-full mb-2"
+          required
         />
         <input
           type="password"
@@ -1534,11 +1874,43 @@ export default function AdminLogin() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="border p-2 w-full mb-4"
+          required
         />
-        <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
+        <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded w-full">
           Login
         </button>
       </form>
+
+      {/* OAuth2 Login Options */}
+      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
+        <h3 className="text-xl font-semibold mb-4 text-center">Or Login with</h3>
+        <div className="flex flex-col gap-2">
+          <Link
+            href={`${apiUrl}/api/auth/oauth2/google`}
+            className="bg-red-500 text-white text-center py-2 rounded"
+          >
+            Login with Google
+          </Link>
+          <Link
+            href={`${apiUrl}/api/auth/oauth2/facebook`}
+            className="bg-blue-600 text-white text-center py-2 rounded"
+          >
+            Login with Facebook
+          </Link>
+          <Link
+            href={`${apiUrl}/api/auth/oauth2/github`}
+            className="bg-gray-800 text-white text-center py-2 rounded"
+          >
+            Login with GitHub
+          </Link>
+          <Link
+            href={`${apiUrl}/api/auth/oauth2/microsoft`}
+            className="bg-blue-400 text-white text-center py-2 rounded"
+          >
+            Login with Microsoft
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1550,8 +1922,10 @@ File: portfolio.next/src/app/admin/page.tsx
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import Link from "next/link";
+
+
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function AdminDashboard() {
   const [authenticated, setAuthenticated] = useState(false);
@@ -1576,40 +1950,409 @@ export default function AdminDashboard() {
   if (!authenticated) return <p>You are not authenticated.</p>;
 
   return (
-    <>
-    <Header />
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
       <p className="mb-6">Welcome to the admin panel! You can now manage your blog and projects.</p>
 
       <div className="flex gap-4">
-        {/* New Blog Entry Button */}
-        <button
-          onClick={() => router.push("/admin/blog/new")}
-          className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition"
-        >
-          New Blog Entry
-        </button>
+  <Link
+    href="/admin/blogs"
+    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition"
+  >
+    Manage Blogs
+  </Link>
 
-        {/* New Project Button */}
-        <button
-          onClick={() => router.push("/admin/projects/new")}
-          className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition"
-        >
-          New Project
-        </button>
+  <button
+    onClick={() => router.push("/admin/projects")}
+    className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition"
+  >
+    Manage Projects
+  </button>
 
-        {/* Logout Button */}
-        <a
-          href="http://localhost:5000/api/auth/logout"
-          className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition"
-        >
-          Logout
-        </a>
-      </div>
+  <a
+    href={`${apiUrl}/api/auth/logout`}
+    className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition"
+  >
+    Logout
+  </a>
+</div>
+
     </div>
-    <Footer />
+  );
+}
+
+================
+File: portfolio.next/src/app/admin/projects/edit/[id]/page.tsx
+================
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+export default function EditProject() {
+  const router = useRouter();
+  const { id } = useParams();
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [image, setImage] = useState("");
+  const [link, setLink] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Check authentication
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch(`${apiUrl}/api/auth/check`, { credentials: "include" });
+        if (!res.ok) {
+          router.push("/admin/login");
+        } else {
+          setAuthenticated(true);
+        }
+      } catch {
+        router.push("/admin/login");
+      }
+    }
+    checkAuth();
+  }, [router]);
+
+  // Fetch project details once authenticated
+  useEffect(() => {
+    if (!authenticated) return;
+    async function fetchProject() {
+      try {
+        const response = await fetch(`${apiUrl}/api/projects/${id}`);
+        if (!response.ok) throw new Error("Failed to fetch project");
+        const data = await response.json();
+        setTitle(data.title);
+        setDescription(data.description);
+        setImage(data.image);
+        setLink(data.link);
+        setLoading(false);
+      } catch (err) {
+        setError((err as Error).message);
+        setLoading(false);
+      }
+    }
+    fetchProject();
+  }, [authenticated, id]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const projectData = { title, description, image, link };
+    try {
+      const response = await fetch(`${apiUrl}/api/projects/${id}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(projectData),
+      });
+      if (!response.ok) throw new Error("Failed to update project");
+      router.push("/admin/projects");
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  if (!authenticated) return <p>Checking authentication...</p>;
+  if (loading) return <p>Loading...</p>;
+
+  return (
+    <>
+      <h1 className="text-2xl font-bold mb-4">Edit Project</h1>
+      {error && <p className="text-red-500">{error}</p>}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input
+          type="text"
+          placeholder="Project Title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        />
+        <textarea
+          placeholder="Project Description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="w-full p-2 border rounded h-32"
+          required
+        />
+        <input
+          type="text"
+          placeholder="Image URL"
+          value={image}
+          onChange={(e) => setImage(e.target.value)}
+          className="w-full p-2 border rounded"
+        />
+        <input
+          type="text"
+          placeholder="Project Link"
+          value={link}
+          onChange={(e) => setLink(e.target.value)}
+          className="w-full p-2 border rounded"
+        />
+        <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
+          Save Changes
+        </button>
+      </form>
     </>
+  );
+}
+
+================
+File: portfolio.next/src/app/admin/projects/new/page.tsx
+================
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+export default function NewProject() {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [image, setImage] = useState("");
+  const [link, setLink] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [authenticated, setAuthenticated] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch(`${apiUrl}/api/auth/check`, { credentials: "include" });
+        if (!res.ok) {
+          router.push("/admin/login");
+        } else {
+          setAuthenticated(true);
+        }
+      } catch (err) {
+        router.push("/admin/login");
+      }
+    }
+    checkAuth();
+  }, [router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const projectData = { title, description, image, link };
+
+    try {
+      const response = await fetch(`${apiUrl}/api/projects`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(projectData),
+      });
+      if (!response.ok) throw new Error("Failed to create project");
+      router.push("/admin/projects");
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  if (!authenticated) return <p>Checking authentication...</p>;
+
+  return (
+    <>
+      <h1 className="text-2xl font-bold mb-4">Add New Project</h1>
+      {error && <p className="text-red-500">{error}</p>}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input
+          type="text"
+          placeholder="Project Title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        />
+        <textarea
+          placeholder="Project Description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="w-full p-2 border rounded h-32"
+          required
+        />
+        <input
+          type="text"
+          placeholder="Image URL"
+          value={image}
+          onChange={(e) => setImage(e.target.value)}
+          className="w-full p-2 border rounded"
+        />
+        <input
+          type="text"
+          placeholder="Project Link"
+          value={link}
+          onChange={(e) => setLink(e.target.value)}
+          className="w-full p-2 border rounded"
+        />
+        <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
+          Create Project
+        </button>
+      </form>
+    </>
+  );
+}
+
+================
+File: portfolio.next/src/app/admin/projects/page.tsx
+================
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+interface Project {
+  _id: string;
+  title: string;
+  description: string;
+  image: string;
+  link: string;
+}
+
+export default function ProjectManagement() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [authenticated, setAuthenticated] = useState(false);
+  const router = useRouter();
+
+  // Check authentication on mount.
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch(`${apiUrl}/api/auth/check`, { credentials: "include" });
+        if (!res.ok) {
+          router.push("/admin/login");
+        } else {
+          setAuthenticated(true);
+        }
+      } catch {
+        router.push("/admin/login");
+      }
+    }
+    checkAuth();
+  }, []);
+
+  // Fetch projects once authenticated.
+  useEffect(() => {
+    if (!authenticated) return;
+    async function fetchProjects() {
+      try {
+        const response = await fetch(`${apiUrl}/api/projects`);
+        if (!response.ok) throw new Error("Failed to fetch projects");
+        const data = await response.json();
+        setProjects(data);
+      } catch (err) {
+        setError((err as Error).message);
+      }
+    }
+    fetchProjects();
+  }, [authenticated]);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this project?")) return;
+    try {
+      const response = await fetch(`${apiUrl}/api/projects/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to delete project");
+      setProjects((prev) => prev.filter((project) => project._id !== id));
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  if (!authenticated) return <p>Checking authentication...</p>;
+
+  return (
+    <>
+      <h1 className="text-3xl font-bold mb-6">Manage Projects</h1>
+      <div className="flex justify-end mb-4">
+        <Link
+          href="/admin/projects/new"
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+        >
+          + Add New Project
+        </Link>
+      </div>
+      {error && <p className="text-red-500">{error}</p>}
+      <table className="w-full border-collapse border border-gray-300">
+        <thead>
+          <tr className="bg-gray-200">
+            <th className="border border-gray-300 p-2 text-left">Title</th>
+            <th className="border border-gray-300 p-2 text-left">Description</th>
+            <th className="border border-gray-300 p-2 text-left">Image</th>
+            <th className="border border-gray-300 p-2 text-left">Link</th>
+            <th className="border border-gray-300 p-2 text-left">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {projects.map((project) => (
+            <tr key={project._id} className="border border-gray-300">
+              <td className="border border-gray-300 p-2">{project.title}</td>
+              <td className="border border-gray-300 p-2">{project.description}</td>
+              <td className="border border-gray-300 p-2">
+                <img
+                  src={project.image}
+                  alt={project.title}
+                  className="h-16 w-auto object-contain"
+                />
+              </td>
+              <td className="border border-gray-300 p-2">
+                <a
+                  href={project.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:underline"
+                >
+                  View
+                </a>
+              </td>
+              <td className="border border-gray-300 p-2">
+                <Link
+                  href={`/admin/projects/edit/${project._id}`}
+                  className="text-blue-500 hover:underline mr-4"
+                >
+                  Edit
+                </Link>
+                <button
+                  onClick={() => handleDelete(project._id)}
+                  className="text-red-500 hover:underline"
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  );
+}
+
+================
+File: portfolio.next/src/app/admin/temp-layout.tsx
+================
+import type { ReactNode } from "react";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+
+export default function AdminLayout({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      <main className="flex-grow p-6">{children}</main>
+      <Footer />
+    </div>
   );
 }
 
@@ -1618,14 +2361,13 @@ File: portfolio.next/src/app/blogs/[slug]/page.tsx
 ================
 // portfolio.next/src/app/blogs/[slug]/page.tsx
 import { notFound } from "next/navigation";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { getBlog } from "@/services/blogService";
+import { marked } from "marked";
 
 interface BlogEntry {
   id: number;
   title: string;
-  date: string;
+  publishAt: string;
   body: string;
   excerpt?: string;
   link: string;
@@ -1650,15 +2392,27 @@ export default async function BlogPage({ params }: Props) {
 
   return (
     <>
-      <Header />
-      <main className="container mx-auto px-6 py-10 flex flex-col lg:flex-row lg:gap-8 flex-1">
+      <main className="container mx-auto px-6 py-10 flex flex-col flex-1">
         <h1 className="text-3xl font-bold">{blog.title}</h1>
-        <p className="text-gray-500">{blog.date}</p>
-        <div className="mt-4" dangerouslySetInnerHTML={{ __html: blog.body }} />
+        <p className="text-gray-500">
+            {new Date(blog.publishAt).toLocaleString(undefined, {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            })}
+          </p>
+  
+        {/* Wrap the Markdown content inside a "prose" div */}
+        <div className="mt-4 prose lg:prose-lg xl:prose-xl max-w-none"
+             dangerouslySetInnerHTML={{ __html: marked.parse(blog.body) }} />
       </main>
-      <Footer />
     </>
   );
+  
 }
 
 ================
@@ -1686,12 +2440,23 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+body.compact-view main {
+  max-width: 800px;
+  margin: auto;
+}
+
+body.full-view main {
+  max-width: 100%;
+}
+
 ================
 File: portfolio.next/src/app/layout.tsx
 ================
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -1710,15 +2475,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <Header />
+        <main className="p-6 mx-auto w-full max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl">
+          {children}
+        </main>
+        <Footer />
       </body>
     </html>
   );
@@ -1733,6 +2500,7 @@ import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { fetchBlogEntries, fetchProjects } from "@/services/apiService";
+import SectionToggle from "@/components/SectionToggle";
 
 interface Project {
   _id: string;
@@ -1753,39 +2521,30 @@ interface BlogEntry {
 export default function Home() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [blogEntries, setBlogEntries] = useState<BlogEntry[]>([]);
-  const [activeTab, setActiveTab] = useState<"blog" | "portfolio">("blog");
-  const [error, setError] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<"blogs" | "projects">("blogs");
 
   useEffect(() => {
     async function loadData() {
       try {
         const blogs = await fetchBlogEntries();
         setBlogEntries(blogs);
+        const projectsData = await fetchProjects();
+        setProjects(projectsData);
       } catch (error) {
-        setError((error as Error).message);
-        console.error("Error fetching blog entries:", error);
+        console.error("Error fetching data:", error);
       }
-
-      // If you wish to fetch projects from API instead of using mock data, uncomment:
-      // try {
-      //   const projectsData = await fetchProjects();
-      //   setProjects(projectsData);
-      // } catch (error) {
-      //   console.error("Error fetching projects:", error);
-      // }
     }
     loadData();
   }, []);
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
-
+      {/* Toggle appears only on small screens */}
+      <SectionToggle activeSection={activeSection} setActiveSection={setActiveSection} />
       <main className="container mx-auto px-6 py-10 flex flex-col lg:flex-row lg:gap-8 flex-1">
-        {/* Blog Section */}
-        <section className="lg:flex-1">
+        {/* Blogs Section: on small screens, display only if activeSection === "blogs"; always visible on md+ */}
+        <section className={`${activeSection === "blogs" ? "block" : "hidden"} md:block lg:flex-1`}>
           <h2 className="text-2xl font-semibold mb-6">Latest Posts</h2>
-          {error && <p className="text-red-500">Error: {error}</p>}
           <div className="space-y-4">
             {blogEntries.map((entry) => (
               <a
@@ -1794,20 +2553,19 @@ export default function Home() {
                 className="block bg-gray-100 p-4 rounded-sm hover:bg-gray-200 transition"
               >
                 <h3 className="text-lg font-semibold">{entry.title}</h3>
-                <p className="text-sm text-gray-500">{entry.date}</p>
+                <p className="text-sm text-gray-500">{new Date(entry.date).toLocaleString()}</p>
                 <p className="text-gray-600">{entry.excerpt}</p>
               </a>
             ))}
           </div>
         </section>
-
-        {/* Projects Sidebar */}
-        <aside className="hidden lg:block lg:w-1/3 bg-white rounded-sm shadow-md p-4 h-fit">
+        {/* Projects Section: on small screens, display only if activeSection === "projects"; always visible on md+ */}
+        <aside className={`${activeSection === "projects" ? "block" : "hidden"} md:block lg:w-1/3 bg-white rounded-sm shadow-md p-4 h-fit`}>
           <h2 className="text-xl font-semibold mb-4">Projects</h2>
           <div className="space-y-3">
             {projects.map((project) => (
               <a
-                key={`project${project._id}`}
+                key={`project_${project._id}`}
                 href={`${process.env.NEXT_PUBLIC_API_URL}/api/projects/${project._id}`}
                 className="block p-3 bg-gray-100 rounded-sm hover:bg-gray-200 transition"
               >
@@ -1818,8 +2576,6 @@ export default function Home() {
           </div>
         </aside>
       </main>
-
-      <Footer />
     </div>
   );
 }
@@ -1851,6 +2607,41 @@ export default function Header() {
         <p className="text-xs">(the Northern Developer)</p>
       </Link>
     </header>
+  );
+}
+
+================
+File: portfolio.next/src/components/SectionToggle.tsx
+================
+"use client";
+
+interface SectionToggleProps {
+  activeSection: "blogs" | "projects";
+  setActiveSection: (section: "blogs" | "projects") => void;
+}
+
+export default function SectionToggle({ activeSection, setActiveSection }: SectionToggleProps) {
+  return (
+    <div className="flex md:hidden justify-center mb-4 border-b">
+      <button
+        type="button"
+        className={`w-1/2 p-2 text-center ${
+          activeSection === "blogs" ? "border-b-2 border-blue-500 font-bold" : "text-gray-500"
+        }`}
+        onClick={() => setActiveSection("blogs")}
+      >
+        Blogs
+      </button>
+      <button
+        type="button"
+        className={`w-1/2 p-2 text-center ${
+          activeSection === "projects" ? "border-b-2 border-blue-500 font-bold" : "text-gray-500"
+        }`}
+        onClick={() => setActiveSection("projects")}
+      >
+        Projects
+      </button>
+    </div>
   );
 }
 
@@ -1890,7 +2681,7 @@ File: portfolio.next/src/services/blogService.ts
 export interface BlogEntry {
     id: number;
     title: string;
-    date: string;
+    publishAt: string;
     body: string;
     excerpt?: string;
     link: string;
@@ -1933,7 +2724,7 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [require("@tailwindcss/typography")], // Add this line
 } satisfies Config;
 
 ================
@@ -2191,6 +2982,79 @@ describe("Blog Validation Middleware", () => {
 });
 
 ================
+File: portfolio.node/__tests__/commentRoutes.test.js
+================
+// portfolio.node/__tests__/commentRoutes.test.js
+const request = require("supertest");
+const mongoose = require("mongoose");
+const { MongoMemoryServer } = require("mongodb-memory-server");
+const { createApp } = require("../src/app");
+
+let app;
+let mongoServer;
+
+beforeAll(async () => {
+  // Start in-memory MongoDB instance
+  mongoServer = await MongoMemoryServer.create();
+  const uri = mongoServer.getUri();
+  process.env.MONGO_URI = uri;
+  app = await createApp();
+});
+
+afterAll(async () => {
+  await mongoose.connection.dropDatabase();
+  await mongoose.disconnect();
+  await mongoServer.stop();
+});
+
+describe("Comment Routes", () => {
+  let createdCommentId;
+  // Create a dummy blog ID for testing
+  const blogId = new mongoose.Types.ObjectId();
+
+  test("POST /api/comments creates a new comment", async () => {
+    const res = await request(app)
+      .post("/api/comments")
+      .send({
+        author: "Test Author",
+        text: "This is a test comment",
+        blog: blogId.toString(),
+      });
+    expect(res.statusCode).toBe(201);
+    expect(res.body.author).toBe("Test Author");
+    createdCommentId = res.body._id;
+  });
+
+  test("GET /api/comments/blog/:blogId retrieves comments with nested replies", async () => {
+    const res = await request(app)
+      .get(`/api/comments/blog/${blogId.toString()}`)
+      .send();
+    expect(res.statusCode).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    // We should retrieve at least the comment we just created
+    expect(res.body.length).toBeGreaterThanOrEqual(1);
+  });
+
+  test("PUT /api/comments/:id updates a comment (auth required)", async () => {
+    const res = await request(app)
+      .put(`/api/comments/${createdCommentId}`)
+      .set("Cookie", "session=dummy") // Set dummy cookie to bypass auth middleware
+      .send({ text: "Updated comment text" });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.text).toBe("Updated comment text");
+  });
+
+  test("DELETE /api/comments/:id redacts a comment (auth required)", async () => {
+    const res = await request(app)
+      .delete(`/api/comments/${createdCommentId}`)
+      .set("Cookie", "session=dummy") // Set dummy cookie to bypass auth middleware
+      .send();
+    expect(res.statusCode).toBe(200);
+    expect(res.body.comment.redacted).toBe(true);
+  });
+});
+
+================
 File: portfolio.node/__tests__/jest-setup.test.js
 ================
 describe('Environment Variables', () => {
@@ -2434,7 +3298,13 @@ File: portfolio.node/package.json
     "express": "^4.21.2",
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.10.1"
+    "marked": "^15.0.7",
+    "mongoose": "^8.10.1",
+    "passport": "^0.7.0",
+    "passport-facebook": "^3.0.0",
+    "passport-github": "^1.1.0",
+    "passport-google-oauth20": "^2.0.0",
+    "passport-microsoft": "^2.1.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
@@ -2454,11 +3324,15 @@ require("dotenv").config();
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
+
 const connectDB = require("./config/db");
+const passport = require("./config/passport");
 
 const authRoutes = require("./routes/authRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const blogRoutes = require("./routes/blogRoutes");
+const oauthRoutes = require("./routes/oauthRoutes");
+const commentRoutes = require("./routes/commentRoutes");
 
 async function createApp() {
   // Connect to the database
@@ -2476,8 +3350,10 @@ async function createApp() {
 
   // Set up routes
   app.use("/api/auth", authRoutes);
+  app.use("/api/auth/oauth2", oauthRoutes);
   app.use("/api/projects", projectRoutes);
   app.use("/api/blogs", blogRoutes);
+  app.use("/api/comments", commentRoutes);
 
   return app;
 }
@@ -2566,12 +3442,152 @@ const connectDB = async () => {
 module.exports = connectDB;
 
 ================
+File: portfolio.node/src/config/passport.js
+================
+// portfolio.node/src/config/passport.js
+const passport = require("passport");
+const GoogleStrategy = require("passport-google-oauth20").Strategy;
+const FacebookStrategy = require("passport-facebook").Strategy;
+const GitHubStrategy = require("passport-github").Strategy;
+const MicrosoftStrategy = require("passport-microsoft").Strategy;
+
+// Serialize and deserialize user (for session support, if needed)
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
+passport.deserializeUser(async (id, done) => {
+  try {
+    const User = require("../models/User");
+    const user = await User.findById(id);
+    done(null, user);
+  } catch (err) {
+    done(err, null);
+  }
+});
+
+// Helper: Register or fetch a consumer user
+async function findOrCreateUser(providerId, email) {
+  const User = require("../models/User");
+  const authService = require("../services/authService");
+  let user = await User.findOne({ username: email });
+  if (!user) {
+    // Use a dummy password based on providerId (in production, you might store provider data separately)
+    user = await authService.registerUser({ username: email, password: "oauth_" + providerId, isAdmin: false });
+  }
+  return user;
+}
+
+// Google Strategy
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: "/api/auth/oauth2/google/callback",
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        const email = profile.emails && profile.emails[0].value;
+        if (!email) throw new Error("No email returned from Google");
+        const user = await findOrCreateUser(profile.id, email);
+        return done(null, user);
+      } catch (error) {
+        return done(error, null);
+      }
+    }
+  )
+);
+
+// Facebook Strategy
+passport.use(
+  new FacebookStrategy(
+    {
+      clientID: process.env.FACEBOOK_CLIENT_ID,
+      clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
+      callbackURL: "/api/auth/oauth2/facebook/callback",
+      profileFields: ["id", "emails", "name"],
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        const email = profile.emails && profile.emails[0].value;
+        if (!email) throw new Error("No email returned from Facebook");
+        const user = await findOrCreateUser(profile.id, email);
+        return done(null, user);
+      } catch (error) {
+        return done(error, null);
+      }
+    }
+  )
+);
+
+// GitHub Strategy
+passport.use(
+  new GitHubStrategy(
+    {
+      clientID: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      callbackURL: "/api/auth/oauth2/github/callback",
+      scope: ["user:email"],
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        let email =
+          profile.emails && profile.emails[0].value
+            ? profile.emails[0].value
+            : profile.username + "@github.com";
+        const user = await findOrCreateUser(profile.id, email);
+        return done(null, user);
+      } catch (error) {
+        return done(error, null);
+      }
+    }
+  )
+);
+
+// Microsoft Strategy
+passport.use(
+  new MicrosoftStrategy(
+    {
+      clientID: process.env.MICROSOFT_CLIENT_ID,
+      clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
+      callbackURL: "/api/auth/oauth2/microsoft/callback",
+      scope: ["user.read"],
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        const email = profile.emails && profile.emails[0].value;
+        if (!email) throw new Error("No email returned from Microsoft");
+        const user = await findOrCreateUser(profile.id, email);
+        return done(null, user);
+      } catch (error) {
+        return done(error, null);
+      }
+    }
+  )
+);
+
+module.exports = passport;
+
+================
 File: portfolio.node/src/middlewares/auth.js
 ================
+const authService = require("../services/authService");
+
 module.exports = (req, res, next) => {
-    if (!req.cookies.session) return res.status(401).json({ message: "Unauthorized" });
+  const token = req.cookies["auth-token"];
+  if (!token) {
+    console.log("No auth-token cookie found");
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  try {
+    const decoded = authService.verifyToken(token);
+    req.user = decoded; // Attach user info to the request object
     next();
-  };
+  } catch (error) {
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
+};
 
 ================
 File: portfolio.node/src/middlewares/validate.js
@@ -2593,35 +3609,52 @@ File: portfolio.node/src/models/BlogEntry.js
 const mongoose = require("mongoose");
 
 const BlogEntrySchema = new mongoose.Schema({
-  title: String,
-  date: String,
-  excerpt: String,
-  body: String,
-  link: String,
-});
+  title: { type: String, required: true },
+  excerpt: { type: String, required: true },
+  // Blog body stored in Markdown format.
+  body: { type: String, required: true },
+  isDraft: { type: Boolean, default: false },
+  publishAt: { type: Date },
+}, { timestamps: true });
 
+// Generate slug and link from title.
 BlogEntrySchema.pre('save', function(next) {
-  // Generate slug from title - convert to lowercase, replace spaces with hyphens,
-  // remove special characters
   const slug = this.title
     .toLowerCase()
-    .replace(/[^\w\s-]/g, '') // Remove special chars
-    .replace(/\s+/g, '-')     // Replace spaces with hyphens
-    .replace(/-+/g, '-');     // Remove consecutive hyphens
+    .replace(/[^\w\s-]/g, '') // Remove special characters.
+    .replace(/\s+/g, '-')     // Replace spaces with hyphens.
+    .replace(/-+/g, '-');     // Collapse multiple hyphens.
   
-  // Option 1: Just use the slug
   this.link = `${slug}-${this._id}`;
-  
-  // Option 2: Include date for better organization (YYYY-MM-DD format)
-  // Assuming date is stored as a string in format that can be parsed by Date
-  // const dateObj = new Date(this.date);
-  // const formattedDate = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD
-  // this.link = `/blogs/${formattedDate}-${slug}-${this._id}`;
-  
   next();
 });
 
 module.exports = mongoose.model("BlogEntry", BlogEntrySchema);
+
+================
+File: portfolio.node/src/models/Comment.js
+================
+const mongoose = require("mongoose");
+
+const CommentSchema = new mongoose.Schema(
+  {
+    // The author of the comment (could be a username or user ID)
+    author: { type: String, required: true },
+    // The text content of the comment
+    text: { type: String, required: true },
+    // Reference to the blog post this comment is associated with
+    blog: { type: mongoose.Schema.Types.ObjectId, ref: "BlogEntry", required: true },
+    // For nested replies: if this comment is a reply, reference its parent comment.
+    parent: { type: mongoose.Schema.Types.ObjectId, ref: "Comment", default: null },
+    // Flag to indicate if the comment has been redacted (i.e., moderated)
+    redacted: { type: Boolean, default: false },
+  },
+  {
+    timestamps: true, // Automatically adds createdAt and updatedAt fields.
+  }
+);
+
+module.exports = mongoose.model("Comment", CommentSchema);
 
 ================
 File: portfolio.node/src/models/Project.js
@@ -2646,6 +3679,8 @@ const bcrypt = require("bcrypt");
 const UserSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   passwordHash: { type: String, required: true },
+  // New field to indicate if the user has admin privileges.
+  isAdmin: { type: Boolean, default: false },
 });
 
 // Hash password before saving
@@ -2673,8 +3708,8 @@ const router = express.Router();
 // Register a new user using the auth service
 router.post("/register", async (req, res) => {
   try {
-    const { username, password } = req.body;
-    await authService.registerUser({ username, password });
+    const { username, password, isAdmin } = req.body;
+    await authService.registerUser({ username, password, isAdmin });
     res.status(201).json({ message: "User created successfully" });
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -2787,6 +3822,122 @@ router.delete("/:id", authMiddleware, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+module.exports = router;
+
+================
+File: portfolio.node/src/routes/commentRoutes.js
+================
+// portfolio.node/src/routes/commentRoutes.js
+const express = require("express");
+const authMiddleware = require("../middlewares/auth"); // Protect endpoints where necessary
+const commentService = require("../services/commentService");
+const router = express.Router();
+
+/**
+ * Create a new comment.
+ * Expected body: { author, text, blog, parent (optional) }
+ */
+router.post("/", async (req, res) => {
+  try {
+    const { author, text, blog, parent } = req.body;
+    if (!author || !text || !blog) {
+      return res.status(400).json({ error: "author, text, and blog fields are required" });
+    }
+    const comment = await commentService.createComment({ author, text, blog, parent });
+    res.status(201).json(comment);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Retrieve comments for a specific blog post (including nested replies).
+ */
+router.get("/blog/:blogId", async (req, res) => {
+  try {
+    const comments = await commentService.getCommentsByBlog(req.params.blogId);
+    res.json(comments);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Update a comment by its ID.
+ * Expected body may contain: { text (optional), redacted (optional) }
+ */
+router.put("/:id", authMiddleware, async (req, res) => {
+  try {
+    const { text, redacted } = req.body;
+    const updateData = {};
+    if (text !== undefined) updateData.text = text;
+    if (redacted !== undefined) updateData.redacted = redacted;
+    const updatedComment = await commentService.updateComment(req.params.id, updateData);
+    if (!updatedComment) return res.status(404).json({ error: "Comment not found" });
+    res.json(updatedComment);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Redact (soft-delete) a comment by marking it as redacted.
+ */
+router.delete("/:id", authMiddleware, async (req, res) => {
+  try {
+    const redactedComment = await commentService.redactComment(req.params.id);
+    if (!redactedComment) return res.status(404).json({ error: "Comment not found" });
+    res.json({ message: "Comment redacted", comment: redactedComment });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+module.exports = router;
+
+================
+File: portfolio.node/src/routes/oauthRoutes.js
+================
+// portfolio.node/src/routes/oauthRoutes.js
+const express = require("express");
+const jwt = require("jsonwebtoken");
+const passport = require("../config/passport");
+const router = express.Router();
+
+const SECRET_KEY = process.env.SECRET_KEY || "your_secret_key";
+
+// Helper function to issue a JWT and set it as a cookie.
+function issueToken(req, res) {
+  const token = jwt.sign(
+    { id: req.user.id, username: req.user.username, isAdmin: req.user.isAdmin },
+    SECRET_KEY,
+    { expiresIn: "1h" }
+  );
+  res.cookie("auth-token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Strict",
+    maxAge: 3600000,
+  });
+  res.redirect("/");
+}
+
+// Google OAuth2 Routes
+router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
+router.get("/google/callback", passport.authenticate("google", { failureRedirect: "/login" }), issueToken);
+
+// Facebook OAuth2 Routes
+router.get("/facebook", passport.authenticate("facebook", { scope: ["email"] }));
+router.get("/facebook/callback", passport.authenticate("facebook", { failureRedirect: "/login" }), issueToken);
+
+// GitHub OAuth2 Routes
+router.get("/github", passport.authenticate("github", { scope: ["user:email"] }));
+router.get("/github/callback", passport.authenticate("github", { failureRedirect: "/login" }), issueToken);
+
+// Microsoft OAuth2 Routes
+router.get("/microsoft", passport.authenticate("microsoft", { scope: ["user.read"] }));
+router.get("/microsoft/callback", passport.authenticate("microsoft", { failureRedirect: "/login" }), issueToken);
 
 module.exports = router;
 
@@ -2924,16 +4075,27 @@ const SECRET_KEY = process.env.SECRET_KEY || "your_secret_key";
 
 /**
  * Registers a new user.
- * @param {Object} param0 - Contains username and password.
+ * If `isAdmin` is true, ensures no admin user already exists.
+ * @param {Object} param0 - Contains username, password, and optional isAdmin flag.
  * @returns {Promise<Object>} - The created user.
  */
-async function registerUser({ username, password }) {
+async function registerUser({ username, password, isAdmin = false }) {
+  // If registering an admin, check that no admin exists yet.
+  if (isAdmin) {
+    const existingAdmin = await User.findOne({ isAdmin: true });
+    if (existingAdmin) {
+      throw new Error("An admin user already exists. Admin registration requires an existing admin.");
+    }
+  }
+
+  // Check for an existing user with the same username.
   const existingUser = await User.findOne({ username });
   if (existingUser) {
     throw new Error("User already exists");
   }
-  // Create a new user; the pre-save hook in User model will hash the password.
-  const user = new User({ username, passwordHash: password });
+  
+  // Create a new user; the User model's pre-save hook hashes the password.
+  const user = new User({ username, passwordHash: password, isAdmin });
   await user.save();
   return user;
 }
@@ -2948,7 +4110,7 @@ async function loginUser({ username, password }) {
   if (!user || !(await user.validatePassword(password))) {
     throw new Error("Invalid credentials");
   }
-  const token = jwt.sign({ id: user.id, username: user.username }, SECRET_KEY, {
+  const token = jwt.sign({ id: user.id, username: user.username, isAdmin: user.isAdmin }, SECRET_KEY, {
     expiresIn: "1h",
   });
   return token;
@@ -3041,6 +4203,71 @@ module.exports = {
   getBlogEntryById,
   updateBlogEntry,
   deleteBlogEntry,
+};
+
+================
+File: portfolio.node/src/services/commentService.js
+================
+// portfolio.node/src/services/commentService.js
+const Comment = require("../models/Comment");
+
+/**
+ * Creates a new comment.
+ * @param {Object} data - Comment data: { author, text, blog, parent (optional) }
+ * @returns {Promise<Object>} - The created comment.
+ */
+async function createComment(data) {
+  const { author, text, blog, parent } = data;
+  const comment = new Comment({
+    author,
+    text,
+    blog,
+    parent: parent || null,
+  });
+  await comment.save();
+  return comment;
+}
+
+/**
+ * Retrieves root-level comments for a given blog post along with their immediate replies.
+ * @param {string} blogId - The blog post ID.
+ * @returns {Promise<Array>} - Array of comments with nested replies.
+ */
+async function getCommentsByBlog(blogId) {
+  const comments = await Comment.find({ blog: blogId, parent: null }).sort({ createdAt: -1 });
+  const commentsWithReplies = await Promise.all(
+    comments.map(async (comment) => {
+      const replies = await Comment.find({ parent: comment._id }).sort({ createdAt: 1 });
+      return { ...comment.toObject(), replies };
+    })
+  );
+  return commentsWithReplies;
+}
+
+/**
+ * Updates a comment by its ID.
+ * @param {string} id - Comment ID.
+ * @param {Object} updateData - Data to update (text, redacted).
+ * @returns {Promise<Object|null>} - The updated comment or null if not found.
+ */
+async function updateComment(id, updateData) {
+  return Comment.findByIdAndUpdate(id, updateData, { new: true });
+}
+
+/**
+ * Redacts a comment by its ID (marks as redacted).
+ * @param {string} id - Comment ID.
+ * @returns {Promise<Object|null>} - The redacted comment or null if not found.
+ */
+async function redactComment(id) {
+  return Comment.findByIdAndUpdate(id, { redacted: true }, { new: true });
+}
+
+module.exports = {
+  createComment,
+  getCommentsByBlog,
+  updateComment,
+  redactComment,
 };
 
 ================
@@ -3187,7 +4414,8 @@ const Joi = require('joi');
 
 const createBlogSchema = Joi.object({
   title: Joi.string().min(3).max(255).required(),
-  date: Joi.string().isoDate().required(),
+  publishAt: Joi.string().isoDate().required(),
+  isDraft: Joi.boolean().required(),
   excerpt: Joi.string().max(500).required(),
   body: Joi.string().required(),
 });

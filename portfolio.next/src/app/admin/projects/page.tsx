@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -17,29 +18,12 @@ interface Project {
 export default function ProjectManagement() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [authenticated, setAuthenticated] = useState(false);
+  const { isAuthenticated } = useAuth();
   const router = useRouter();
-
-  // Check authentication on mount.
-  useEffect(() => {
-    async function checkAuth() {
-      try {
-        const res = await fetch(`${apiUrl}/api/auth/check`, { credentials: "include" });
-        if (!res.ok) {
-          router.push("/admin/login");
-        } else {
-          setAuthenticated(true);
-        }
-      } catch {
-        router.push("/admin/login");
-      }
-    }
-    checkAuth();
-  }, []);
 
   // Fetch projects once authenticated.
   useEffect(() => {
-    if (!authenticated) return;
+    if (!isAuthenticated) return;
     async function fetchProjects() {
       try {
         const response = await fetch(`${apiUrl}/api/projects`);
@@ -51,7 +35,7 @@ export default function ProjectManagement() {
       }
     }
     fetchProjects();
-  }, [authenticated]);
+  }, [isAuthenticated]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this project?")) return;
@@ -67,7 +51,7 @@ export default function ProjectManagement() {
     }
   };
 
-  if (!authenticated) return <p>Checking authentication...</p>;
+  if (!isAuthenticated) return <p>Checking authentication...</p>;
 
   return (
     <>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -18,28 +19,13 @@ export default function BlogManagement() {
 
   const [blogs, setBlogs] = useState<BlogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [authenticated, setAuthenticated] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   const router = useRouter();
 
-  useEffect(() => {
-    async function checkAuth() {
-      try {
-        const res = await fetch(`${apiUrl}/api/auth/check`, { credentials: "include" });
-        if (!res.ok) {
-          router.push("/admin/login"); // Redirect to login if not authenticated
-        } else {
-          setAuthenticated(true);
-        }
-      } catch {
-        router.push("/admin/login");
-      }
-    }
-    checkAuth();
-  }, []);
 
   useEffect(() => {
-    if (!authenticated) return;
+    if (!isAuthenticated) return;
     async function fetchBlogs() {
       try {
         const response = await fetch(`${apiUrl}/api/blogs`);
@@ -51,9 +37,9 @@ export default function BlogManagement() {
       }
     }
     fetchBlogs();
-  }, [authenticated]);
+  }, [isAuthenticated]);
 
-  if (!authenticated) return <p>Checking authentication...</p>;
+  if (!isAuthenticated) return <p>Checking authentication...</p>;
 
   const handleArchive = async (id: string) => {
     if (!confirm("Are you sure you want to archive this blog post?")) return;

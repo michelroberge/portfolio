@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { fetchBlogEntries, fetchProjects } from "@/services/apiService";
 import SectionToggle from "@/components/SectionToggle";
 

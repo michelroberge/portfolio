@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -11,24 +12,8 @@ export default function NewProject() {
   const [image, setImage] = useState("");
   const [link, setLink] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [authenticated, setAuthenticated] = useState(false);
   const router = useRouter();
-
-  useEffect(() => {
-    async function checkAuth() {
-      try {
-        const res = await fetch(`${apiUrl}/api/auth/check`, { credentials: "include" });
-        if (!res.ok) {
-          router.push("/admin/login");
-        } else {
-          setAuthenticated(true);
-        }
-      } catch (err) {
-        router.push("/admin/login");
-      }
-    }
-    checkAuth();
-  }, [router]);
+  const { isAuthenticated } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +33,7 @@ export default function NewProject() {
     }
   };
 
-  if (!authenticated) return <p>Checking authentication...</p>;
+  if (!isAuthenticated) return <p>Checking authentication...</p>;
 
   return (
     <>

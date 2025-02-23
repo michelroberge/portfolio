@@ -8,11 +8,18 @@ const router = express.Router();
  * Create a new comment.
  * Expected body: { author, text, blog, parent (optional) }
  */
-router.post("/", async (req, res) => {
+router.post("/", authMiddleware, async (req, res) => {
   try {
     const { author, text, blog, parent } = req.body;
     if (!author || !text || !blog) {
       return res.status(400).json({ error: "author, text, and blog fields are required" });
+    }
+    // Validate parent existence if provided.
+    if (parent) {
+      const parentComment = await Comment.findById(parent);
+      if (!parentComment) {
+        return res.status(400).json({ error: "Parent comment not found" });
+      }
     }
     const comment = await commentService.createComment({ author, text, blog, parent });
     res.status(201).json(comment);

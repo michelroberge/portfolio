@@ -1,33 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function AdminDashboard() {
-  const [authenticated, setAuthenticated] = useState(false);
+  const { isAuthenticated } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    async function checkAuth() {
-      const res = await fetch("http://localhost:5000/api/auth/check", {
-        credentials: "include",
-      });
 
-      if (res.ok) {
-        setAuthenticated(true);
-      } else {
-        router.push("/admin/login");
-      }
-    }
-
-    checkAuth();
-  }, []);
-
-  if (!authenticated) return <p>You are not authenticated.</p>;
+  if (!isAuthenticated) return <p>You are not authenticated.</p>;
 
   return (
     <div className="p-6">

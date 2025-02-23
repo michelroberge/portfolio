@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -13,29 +14,12 @@ export default function EditProject() {
   const [image, setImage] = useState("");
   const [link, setLink] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  // Check authentication
-  useEffect(() => {
-    async function checkAuth() {
-      try {
-        const res = await fetch(`${apiUrl}/api/auth/check`, { credentials: "include" });
-        if (!res.ok) {
-          router.push("/admin/login");
-        } else {
-          setAuthenticated(true);
-        }
-      } catch {
-        router.push("/admin/login");
-      }
-    }
-    checkAuth();
-  }, [router]);
+  const { isAuthenticated } = useAuth();
 
   // Fetch project details once authenticated
   useEffect(() => {
-    if (!authenticated) return;
+    if (!isAuthenticated) return;
     async function fetchProject() {
       try {
         const response = await fetch(`${apiUrl}/api/projects/${id}`);
@@ -52,7 +36,7 @@ export default function EditProject() {
       }
     }
     fetchProject();
-  }, [authenticated, id]);
+  }, [isAuthenticated, id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +55,7 @@ export default function EditProject() {
     }
   };
 
-  if (!authenticated) return <p>Checking authentication...</p>;
+  if (!isAuthenticated) return <p>Checking authentication...</p>;
   if (loading) return <p>Loading...</p>;
 
   return (

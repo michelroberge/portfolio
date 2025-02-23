@@ -16,7 +16,7 @@ describe("Blog Validation Middleware", () => {
   it("should pass validation for valid data", async () => {
     const validData = {
       title: "A Valid Blog Title",
-      date: "2025-02-22T00:00:00.000Z",
+      publishAt: "2025-02-22T00:00:00.000Z",
       excerpt: "This is a valid excerpt.",
       body: "This is the body of the blog.",
     };
@@ -29,7 +29,7 @@ describe("Blog Validation Middleware", () => {
   it("should fail validation for invalid data", async () => {
     const invalidData = {
       title: "No", // Too short
-      date: "invalid-date",
+      publishAt: "invalid-date",
       excerpt: "x".repeat(600), // Too long
       body: "", // Empty body
     };
