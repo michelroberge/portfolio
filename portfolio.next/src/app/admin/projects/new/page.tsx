@@ -1,6 +1,7 @@
+// portfolio.next/src/app/admin/projects/new/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
@@ -11,14 +12,15 @@ export default function NewProject() {
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
   const [link, setLink] = useState("");
+  const [isDraft, setIsDraft] = useState(false);
+  const [publishAt, setPublishAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { isAuthenticated } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const projectData = { title, description, image, link };
-
+    const projectData = { title, description, image, link, isDraft, publishAt };
     try {
       const response = await fetch(`${apiUrl}/api/projects`, {
         method: "POST",
@@ -69,6 +71,24 @@ export default function NewProject() {
           onChange={(e) => setLink(e.target.value)}
           className="w-full p-2 border rounded"
         />
+        <label className="block">
+          <input
+            type="checkbox"
+            checked={isDraft}
+            onChange={(e) => setIsDraft(e.target.checked)}
+            className="mr-2"
+          />
+          Save as Draft
+        </label>
+        <label className="block">
+          Publish Date:
+          <input
+            type="date"
+            value={publishAt || ""}
+            onChange={(e) => setPublishAt(e.target.value)}
+            className="w-full p-2 border rounded"
+          />
+        </label>
         <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
           Create Project
         </button>

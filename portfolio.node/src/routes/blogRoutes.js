@@ -20,23 +20,38 @@ router.post("/", authMiddleware, validate(createBlogSchema), async (req, res) =>
 // Get all blog entries using the service module
 router.get("/", async (req, res) => {
   try {
-    const blogs = await blogService.getAllBlogEntries();
+    let filter = {};
+    // If no auth token, assume a public request.
+    if (!req.cookies["auth-token"]) {
+      filter = { 
+        isDraft: false, 
+        publishAt: { $lte: new Date() } // only posts scheduled for now or earlier
+      };
+    }
+    const blogs = await blogService.getAllBlogEntries(filter);
     res.json(blogs);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
+
 // Get a single blog entry by ID using the service module
 router.get("/:id", async (req, res) => {
   try {
     const blog = await blogService.getBlogEntryById(req.params.id);
     if (!blog) return res.status(404).json({ error: "Entry not found" });
+    
+    // For public requests, ensure the post is published.
+    if (!req.cookies["auth-token"] && (blog.isDraft || (blog.publishAt && blog.publishAt > new Date()))) {
+      return res.status(404).json({ error: "Entry not found" });
+    }
     res.json(blog);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 // Update a blog entry by ID using the service module
 router.put("/:id", authMiddleware, validate(createBlogSchema), async (req, res) => {

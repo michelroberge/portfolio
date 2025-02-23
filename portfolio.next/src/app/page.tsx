@@ -68,7 +68,7 @@ export default function Home() {
             {projects.map((project) => (
               <a
                 key={`project_${project._id}`}
-                href={`${process.env.NEXT_PUBLIC_API_URL}/api/projects/${project._id}`}
+                href={project.link}
                 className="block p-3 bg-gray-100 rounded-sm hover:bg-gray-200 transition"
               >
                 <h3 className="text-lg font-semibold">{project.title}</h3>

@@ -1,3 +1,4 @@
+// portfolio.next/src/app/admin/projects/edit/[id]/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,11 +14,12 @@ export default function EditProject() {
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
   const [link, setLink] = useState("");
+  const [isDraft, setIsDraft] = useState(false);
+  const [publishAt, setPublishAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { isAuthenticated } = useAuth();
 
-  // Fetch project details once authenticated
   useEffect(() => {
     if (!isAuthenticated) return;
     async function fetchProject() {
@@ -29,6 +31,8 @@ export default function EditProject() {
         setDescription(data.description);
         setImage(data.image);
         setLink(data.link);
+        setIsDraft(data.isDraft);
+        setPublishAt(data.publishAt ? new Date(data.publishAt).toISOString().split("T")[0] : null);
         setLoading(false);
       } catch (err) {
         setError((err as Error).message);
@@ -40,7 +44,7 @@ export default function EditProject() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const projectData = { title, description, image, link };
+    const projectData = { title, description, image, link, isDraft, publishAt };
     try {
       const response = await fetch(`${apiUrl}/api/projects/${id}`, {
         method: "PUT",
@@ -92,6 +96,24 @@ export default function EditProject() {
           onChange={(e) => setLink(e.target.value)}
           className="w-full p-2 border rounded"
         />
+        <label className="block">
+          <input
+            type="checkbox"
+            checked={isDraft}
+            onChange={(e) => setIsDraft(e.target.checked)}
+            className="mr-2"
+          />
+          Save as Draft
+        </label>
+        <label className="block">
+          Publish Date:
+          <input
+            type="date"
+            value={publishAt || ""}
+            onChange={(e) => setPublishAt(e.target.value)}
+            className="w-full p-2 border rounded"
+          />
+        </label>
         <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
           Save Changes
         </button>

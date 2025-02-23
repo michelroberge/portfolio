@@ -15,8 +15,8 @@ async function createProject(data) {
  * Retrieves all projects.
  * @returns {Promise<Array>} - Array of projects.
  */
-async function getAllProjects() {
-  return Project.find();
+async function getAllProjects(filter = {}) {
+  return Project.find(filter);
 }
 
 /**

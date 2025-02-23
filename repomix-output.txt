@@ -79,9 +79,11 @@ portfolio.next/src/app/blogs/[slug]/page.tsx
 portfolio.next/src/app/globals.css
 portfolio.next/src/app/layout.tsx
 portfolio.next/src/app/page.tsx
+portfolio.next/src/components/CommentSection.tsx
 portfolio.next/src/components/Footer.tsx
 portfolio.next/src/components/Header.tsx
 portfolio.next/src/components/SectionToggle.tsx
+portfolio.next/src/context/AuthContext.tsx
 portfolio.next/src/services/apiService.ts
 portfolio.next/src/services/blogService.ts
 portfolio.next/tailwind.config.ts
@@ -1305,6 +1307,8 @@ File: portfolio.next/package.json
     "test:watch": "jest --watch"
   },
   "dependencies": {
+    "@fortawesome/free-solid-svg-icons": "^6.7.2",
+    "@fortawesome/react-fontawesome": "^0.2.2",
     "@tailwindcss/typography": "^0.5.16",
     "jest-environment-jsdom": "^29.7.0",
     "marked": "^15.0.7",
@@ -1415,6 +1419,7 @@ File: portfolio.next/src/app/admin/blogs/edit/[id]/page.tsx
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { marked } from "marked";
+import { useAuth } from "@/context/AuthContext";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -1427,28 +1432,12 @@ export default function EditBlogEntry() {
   const [isDraft, setIsDraft] = useState(false);
   const [publishAt, setPublishAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit"); // Tab state
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    async function checkAuth() {
-      try {
-        const res = await fetch(`${apiUrl}/api/auth/check`, { credentials: "include" });
-        if (!res.ok) {
-          router.push("/admin/login");
-        } else {
-          setAuthenticated(true);
-        }
-      } catch {
-        router.push("/admin/login");
-      }
-    }
-    checkAuth();
-  }, []);
-
-  useEffect(() => {
-    if (!authenticated) return;
+    if (!isAuthenticated) return;
 
     async function fetchBlog() {
       try {
@@ -1469,7 +1458,7 @@ export default function EditBlogEntry() {
     }
 
     fetchBlog();
-  }, [authenticated, id]);
+  }, [isAuthenticated, id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1490,7 +1479,7 @@ export default function EditBlogEntry() {
     }
   };
 
-  if (!authenticated) return <p>Checking authentication...</p>;
+  if (!isAuthenticated) return <p>Checking authentication...</p>;
   if (loading) return <p>Loading...</p>;
 
   return (
@@ -1580,8 +1569,9 @@ File: portfolio.next/src/app/admin/blogs/new/page.tsx
 ================
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -1592,24 +1582,8 @@ export default function NewBlogEntry() {
   const [isDraft, setIsDraft] = useState(false);
   const [publishAt, setPublishAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [authenticated, setAuthenticated] = useState(false);
   const router = useRouter();
-
-  useEffect(() => {
-    async function checkAuth() {
-      try {
-        const res = await fetch(`${apiUrl}/api/auth/check`, { credentials: "include" });
-        if (!res.ok) {
-          router.push("/admin/login");
-        } else {
-          setAuthenticated(true);
-        }
-      } catch {
-        router.push("/admin/login");
-      }
-    }
-    checkAuth();
-  }, []);
+  const { isAuthenticated } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1632,7 +1606,7 @@ export default function NewBlogEntry() {
     }
   };
 
-  if (!authenticated) return <p>Checking authentication...</p>;
+  if (!isAuthenticated) return <p>Checking authentication...</p>;
 
   return (
     <div className="p-6">
@@ -1695,6 +1669,7 @@ File: portfolio.next/src/app/admin/blogs/page.tsx
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -1710,28 +1685,13 @@ export default function BlogManagement() {
 
   const [blogs, setBlogs] = useState<BlogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [authenticated, setAuthenticated] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   const router = useRouter();
 
-  useEffect(() => {
-    async function checkAuth() {
-      try {
-        const res = await fetch(`${apiUrl}/api/auth/check`, { credentials: "include" });
-        if (!res.ok) {
-          router.push("/admin/login"); // Redirect to login if not authenticated
-        } else {
-          setAuthenticated(true);
-        }
-      } catch {
-        router.push("/admin/login");
-      }
-    }
-    checkAuth();
-  }, []);
 
   useEffect(() => {
-    if (!authenticated) return;
+    if (!isAuthenticated) return;
     async function fetchBlogs() {
       try {
         const response = await fetch(`${apiUrl}/api/blogs`);
@@ -1743,9 +1703,9 @@ export default function BlogManagement() {
       }
     }
     fetchBlogs();
-  }, [authenticated]);
+  }, [isAuthenticated]);
 
-  if (!authenticated) return <p>Checking authentication...</p>;
+  if (!isAuthenticated) return <p>Checking authentication...</p>;
 
   const handleArchive = async (id: string) => {
     if (!confirm("Are you sure you want to archive this blog post?")) return;
@@ -1822,30 +1782,34 @@ File: portfolio.next/src/app/admin/login/page.tsx
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 
 export default function AdminLogin() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
-  // Use the environment variable for API URL
+  const searchParams = useSearchParams();
+  // Get returnUrl from the query string, default to /admin if not provided
+  const returnUrl = searchParams.get("returnUrl") || "/admin";
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const {setIsAuthenticated} = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-
     const res = await fetch(`${apiUrl}/api/auth/login`, {
       method: "POST",
-      credentials: "include", // Ensure the auth-token cookie is stored
+      credentials: "include", // Ensures the auth-token cookie is stored
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
 
     if (res.ok) {
-      router.push("/admin");
+      setIsAuthenticated(true);
+      router.push(returnUrl);
     } else {
       setError("Invalid credentials");
     }
@@ -1886,25 +1850,25 @@ export default function AdminLogin() {
         <h3 className="text-xl font-semibold mb-4 text-center">Or Login with</h3>
         <div className="flex flex-col gap-2">
           <Link
-            href={`${apiUrl}/api/auth/oauth2/google`}
+            href={`${apiUrl}/api/auth/oauth2/google?returnUrl=${encodeURIComponent(returnUrl)}`}
             className="bg-red-500 text-white text-center py-2 rounded"
           >
             Login with Google
           </Link>
           <Link
-            href={`${apiUrl}/api/auth/oauth2/facebook`}
+            href={`${apiUrl}/api/auth/oauth2/facebook?returnUrl=${encodeURIComponent(returnUrl)}`}
             className="bg-blue-600 text-white text-center py-2 rounded"
           >
             Login with Facebook
           </Link>
           <Link
-            href={`${apiUrl}/api/auth/oauth2/github`}
+            href={`${apiUrl}/api/auth/oauth2/github?returnUrl=${encodeURIComponent(returnUrl)}`}
             className="bg-gray-800 text-white text-center py-2 rounded"
           >
             Login with GitHub
           </Link>
           <Link
-            href={`${apiUrl}/api/auth/oauth2/microsoft`}
+            href={`${apiUrl}/api/auth/oauth2/microsoft?returnUrl=${encodeURIComponent(returnUrl)}`}
             className="bg-blue-400 text-white text-center py-2 rounded"
           >
             Login with Microsoft
@@ -1920,34 +1884,19 @@ File: portfolio.next/src/app/admin/page.tsx
 ================
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function AdminDashboard() {
-  const [authenticated, setAuthenticated] = useState(false);
+  const { isAuthenticated } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    async function checkAuth() {
-      const res = await fetch("http://localhost:5000/api/auth/check", {
-        credentials: "include",
-      });
 
-      if (res.ok) {
-        setAuthenticated(true);
-      } else {
-        router.push("/admin/login");
-      }
-    }
-
-    checkAuth();
-  }, []);
-
-  if (!authenticated) return <p>You are not authenticated.</p>;
+  if (!isAuthenticated) return <p>You are not authenticated.</p>;
 
   return (
     <div className="p-6">
@@ -1988,6 +1937,7 @@ File: portfolio.next/src/app/admin/projects/edit/[id]/page.tsx
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -1999,29 +1949,12 @@ export default function EditProject() {
   const [image, setImage] = useState("");
   const [link, setLink] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  // Check authentication
-  useEffect(() => {
-    async function checkAuth() {
-      try {
-        const res = await fetch(`${apiUrl}/api/auth/check`, { credentials: "include" });
-        if (!res.ok) {
-          router.push("/admin/login");
-        } else {
-          setAuthenticated(true);
-        }
-      } catch {
-        router.push("/admin/login");
-      }
-    }
-    checkAuth();
-  }, [router]);
+  const { isAuthenticated } = useAuth();
 
   // Fetch project details once authenticated
   useEffect(() => {
-    if (!authenticated) return;
+    if (!isAuthenticated) return;
     async function fetchProject() {
       try {
         const response = await fetch(`${apiUrl}/api/projects/${id}`);
@@ -2038,7 +1971,7 @@ export default function EditProject() {
       }
     }
     fetchProject();
-  }, [authenticated, id]);
+  }, [isAuthenticated, id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2057,7 +1990,7 @@ export default function EditProject() {
     }
   };
 
-  if (!authenticated) return <p>Checking authentication...</p>;
+  if (!isAuthenticated) return <p>Checking authentication...</p>;
   if (loading) return <p>Loading...</p>;
 
   return (
@@ -2109,6 +2042,7 @@ File: portfolio.next/src/app/admin/projects/new/page.tsx
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -2118,24 +2052,8 @@ export default function NewProject() {
   const [image, setImage] = useState("");
   const [link, setLink] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [authenticated, setAuthenticated] = useState(false);
   const router = useRouter();
-
-  useEffect(() => {
-    async function checkAuth() {
-      try {
-        const res = await fetch(`${apiUrl}/api/auth/check`, { credentials: "include" });
-        if (!res.ok) {
-          router.push("/admin/login");
-        } else {
-          setAuthenticated(true);
-        }
-      } catch (err) {
-        router.push("/admin/login");
-      }
-    }
-    checkAuth();
-  }, [router]);
+  const { isAuthenticated } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2155,7 +2073,7 @@ export default function NewProject() {
     }
   };
 
-  if (!authenticated) return <p>Checking authentication...</p>;
+  if (!isAuthenticated) return <p>Checking authentication...</p>;
 
   return (
     <>
@@ -2207,6 +2125,7 @@ File: portfolio.next/src/app/admin/projects/page.tsx
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -2221,29 +2140,12 @@ interface Project {
 export default function ProjectManagement() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [authenticated, setAuthenticated] = useState(false);
+  const { isAuthenticated } = useAuth();
   const router = useRouter();
-
-  // Check authentication on mount.
-  useEffect(() => {
-    async function checkAuth() {
-      try {
-        const res = await fetch(`${apiUrl}/api/auth/check`, { credentials: "include" });
-        if (!res.ok) {
-          router.push("/admin/login");
-        } else {
-          setAuthenticated(true);
-        }
-      } catch {
-        router.push("/admin/login");
-      }
-    }
-    checkAuth();
-  }, []);
 
   // Fetch projects once authenticated.
   useEffect(() => {
-    if (!authenticated) return;
+    if (!isAuthenticated) return;
     async function fetchProjects() {
       try {
         const response = await fetch(`${apiUrl}/api/projects`);
@@ -2255,7 +2157,7 @@ export default function ProjectManagement() {
       }
     }
     fetchProjects();
-  }, [authenticated]);
+  }, [isAuthenticated]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this project?")) return;
@@ -2271,7 +2173,7 @@ export default function ProjectManagement() {
     }
   };
 
-  if (!authenticated) return <p>Checking authentication...</p>;
+  if (!isAuthenticated) return <p>Checking authentication...</p>;
 
   return (
     <>
@@ -2363,9 +2265,10 @@ File: portfolio.next/src/app/blogs/[slug]/page.tsx
 import { notFound } from "next/navigation";
 import { getBlog } from "@/services/blogService";
 import { marked } from "marked";
+import CommentSection from "@/components/CommentSection";
 
 interface BlogEntry {
-  id: number;
+  _id: number;
   title: string;
   publishAt: string;
   body: string;
@@ -2409,6 +2312,9 @@ export default async function BlogPage({ params }: Props) {
         {/* Wrap the Markdown content inside a "prose" div */}
         <div className="mt-4 prose lg:prose-lg xl:prose-xl max-w-none"
              dangerouslySetInnerHTML={{ __html: marked.parse(blog.body) }} />
+
+        <CommentSection blogId={String(blog._id)} />
+
       </main>
     </>
   );
@@ -2457,6 +2363,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { AuthProvider } from "@/context/AuthContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -2481,11 +2388,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <AuthProvider>
+
         <Header />
         <main className="p-6 mx-auto w-full max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl">
           {children}
         </main>
         <Footer />
+        </AuthProvider>
+
       </body>
     </html>
   );
@@ -2497,8 +2408,6 @@ File: portfolio.next/src/app/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { fetchBlogEntries, fetchProjects } from "@/services/apiService";
 import SectionToggle from "@/components/SectionToggle";
 
@@ -2581,6 +2490,136 @@ export default function Home() {
 }
 
 ================
+File: portfolio.next/src/components/CommentSection.tsx
+================
+"use client";
+import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+
+interface Comment {
+  _id: string;
+  author: string;
+  text: string;
+  createdAt: string;
+  replies: Comment[];
+}
+
+interface CommentSectionProps {
+  blogId: string;
+}
+
+export default function CommentSection({ blogId }: CommentSectionProps) {
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated } = useAuth();
+
+  const pathname = usePathname();
+  
+  async function fetchComments() {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/comments/blog/${blogId}`);
+      const data = await res.json();
+      if (!Array.isArray(data)) {
+        // console.error("Expected an array of comments, but got:", data);
+        setComments([]);
+      } else {
+        setComments(data);
+      }
+    } catch {
+      setError("Failed to load comments");
+    }
+  }
+
+  useEffect(() => {
+    fetchComments();
+  }, [blogId]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // Ensures auth cookie is sent
+        body: JSON.stringify({
+          author: "CurrentUser", // Replace with actual user context
+          text: newComment,
+          blog: blogId,
+          parent: replyTo,
+        }),
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        setError(errData.error || "Failed to post comment");
+        return;
+      }
+      setNewComment("");
+      setReplyTo(null);
+      fetchComments();
+    } catch {
+      setError("Failed to post comment");
+    }
+  }
+
+  function renderComments(comments: Comment[], level = 0) {
+    return comments.map((comment) => (
+      <div key={comment._id} style={{ marginLeft: level * 20 }}>
+        <div className="p-2 border rounded mb-1">
+          <p className="font-bold">{comment.author}</p>
+          <p>{comment.text}</p>
+          <p className="text-xs text-gray-500">{new Date(comment.createdAt).toLocaleString()}</p>
+          <button onClick={() => setReplyTo(comment._id)} className="text-blue-500 text-sm">Reply</button>
+        </div>
+        {comment.replies && comment.replies.length > 0 && renderComments(comment.replies, level + 1)}
+      </div>
+    ));
+  }
+
+  return (
+    <div className="mt-8"> 
+      <h2 className="text-2xl font-bold mb-4">Comments</h2>
+      {error && <p className="text-red-500">{error}</p>}
+      <div>{renderComments(comments)}</div>
+      {isAuthenticated ? (
+        <form onSubmit={handleSubmit} className="mt-4">
+          {replyTo && <p className="mb-2 text-sm text-gray-600">Replying to comment {replyTo}</p>}
+          <textarea
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="Write your comment here..."
+            className="w-full p-2 border rounded mb-2"
+          />
+          <div className="flex items-center">
+            <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
+              Post Comment
+            </button>
+            {replyTo && (
+              <button
+                type="button"
+                onClick={() => setReplyTo(null)}
+                className="ml-2 text-sm text-gray-500 underline"
+              >
+                Cancel Reply
+              </button>
+            )}
+          </div>
+        </form>
+      ) : (
+        <p>
+    <a href={`/admin/login?returnUrl=${encodeURIComponent(pathname)}`} className="text-blue-500 underline">
+    Login to comment
+          </a>
+        </p>
+      )}
+    </div>
+  );
+}
+
+================
 File: portfolio.next/src/components/Footer.tsx
 ================
 export default function Footer (){
@@ -2594,18 +2633,56 @@ export default function Footer (){
 ================
 File: portfolio.next/src/components/Header.tsx
 ================
+"use client";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
 export default function Header() {
+  const { isAuthenticated, refreshAuth, setIsAuthenticated } = useAuth();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleLogout() {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`, {
+        credentials: "include",
+      });
+      if (res.ok) {
+        await refreshAuth();
+        router.refresh();
+      }
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
+  }
+
   return (
-    <header className="bg-gray-800 text-white py-6 text-center">
-      <Link href="/" className="block">
-        <h1 className="text-3xl font-bold hover:text-gray-300 transition">
-          Curious Coder: A Portfolio
-        </h1>
-        <p className="text-lg">a.k.a. michel-roberge.com</p>
-        <p className="text-xs">(the Northern Developer)</p>
-      </Link>
+    <header className="bg-gray-800 text-white py-6 relative">
+      <div className="container mx-auto px-4 flex justify-between items-center">
+        <Link href="/">
+          <div>
+            <h1 className="text-3xl font-bold hover:text-gray-300 transition">
+              Curious Coder: A Portfolio
+            </h1>
+            <p className="text-lg">a.k.a. michel-roberge.com</p>
+            <p className="text-xs">(the Northern Developer)</p>
+          </div>
+        </Link>
+        <div>
+          {!isAuthenticated ? (
+            <Link href={`/admin/login?returnUrl=${encodeURIComponent(pathname)}`}>
+              <FontAwesomeIcon icon={faSignInAlt} className="w-6 h-6 text-white hover:text-gray-300" />
+            </Link>
+          ) : (
+            <button onClick={handleLogout}>
+              <FontAwesomeIcon icon={faSignOutAlt} className="w-6 h-6 text-white hover:text-gray-300" />
+            </button>
+          )}
+        </div>
+      </div>
     </header>
   );
 }
@@ -2646,6 +2723,55 @@ export default function SectionToggle({ activeSection, setActiveSection }: Secti
 }
 
 ================
+File: portfolio.next/src/context/AuthContext.tsx
+================
+// portfolio.next/src/context/AuthContext.tsx
+"use client";
+import { createContext, useContext, useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
+
+interface AuthContextType {
+  isAuthenticated: boolean;
+  setIsAuthenticated: (val: boolean) => void;
+  refreshAuth: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  async function refreshAuth() {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/check`, {
+        credentials: "include",
+      });
+      setIsAuthenticated(res.ok);
+    } catch (error) {
+      setIsAuthenticated(false);
+    }
+  }
+
+  useEffect(() => {
+    refreshAuth();
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated, refreshAuth }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+}
+
+================
 File: portfolio.next/src/services/apiService.ts
 ================
 // portfolio.next/src/services/apiService.ts
@@ -2679,7 +2805,7 @@ File: portfolio.next/src/services/blogService.ts
 ================
 // portfolio.next/src/services/blogService.ts
 export interface BlogEntry {
-    id: number;
+    _id: number;
     title: string;
     publishAt: string;
     body: string;
@@ -2957,7 +3083,7 @@ describe("Blog Validation Middleware", () => {
   it("should pass validation for valid data", async () => {
     const validData = {
       title: "A Valid Blog Title",
-      date: "2025-02-22T00:00:00.000Z",
+      publishAt: "2025-02-22T00:00:00.000Z",
       excerpt: "This is a valid excerpt.",
       body: "This is the body of the blog.",
     };
@@ -2970,7 +3096,7 @@ describe("Blog Validation Middleware", () => {
   it("should fail validation for invalid data", async () => {
     const invalidData = {
       title: "No", // Too short
-      date: "invalid-date",
+      publishAt: "invalid-date",
       excerpt: "x".repeat(600), // Too long
       body: "", // Empty body
     };
@@ -3052,6 +3178,63 @@ describe("Comment Routes", () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.comment.redacted).toBe(true);
   });
+
+  test("Nested replies retrieval returns full tree", async () => {
+    // Create a root comment.
+    const rootRes = await request(app)
+      .post("/api/comments")
+      .send({
+        author: "Root Author",
+        text: "Root comment",
+        blog: blogId.toString()
+      });
+    const rootId = rootRes.body._id;
+  
+    // Create first-level reply.
+    const reply1Res = await request(app)
+      .post("/api/comments")
+      .send({
+        author: "Reply1",
+        text: "First reply",
+        blog: blogId.toString(),
+        parent: rootId
+      });
+    const reply1Id = reply1Res.body._id;
+  
+    // Create second-level reply (reply to first-level reply).
+    await request(app)
+      .post("/api/comments")
+      .send({
+        author: "Reply2",
+        text: "Second level reply",
+        blog: blogId.toString(),
+        parent: reply1Id
+      });
+  
+    // Fetch comments and verify nested structure.
+    const res = await request(app).get(`/api/comments/blog/${blogId.toString()}`).send();
+    expect(res.statusCode).toBe(200);
+    const rootComment = res.body.find((c) => c._id === rootId);
+    expect(rootComment).toBeDefined();
+    expect(rootComment.replies).toHaveLength(1);
+    expect(rootComment.replies[0]._id).toBe(reply1Id);
+    expect(rootComment.replies[0].replies).toHaveLength(1);
+  });
+  
+  test("POST /api/comments returns error for non-existent parent", async () => {
+    const fakeParentId = "000000000000000000000000"; // Valid ObjectId format but non-existent.
+    const res = await request(app)
+      .post("/api/comments")
+      .send({
+        author: "Test",
+        text: "Should fail",
+        blog: blogId.toString(),
+        parent: fakeParentId
+      });
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toMatch(/Parent comment not found/);
+  });
+  
 });
 
 ================
@@ -3832,17 +4015,25 @@ File: portfolio.node/src/routes/commentRoutes.js
 const express = require("express");
 const authMiddleware = require("../middlewares/auth"); // Protect endpoints where necessary
 const commentService = require("../services/commentService");
+const Comment = require("../models/Comment");
 const router = express.Router();
 
 /**
  * Create a new comment.
  * Expected body: { author, text, blog, parent (optional) }
  */
-router.post("/", async (req, res) => {
+router.post("/", authMiddleware, async (req, res) => {
   try {
     const { author, text, blog, parent } = req.body;
     if (!author || !text || !blog) {
       return res.status(400).json({ error: "author, text, and blog fields are required" });
+    }
+    // Validate parent existence if provided.
+    if (parent) {
+      const parentComment = await Comment.findById(parent);
+      if (!parentComment) {
+        return res.status(400).json({ error: "Parent comment not found" });
+      }
     }
     const comment = await commentService.createComment({ author, text, blog, parent });
     res.status(201).json(comment);
@@ -4211,6 +4402,32 @@ File: portfolio.node/src/services/commentService.js
 // portfolio.node/src/services/commentService.js
 const Comment = require("../models/Comment");
 
+async function getNestedReplies(parentId) {
+  const replies = await Comment.find({ parent: parentId }).sort({ createdAt: 1 });
+  return Promise.all(
+    replies.map(async (reply) => {
+      const nestedReplies = await getNestedReplies(reply._id);
+      return { ...reply.toObject(), replies: nestedReplies };
+    })
+  );
+}
+
+/**
+ * Retrieves root-level comments for a given blog post along with their immediate replies.
+ * @param {string} blogId - The blog post ID.
+ * @returns {Promise<Array>} - Array of comments with nested replies.
+ */
+async function getCommentsByBlog(blogId) {
+  const comments = await Comment.find({ blog: blogId, parent: null }).sort({ createdAt: -1 });
+  return Promise.all(
+    comments.map(async (comment) => {
+      const nestedReplies = await getNestedReplies(comment._id);
+      return { ...comment.toObject(), replies: nestedReplies };
+    })
+  );
+}
+
+
 /**
  * Creates a new comment.
  * @param {Object} data - Comment data: { author, text, blog, parent (optional) }
@@ -4228,21 +4445,6 @@ async function createComment(data) {
   return comment;
 }
 
-/**
- * Retrieves root-level comments for a given blog post along with their immediate replies.
- * @param {string} blogId - The blog post ID.
- * @returns {Promise<Array>} - Array of comments with nested replies.
- */
-async function getCommentsByBlog(blogId) {
-  const comments = await Comment.find({ blog: blogId, parent: null }).sort({ createdAt: -1 });
-  const commentsWithReplies = await Promise.all(
-    comments.map(async (comment) => {
-      const replies = await Comment.find({ parent: comment._id }).sort({ createdAt: 1 });
-      return { ...comment.toObject(), replies };
-    })
-  );
-  return commentsWithReplies;
-}
 
 /**
  * Updates a comment by its ID.
@@ -4267,7 +4469,7 @@ module.exports = {
   createComment,
   getCommentsByBlog,
   updateComment,
-  redactComment,
+  redactComment
 };
 
 ================

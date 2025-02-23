@@ -16,7 +16,16 @@ router.post("/", authMiddleware, async (req, res) => {
 // Get all projects using the service module
 router.get("/", async (req, res) => {
   try {
-    const projects = await projectService.getAllProjects();
+    let filter = {};
+    if (!req.cookies["auth-token"]) {
+      filter = { 
+        isDraft: false, 
+        publishAt: { $lte: new Date() }
+      };
+    }
+    console.log(`filter`, filter);
+    const projects = await projectService.getAllProjects(filter);
+    console.log('projects', projects);
     res.json(projects);
   } catch (error) {
     res.status(500).json({ error: error.message });
