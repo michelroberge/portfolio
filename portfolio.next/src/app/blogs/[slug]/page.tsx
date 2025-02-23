@@ -1,43 +1,28 @@
+// portfolio.next/src/app/blogs/[slug]/page.tsx
 import { notFound } from "next/navigation";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { getBlog } from "@/services/blogService";
+import { marked } from "marked";
 
 interface BlogEntry {
   id: number;
   title: string;
-  date: string;
+  publishAt: string;
   body: string;
+  excerpt?: string;
+  link: string;
 }
 
 type Props = {
-  params: Promise<{
-    slug: string;
-}>;
+  params: Promise<{ slug: string }>;
 };
 
-
-async function getBlog(id: string): Promise<BlogEntry | null> {
-  try {
-    const url = `${process.env.NEXT_PUBLIC_API_URL}/api/blogs/${id}`;
-
-    console.log("Get blog url", url);
-    const response = await fetch(url);
-    if (!response.ok) return null;
-    return response.json();
-  } catch (error) {
-    console.error("Error fetching blog:", error);
-    return null;
-  }
-}
-
-export default async function BlogPage({params} : Props) {
+export default async function BlogPage({ params }: Props) {
   const { slug } = await params;
 
   if (!slug) return notFound();
 
-  // Extract the last number after '-' in the slug
+  // Extract the last number after '-' in the slug as the id.
   const id = slug.split("-").pop();
-
   if (!id) return notFound();
 
   const blog = await getBlog(id);
@@ -46,14 +31,25 @@ export default async function BlogPage({params} : Props) {
 
   return (
     <>
-      <Header />
-      <main className="container mx-auto px-6 py-10 flex flex-col lg:flex-row lg:gap-8 flex-1">
+      <main className="container mx-auto px-6 py-10 flex flex-col flex-1">
         <h1 className="text-3xl font-bold">{blog.title}</h1>
-        <p className="text-gray-500">{blog.date}</p>
-        <div className="mt-4" dangerouslySetInnerHTML={{ __html: blog.body }} />
+        <p className="text-gray-500">
+            {new Date(blog.publishAt).toLocaleString(undefined, {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            })}
+          </p>
+  
+        {/* Wrap the Markdown content inside a "prose" div */}
+        <div className="mt-4 prose lg:prose-lg xl:prose-xl max-w-none"
+             dangerouslySetInnerHTML={{ __html: marked.parse(blog.body) }} />
       </main>
-            <Footer />
-      
     </>
   );
+  
 }

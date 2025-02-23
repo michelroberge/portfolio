@@ -19,3 +19,12 @@ body {
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+body.compact-view main {
+  max-width: 800px;
+  margin: auto;
+}
+
+body.full-view main {
+  max-width: 100%;
+}
