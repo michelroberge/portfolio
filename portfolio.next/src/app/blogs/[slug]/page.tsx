@@ -5,7 +5,7 @@ import { marked } from "marked";
 import CommentSection from "@/components/CommentSection";
 
 interface BlogEntry {
-  id: number;
+  _id: number;
   title: string;
   publishAt: string;
   body: string;
@@ -50,7 +50,7 @@ export default async function BlogPage({ params }: Props) {
         <div className="mt-4 prose lg:prose-lg xl:prose-xl max-w-none"
              dangerouslySetInnerHTML={{ __html: marked.parse(blog.body) }} />
 
-        <CommentSection blogId={String(blog.id)} />
+        <CommentSection blogId={String(blog._id)} />
 
       </main>
     </>

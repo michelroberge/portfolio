@@ -2,6 +2,7 @@
 const express = require("express");
 const authMiddleware = require("../middlewares/auth"); // Protect endpoints where necessary
 const commentService = require("../services/commentService");
+const Comment = require("../models/Comment");
 const router = express.Router();
 
 /**
