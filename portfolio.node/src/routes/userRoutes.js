@@ -1,11 +1,17 @@
 const express = require("express");
 const userService = require("../services/userService");
+const authMiddleware = require("../middlewares/auth");
 
 const router = express.Router();
 
 // Endpoint for user registration
-router.post("/", async (req, res) => {
+router.post("/", authMiddleware, async (req, res) => {
   try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
     const { username, password } = req.body;
 
     // Delegate the creation to the user service.

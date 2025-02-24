@@ -10,8 +10,13 @@ const { createBlogSchema } = require("../validators/blogValidator");
 // Create a new blog entry using the service module
 router.post("/", authMiddleware, validate(createBlogSchema), async (req, res) => {
   try {
-    const newEntry = await blogService.createBlogEntry(req.body);
-    res.status(201).json(newEntry);
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+    else{
+      const newEntry = await blogService.createBlogEntry(req.body);
+      res.status(201).json(newEntry);
+    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -22,7 +27,7 @@ router.get("/", async (req, res) => {
   try {
     let filter = {};
     // If no auth token, assume a public request.
-    if (!req.cookies["auth-token"]) {
+    if (!req.user?.isAdmin === true) {
       filter = { 
         isDraft: false, 
         publishAt: { $lte: new Date() } // only posts scheduled for now or earlier
@@ -56,6 +61,11 @@ router.get("/:id", async (req, res) => {
 // Update a blog entry by ID using the service module
 router.put("/:id", authMiddleware, validate(createBlogSchema), async (req, res) => {
   try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
     const updatedEntry = await blogService.updateBlogEntry(req.params.id, req.body);
     if (!updatedEntry) return res.status(404).json({ error: "Entry not found" });
     res.json(updatedEntry);
@@ -67,6 +77,11 @@ router.put("/:id", authMiddleware, validate(createBlogSchema), async (req, res) 
 // Delete a blog entry by ID using the service module
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
     const deletedEntry = await blogService.deleteBlogEntry(req.params.id);
     if (!deletedEntry) return res.status(404).json({ error: "Entry not found" });
     res.json({ message: "Entry deleted successfully" });

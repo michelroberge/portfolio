@@ -11,6 +11,11 @@ const router = express.Router();
  */
 router.post("/", authMiddleware, async (req, res) => {
   try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
     const { author, text, blog, parent } = req.body;
     if (!author || !text || !blog) {
       return res.status(400).json({ error: "author, text, and blog fields are required" });
@@ -47,6 +52,11 @@ router.get("/blog/:blogId", async (req, res) => {
  */
 router.put("/:id", authMiddleware, async (req, res) => {
   try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
     const { text, redacted } = req.body;
     const updateData = {};
     if (text !== undefined) updateData.text = text;
@@ -64,6 +74,11 @@ router.put("/:id", authMiddleware, async (req, res) => {
  */
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
+    
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
     const redactedComment = await commentService.redactComment(req.params.id);
     if (!redactedComment) return res.status(404).json({ error: "Comment not found" });
     res.json({ message: "Comment redacted", comment: redactedComment });

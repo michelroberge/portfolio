@@ -7,6 +7,11 @@ const router = express.Router();
 // GET /api/provider-configs: Retrieve all provider configurations.
 router.get("/", authMiddleware, async (req, res) => {
   try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
     const configs = await providerConfigService.getAllConfigs();
     res.json(configs);
   } catch (error) {
@@ -17,6 +22,11 @@ router.get("/", authMiddleware, async (req, res) => {
 // PUT /api/provider-configs/:provider: Update configuration for a specific provider.
 router.put("/:provider", authMiddleware, async (req, res) => {
   try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
     const { provider } = req.params;
     const configData = req.body;
     const updatedConfig = await providerConfigService.updateConfig(provider, configData);

@@ -6,6 +6,11 @@ const router = express.Router();
 // Create a new project using the service module
 router.post("/", authMiddleware, async (req, res) => {
   try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
     const newProject = await projectService.createProject(req.body);
     res.status(201).json(newProject);
   } catch (error) {
@@ -44,6 +49,11 @@ router.get("/:id", async (req, res) => {
 // Update a project by ID using the service module
 router.put("/:id", authMiddleware, async (req, res) => {
   try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
     const updatedProject = await projectService.updateProject(req.params.id, req.body);
     if (!updatedProject) return res.status(404).json({ error: "Project not found" });
     res.json(updatedProject);
@@ -55,6 +65,11 @@ router.put("/:id", authMiddleware, async (req, res) => {
 // Delete a project by ID using the service module
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
     const deletedProject = await projectService.deleteProject(req.params.id);
     if (!deletedProject) return res.status(404).json({ error: "Project not found" });
     res.json({ message: "Project deleted successfully" });
