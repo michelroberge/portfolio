@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -11,10 +11,12 @@ export default function AdminLogin() {
   const [error, setError] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
-  // Get returnUrl from the query string, default to /admin if not provided
   const returnUrl = searchParams.get("returnUrl") || "/admin";
+
+  // Get returnUrl from the query string, default to /admin if not provided
+  // const returnUrl = window.location.href;
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  const {setIsAuthenticated} = useAuth();
+  const {isAuthenticated, setIsAuthenticated} = useAuth(); 
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,12 +29,19 @@ export default function AdminLogin() {
     });
 
     if (res.ok) {
-      setIsAuthenticated(true);
+      // setIsAuthenticated(true);
       router.push(returnUrl);
     } else {
       setError("Invalid credentials");
     }
   };
+
+  useEffect(()=>{
+    if ( isAuthenticated && searchParams && searchParams.get("returnUrl")){
+      const dest = searchParams.get("returnUrl");
+      console.log("should push to ", dest);
+    }  
+  }, [isAuthenticated]);
 
   return (
     <div className="flex min-h-screen flex-col justify-center items-center bg-gray-100 space-y-6">
@@ -80,7 +89,7 @@ export default function AdminLogin() {
           >
             Login with Facebook
           </Link>
-          <Link
+          {/* <Link
             href={`${apiUrl}/api/auth/oauth2/github?returnUrl=${encodeURIComponent(returnUrl)}`}
             className="bg-gray-800 text-white text-center py-2 rounded"
           >
@@ -91,7 +100,7 @@ export default function AdminLogin() {
             className="bg-blue-400 text-white text-center py-2 rounded"
           >
             Login with Microsoft
-          </Link>
+          </Link> */}
         </div>
       </div>
     </div>

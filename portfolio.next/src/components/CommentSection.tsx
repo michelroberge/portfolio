@@ -116,8 +116,8 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
         </form>
       ) : (
         <p>
-    <a href={`/admin/login?returnUrl=${encodeURIComponent(pathname)}`} className="text-blue-500 underline">
-    Login to comment
+          <a href={`/admin/login?returnUrl=${encodeURIComponent(window.location.href )}`} className="text-blue-500 underline">
+          Login to comment
           </a>
         </p>
       )}

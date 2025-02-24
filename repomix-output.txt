@@ -1933,6 +1933,7 @@ export default function AdminDashboard() {
 ================
 File: portfolio.next/src/app/admin/projects/edit/[id]/page.tsx
 ================
+// portfolio.next/src/app/admin/projects/edit/[id]/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -1948,11 +1949,12 @@ export default function EditProject() {
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
   const [link, setLink] = useState("");
+  const [isDraft, setIsDraft] = useState(false);
+  const [publishAt, setPublishAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { isAuthenticated } = useAuth();
 
-  // Fetch project details once authenticated
   useEffect(() => {
     if (!isAuthenticated) return;
     async function fetchProject() {
@@ -1964,6 +1966,8 @@ export default function EditProject() {
         setDescription(data.description);
         setImage(data.image);
         setLink(data.link);
+        setIsDraft(data.isDraft);
+        setPublishAt(data.publishAt ? new Date(data.publishAt).toISOString().split("T")[0] : null);
         setLoading(false);
       } catch (err) {
         setError((err as Error).message);
@@ -1975,7 +1979,7 @@ export default function EditProject() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const projectData = { title, description, image, link };
+    const projectData = { title, description, image, link, isDraft, publishAt };
     try {
       const response = await fetch(`${apiUrl}/api/projects/${id}`, {
         method: "PUT",
@@ -2027,6 +2031,24 @@ export default function EditProject() {
           onChange={(e) => setLink(e.target.value)}
           className="w-full p-2 border rounded"
         />
+        <label className="block">
+          <input
+            type="checkbox"
+            checked={isDraft}
+            onChange={(e) => setIsDraft(e.target.checked)}
+            className="mr-2"
+          />
+          Save as Draft
+        </label>
+        <label className="block">
+          Publish Date:
+          <input
+            type="date"
+            value={publishAt || ""}
+            onChange={(e) => setPublishAt(e.target.value)}
+            className="w-full p-2 border rounded"
+          />
+        </label>
         <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
           Save Changes
         </button>
@@ -2038,9 +2060,10 @@ export default function EditProject() {
 ================
 File: portfolio.next/src/app/admin/projects/new/page.tsx
 ================
+// portfolio.next/src/app/admin/projects/new/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
@@ -2051,14 +2074,15 @@ export default function NewProject() {
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
   const [link, setLink] = useState("");
+  const [isDraft, setIsDraft] = useState(false);
+  const [publishAt, setPublishAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { isAuthenticated } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const projectData = { title, description, image, link };
-
+    const projectData = { title, description, image, link, isDraft, publishAt };
     try {
       const response = await fetch(`${apiUrl}/api/projects`, {
         method: "POST",
@@ -2109,6 +2133,24 @@ export default function NewProject() {
           onChange={(e) => setLink(e.target.value)}
           className="w-full p-2 border rounded"
         />
+        <label className="block">
+          <input
+            type="checkbox"
+            checked={isDraft}
+            onChange={(e) => setIsDraft(e.target.checked)}
+            className="mr-2"
+          />
+          Save as Draft
+        </label>
+        <label className="block">
+          Publish Date:
+          <input
+            type="date"
+            value={publishAt || ""}
+            onChange={(e) => setPublishAt(e.target.value)}
+            className="w-full p-2 border rounded"
+          />
+        </label>
         <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
           Create Project
         </button>
@@ -2475,7 +2517,7 @@ export default function Home() {
             {projects.map((project) => (
               <a
                 key={`project_${project._id}`}
-                href={`${process.env.NEXT_PUBLIC_API_URL}/api/projects/${project._id}`}
+                href={project.link}
                 className="block p-3 bg-gray-100 rounded-sm hover:bg-gray-200 transition"
               >
                 <h3 className="text-lg font-semibold">{project.title}</h3>
@@ -3842,14 +3884,17 @@ module.exports = mongoose.model("Comment", CommentSchema);
 ================
 File: portfolio.node/src/models/Project.js
 ================
+// portfolio.node/src/models/Project.js
 const mongoose = require("mongoose");
 
 const ProjectSchema = new mongoose.Schema({
-  title: String,
-  description: String,
-  image: String,
-  link: String,
-});
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  image: { type: String },
+  link: { type: String },
+  isDraft: { type: Boolean, default: false },
+  publishAt: { type: Date, default: Date.now },
+}, { timestamps: true });
 
 module.exports = mongoose.model("Project", ProjectSchema);
 
@@ -3966,23 +4011,38 @@ router.post("/", authMiddleware, validate(createBlogSchema), async (req, res) =>
 // Get all blog entries using the service module
 router.get("/", async (req, res) => {
   try {
-    const blogs = await blogService.getAllBlogEntries();
+    let filter = {};
+    // If no auth token, assume a public request.
+    if (!req.cookies["auth-token"]) {
+      filter = { 
+        isDraft: false, 
+        publishAt: { $lte: new Date() } // only posts scheduled for now or earlier
+      };
+    }
+    const blogs = await blogService.getAllBlogEntries(filter);
     res.json(blogs);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
+
 // Get a single blog entry by ID using the service module
 router.get("/:id", async (req, res) => {
   try {
     const blog = await blogService.getBlogEntryById(req.params.id);
     if (!blog) return res.status(404).json({ error: "Entry not found" });
+    
+    // For public requests, ensure the post is published.
+    if (!req.cookies["auth-token"] && (blog.isDraft || (blog.publishAt && blog.publishAt > new Date()))) {
+      return res.status(404).json({ error: "Entry not found" });
+    }
     res.json(blog);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 // Update a blog entry by ID using the service module
 router.put("/:id", authMiddleware, validate(createBlogSchema), async (req, res) => {
@@ -4153,7 +4213,16 @@ router.post("/", authMiddleware, async (req, res) => {
 // Get all projects using the service module
 router.get("/", async (req, res) => {
   try {
-    const projects = await projectService.getAllProjects();
+    let filter = {};
+    if (!req.cookies["auth-token"]) {
+      filter = { 
+        isDraft: false, 
+        publishAt: { $lte: new Date() }
+      };
+    }
+    console.log(`filter`, filter);
+    const projects = await projectService.getAllProjects(filter);
+    console.log('projects', projects);
     res.json(projects);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -4350,9 +4419,8 @@ async function createBlogEntry(data) {
  * Retrieves all blog entries sorted by creation date.
  * @returns {Promise<Array>} - Array of blog entries.
  */
-async function getAllBlogEntries() {
-  // Optionally, you could integrate caching here as well.
-  const blogs = await BlogEntry.find().sort({ createdAt: -1 });
+async function getAllBlogEntries(filter = {}) {
+  const blogs = await BlogEntry.find(filter).sort({ createdAt: -1 });
   return blogs;
 }
 
@@ -4492,8 +4560,8 @@ async function createProject(data) {
  * Retrieves all projects.
  * @returns {Promise<Array>} - Array of projects.
  */
-async function getAllProjects() {
-  return Project.find();
+async function getAllProjects(filter = {}) {
+  return Project.find(filter);
 }
 
 /**

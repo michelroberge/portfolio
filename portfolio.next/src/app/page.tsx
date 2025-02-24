@@ -65,16 +65,25 @@ export default function Home() {
         <aside className={`${activeSection === "projects" ? "block" : "hidden"} md:block lg:w-1/3 bg-white rounded-sm shadow-md p-4 h-fit`}>
           <h2 className="text-xl font-semibold mb-4">Projects</h2>
           <div className="space-y-3">
-            {projects.map((project) => (
-              <a
-                key={`project_${project._id}`}
-                href={project.link}
-                className="block p-3 bg-gray-100 rounded-sm hover:bg-gray-200 transition"
-              >
+
+          {projects.map((project) => (
+            <a
+              key={`project_${project._id}`}
+              href={project.link}
+              className="flex items-center p-3 bg-gray-100 rounded-sm hover:bg-gray-200 transition"
+            >
+              <img
+                src={project.image}
+                alt={project.title}
+                className="max-h-12  object-cover mr-4 rounded"
+              />
+              <div>
                 <h3 className="text-lg font-semibold">{project.title}</h3>
                 <p className="text-sm text-gray-500">{project.description}</p>
-              </a>
-            ))}
+              </div>
+            </a>
+          ))}
+
           </div>
         </aside>
       </main>

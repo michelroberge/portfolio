@@ -20,6 +20,15 @@ router.post("/", async (req, res) => {
   }
 });
 
+router.get("/admin-exists", async (req, res) => {
+  try {
+    const admin = await User.findOne({ isAdmin: true });
+    res.json({ exists: !!admin });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // A simple GET endpoint that serves a registration form.
 router.get("/create", async (req, res) => {
   res.send(`

@@ -1,8 +1,18 @@
 // portfolio.node/src/services/commentService.js
 const Comment = require("../models/Comment");
 
-async function getNestedReplies(parentId) {
-  const replies = await Comment.find({ parent: parentId }).sort({ createdAt: 1 });
+async function getAllComments() {
+  const comments = await Comment.find({ parent: null }).sort({ createdAt: -1 });
+  return Promise.all(
+    comments.map(async (comment) => {
+      const nestedReplies = await getNestedReplies(comment._id, comment.redacted);
+      return { ...comment.toObject(), replies: nestedReplies };
+    })
+  );
+}
+
+async function getNestedReplies(parentId, redacted) {
+  const replies = await Comment.find({ parent: parentId, redacted: redacted }).sort({ createdAt: 1 });
   return Promise.all(
     replies.map(async (reply) => {
       const nestedReplies = await getNestedReplies(reply._id);
@@ -17,10 +27,10 @@ async function getNestedReplies(parentId) {
  * @returns {Promise<Array>} - Array of comments with nested replies.
  */
 async function getCommentsByBlog(blogId) {
-  const comments = await Comment.find({ blog: blogId, parent: null }).sort({ createdAt: -1 });
+  const comments = await Comment.find({ blog: blogId, parent: null, redacted: false }).sort({ createdAt: -1 });
   return Promise.all(
     comments.map(async (comment) => {
-      const nestedReplies = await getNestedReplies(comment._id);
+      const nestedReplies = await getNestedReplies(comment._id, false);
       return { ...comment.toObject(), replies: nestedReplies };
     })
   );
@@ -68,5 +78,6 @@ module.exports = {
   createComment,
   getCommentsByBlog,
   updateComment,
-  redactComment
+  redactComment,
+  getAllComments
 };

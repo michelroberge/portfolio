@@ -72,4 +72,13 @@ router.delete("/:id", authMiddleware, async (req, res) => {
   }
 });
 
+router.get("/all", authMiddleware, async (req, res) => {
+  try {
+    const comments = await commentService.getAllComments();
+    res.json(comments);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

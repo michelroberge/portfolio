@@ -23,9 +23,7 @@ router.get("/", async (req, res) => {
         publishAt: { $lte: new Date() }
       };
     }
-    console.log(`filter`, filter);
     const projects = await projectService.getAllProjects(filter);
-    console.log('projects', projects);
     res.json(projects);
   } catch (error) {
     res.status(500).json({ error: error.message });
