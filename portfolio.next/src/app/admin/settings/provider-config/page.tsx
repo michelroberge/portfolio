@@ -13,7 +13,7 @@ interface ProviderConfig {
 }
 
 export default function ProviderConfigPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   const [configs, setConfigs] = useState<ProviderConfig[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -113,10 +113,11 @@ export default function ProviderConfigPage() {
       setError(err.message);
     }
   };
-
-  if (!isAuthenticated) return <p>Checking authentication...</p>;
+  
   if (loading) return <p>Loading provider configurations...</p>;
-
+  if (!isAuthenticated) return <p>You are not authenticated.</p>;
+  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
+  
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-4">OAuth2/OIDC Provider Configuration</h1>

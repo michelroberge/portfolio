@@ -18,7 +18,7 @@ interface Project {
 export default function ProjectManagement() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const router = useRouter();
 
   // Fetch projects once authenticated.
@@ -51,7 +51,8 @@ export default function ProjectManagement() {
     }
   };
 
-  if (!isAuthenticated) return <p>Checking authentication...</p>;
+  if (!isAuthenticated) return <p>You are not authenticated.</p>;
+  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
 
   return (
     <>

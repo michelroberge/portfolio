@@ -15,7 +15,7 @@ interface TelemetryData {
 export default function AnalyticsDashboard() {
   const [data, setData] = useState<TelemetryData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   useEffect(() => {
@@ -34,8 +34,9 @@ export default function AnalyticsDashboard() {
     if (isAuthenticated) fetchTelemetry();
   }, [isAuthenticated, apiUrl]);
 
-  if (!isAuthenticated) return <p>Checking authentication...</p>;
-
+  if (!isAuthenticated) return <p>You are not authenticated.</p>;
+  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
+  
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-4">Analytics Dashboard</h1>

@@ -14,7 +14,7 @@ export default function NewBlogEntry() {
   const [publishAt, setPublishAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +37,8 @@ export default function NewBlogEntry() {
     }
   };
 
-  if (!isAuthenticated) return <p>Checking authentication...</p>;
+  if (!isAuthenticated) return <p>You are not authenticated.</p>;
+  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
 
   return (
     <div className="p-6">

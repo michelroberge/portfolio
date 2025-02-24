@@ -43,8 +43,8 @@ export default function Home() {
     <div className="flex flex-col min-h-screen">
       {/* Toggle appears only on small screens */}
       <SectionToggle activeSection={activeSection} setActiveSection={setActiveSection} />
-      <main className="container mx-auto px-6 py-10 flex flex-col lg:flex-row lg:gap-8 flex-1">
-        {/* Blogs Section: on small screens, display only if activeSection === "blogs"; always visible on md+ */}
+      <main className="mx-auto w-full px-6 py-10 flex flex-col lg:flex-row lg:gap-8 flex-1 max-w-screen-2xl">
+      {/* Blogs Section: on small screens, display only if activeSection === "blogs"; always visible on md+ */}
         <section className={`${activeSection === "blogs" ? "block" : "hidden"} md:block lg:flex-1`}>
           <h2 className="text-2xl font-semibold mb-6">Latest Posts</h2>
           <div className="space-y-4">

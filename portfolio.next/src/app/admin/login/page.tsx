@@ -11,7 +11,7 @@ export default function AdminLogin() {
   const [error, setError] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnUrl = searchParams.get("returnUrl") || "/admin";
+  const returnUrl = searchParams.get("returnUrl") || process.env.NEXT_PUBLIC_CLIENT_URL || "";
 
   // Get returnUrl from the query string, default to /admin if not provided
   // const returnUrl = window.location.href;
@@ -29,8 +29,10 @@ export default function AdminLogin() {
     });
 
     if (res.ok) {
-      // setIsAuthenticated(true);
-      router.push(returnUrl);
+      setIsAuthenticated(true);
+      if ( returnUrl){
+        router.push(returnUrl);
+      }
     } else {
       setError("Invalid credentials");
     }

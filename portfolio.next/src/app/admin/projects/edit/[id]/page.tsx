@@ -18,7 +18,7 @@ export default function EditProject() {
   const [publishAt, setPublishAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -59,8 +59,9 @@ export default function EditProject() {
     }
   };
 
-  if (!isAuthenticated) return <p>Checking authentication...</p>;
-  if (loading) return <p>Loading...</p>;
+    if (loading) return <p>Loading...</p>;
+    if (!isAuthenticated) return <p>You are not authenticated.</p>;
+    if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
 
   return (
     <>

@@ -1,13 +1,13 @@
 "use client";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+import { faCog, faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
 export default function Header() {
-  const { isAuthenticated, refreshAuth, setIsAuthenticated } = useAuth();
-  const pathname = usePathname();
+  const { user, isAuthenticated, refreshAuth, setIsAuthenticated } = useAuth();
+  const pathname = window.location.href;
   const router = useRouter();
 
   async function handleLogout() {
@@ -37,13 +37,20 @@ export default function Header() {
           </div>
         </Link>
         <div>
+          { user?.isAdmin === true && (
+            <Link href={`/admin`}>
+              <FontAwesomeIcon icon={faCog} className="w-6 h-6 flex item-center text-white hover:text-gray-300 me-4" />
+            </Link>
+          )}
           {!isAuthenticated ? (
             <Link href={`/admin/login?returnUrl=${encodeURIComponent(pathname)}`}>
-              <FontAwesomeIcon icon={faSignInAlt} className="w-6 h-6 text-white hover:text-gray-300" />
+              <FontAwesomeIcon icon={faSignInAlt} className="w-6 h-6 flex item-center text-white hover:text-gray-300" />
+              <span>Login</span>
             </Link>
           ) : (
             <button onClick={handleLogout}>
-              <FontAwesomeIcon icon={faSignOutAlt} className="w-6 h-6 text-white hover:text-gray-300" />
+              <FontAwesomeIcon icon={faSignOutAlt} className="w-6 h-6 flex item-center text-white hover:text-gray-300" />
+              <span>Logout</span>
             </button>
           )}
         </div>

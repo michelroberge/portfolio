@@ -19,7 +19,7 @@ export default function BlogManagement() {
 
   const [blogs, setBlogs] = useState<BlogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const router = useRouter();
 
@@ -39,7 +39,8 @@ export default function BlogManagement() {
     fetchBlogs();
   }, [isAuthenticated]);
 
-  if (!isAuthenticated) return <p>Checking authentication...</p>;
+  if (!isAuthenticated) return <p>You are not authenticated.</p>;
+  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
 
   const handleArchive = async (id: string) => {
     if (!confirm("Are you sure you want to archive this blog post?")) return;
