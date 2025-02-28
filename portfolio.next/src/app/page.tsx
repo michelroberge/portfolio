@@ -41,7 +41,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Toggle appears only on small screens */}
+          {/* Toggle appears only on small screens */}
       <SectionToggle activeSection={activeSection} setActiveSection={setActiveSection} />
       <main className="mx-auto w-full px-6 py-10 flex flex-col lg:flex-row lg:gap-8 flex-1 max-w-screen-2xl">
       {/* Blogs Section: on small screens, display only if activeSection === "blogs"; always visible on md+ */}

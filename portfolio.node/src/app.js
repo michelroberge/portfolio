@@ -21,6 +21,8 @@ const { prepopulateDefaultConfigs } = require("./services/providerConfigService"
 
 const metricsMiddleware = require("./middlewares/metrics");
 
+const { swaggerMiddleware, swaggerSetup } = require('./config/swagger');
+
 async function createApp() {
   // Connect to the database
   await connectDB();
@@ -52,6 +54,7 @@ setupStrategies()
   app.use(passport.initialize());
 
   // Set up routes
+  app.use('/api/docs', swaggerMiddleware, swaggerSetup);
   app.use("/api/auth", authRoutes);
   app.use("/api/auth/oauth2", oauthRoutes);
   app.use("/api/projects", projectRoutes);

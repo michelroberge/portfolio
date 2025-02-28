@@ -32,7 +32,9 @@
     "passport-facebook": "^3.0.0",
     "passport-github": "^1.1.0",
     "passport-google-oauth20": "^2.0.0",
-    "passport-microsoft": "^2.1.0"
+    "passport-microsoft": "^2.1.0",
+    "swagger-ui-express": "^5.0.1",
+    "yamljs": "^0.3.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",

@@ -66,24 +66,34 @@ portfolio.next/public/next.svg
 portfolio.next/public/vercel.svg
 portfolio.next/public/window.svg
 portfolio.next/README.md
+portfolio.next/src/app/admin/analytics/page.tsx
 portfolio.next/src/app/admin/blogs/edit/[id]/page.tsx
 portfolio.next/src/app/admin/blogs/new/page.tsx
 portfolio.next/src/app/admin/blogs/page.tsx
+portfolio.next/src/app/admin/comments/page.tsx
 portfolio.next/src/app/admin/login/page.tsx
 portfolio.next/src/app/admin/page.tsx
 portfolio.next/src/app/admin/projects/edit/[id]/page.tsx
 portfolio.next/src/app/admin/projects/new/page.tsx
 portfolio.next/src/app/admin/projects/page.tsx
+portfolio.next/src/app/admin/settings/provider-config/page.tsx
+portfolio.next/src/app/admin/setup/page.tsx
 portfolio.next/src/app/admin/temp-layout.tsx
 portfolio.next/src/app/blogs/[slug]/page.tsx
 portfolio.next/src/app/globals.css
 portfolio.next/src/app/layout.tsx
 portfolio.next/src/app/page.tsx
+portfolio.next/src/app/privacy-policy/page.tsx
+portfolio.next/src/components/Chat.tsx
+portfolio.next/src/components/ChatWrapper.tsx
 portfolio.next/src/components/CommentSection.tsx
 portfolio.next/src/components/Footer.tsx
 portfolio.next/src/components/Header.tsx
+portfolio.next/src/components/Search.tsx
 portfolio.next/src/components/SectionToggle.tsx
 portfolio.next/src/context/AuthContext.tsx
+portfolio.next/src/context/ChatContext.tsx
+portfolio.next/src/context/SearchContext.tsx
 portfolio.next/src/services/apiService.ts
 portfolio.next/src/services/blogService.ts
 portfolio.next/tailwind.config.ts
@@ -107,24 +117,31 @@ portfolio.node/src/app.js
 portfolio.node/src/cache.js
 portfolio.node/src/config/db.js
 portfolio.node/src/config/passport.js
+portfolio.node/src/config/swagger.js
+portfolio.node/src/docs/openapi.yml
 portfolio.node/src/middlewares/auth.js
+portfolio.node/src/middlewares/metrics.js
 portfolio.node/src/middlewares/validate.js
 portfolio.node/src/models/BlogEntry.js
 portfolio.node/src/models/Comment.js
 portfolio.node/src/models/Project.js
+portfolio.node/src/models/ProviderConfig.js
 portfolio.node/src/models/User.js
 portfolio.node/src/routes/authRoutes.js
 portfolio.node/src/routes/blogRoutes.js
 portfolio.node/src/routes/commentRoutes.js
 portfolio.node/src/routes/oauthRoutes.js
 portfolio.node/src/routes/projectRoutes.js
+portfolio.node/src/routes/providerConfigRoutes.js
 portfolio.node/src/routes/userRoutes.js
 portfolio.node/src/server.js
 portfolio.node/src/services/authService.js
 portfolio.node/src/services/blogService.js
 portfolio.node/src/services/commentService.js
 portfolio.node/src/services/projectService.js
+portfolio.node/src/services/providerConfigService.js
 portfolio.node/src/services/userService.js
+portfolio.node/src/tracing.js
 portfolio.node/src/validators/blogValidator.js
 README.md
 
@@ -1412,6 +1429,82 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
 ================
+File: portfolio.next/src/app/admin/analytics/page.tsx
+================
+// portfolio.next/src/app/admin/analytics/page.tsx
+"use client";
+
+import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+
+interface TelemetryData {
+  users: number;
+  blogPosts: number;
+  projects: number;
+  sessions: number;
+  pageHits: number;
+}
+
+export default function AnalyticsDashboard() {
+  const [data, setData] = useState<TelemetryData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated, user } = useAuth();
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+  useEffect(() => {
+    async function fetchTelemetry() {
+      try {
+        const res = await fetch(`${apiUrl}/api/telemetry`, {
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error("Failed to fetch telemetry data");
+        const telemetry = await res.json();
+        setData(telemetry);
+      } catch (err: any) {
+        setError(err.message);
+      }
+    }
+    if (isAuthenticated) fetchTelemetry();
+  }, [isAuthenticated, apiUrl]);
+
+  if (!isAuthenticated) return <p>You are not authenticated.</p>;
+  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
+  
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-4">Analytics Dashboard</h1>
+      {error && <p className="text-red-500">{error}</p>}
+      {data ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-blue-500 text-white p-4 rounded">
+            <h2 className="text-xl">Users</h2>
+            <p className="text-3xl">{data.users}</p>
+          </div>
+          <div className="bg-green-500 text-white p-4 rounded">
+            <h2 className="text-xl">Blog Posts</h2>
+            <p className="text-3xl">{data.blogPosts}</p>
+          </div>
+          <div className="bg-purple-500 text-white p-4 rounded">
+            <h2 className="text-xl">Projects</h2>
+            <p className="text-3xl">{data.projects}</p>
+          </div>
+          <div className="bg-yellow-500 text-white p-4 rounded">
+            <h2 className="text-xl">Sessions</h2>
+            <p className="text-3xl">{data.sessions}</p>
+          </div>
+          <div className="bg-red-500 text-white p-4 rounded">
+            <h2 className="text-xl">Page Hits</h2>
+            <p className="text-3xl">{data.pageHits}</p>
+          </div>
+        </div>
+      ) : (
+        <p>Loading telemetry data...</p>
+      )}
+    </div>
+  );
+}
+
+================
 File: portfolio.next/src/app/admin/blogs/edit/[id]/page.tsx
 ================
 "use client";
@@ -1434,7 +1527,7 @@ export default function EditBlogEntry() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit"); // Tab state
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -1479,9 +1572,10 @@ export default function EditBlogEntry() {
     }
   };
 
-  if (!isAuthenticated) return <p>Checking authentication...</p>;
   if (loading) return <p>Loading...</p>;
-
+  if (!isAuthenticated) return <p>You are not authenticated.</p>;
+  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
+  
   return (
     <>
       <h1 className="text-2xl font-bold mb-4">Edit Blog Entry</h1>
@@ -1583,7 +1677,7 @@ export default function NewBlogEntry() {
   const [publishAt, setPublishAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1606,7 +1700,8 @@ export default function NewBlogEntry() {
     }
   };
 
-  if (!isAuthenticated) return <p>Checking authentication...</p>;
+  if (!isAuthenticated) return <p>You are not authenticated.</p>;
+  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
 
   return (
     <div className="p-6">
@@ -1685,7 +1780,7 @@ export default function BlogManagement() {
 
   const [blogs, setBlogs] = useState<BlogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const router = useRouter();
 
@@ -1705,7 +1800,8 @@ export default function BlogManagement() {
     fetchBlogs();
   }, [isAuthenticated]);
 
-  if (!isAuthenticated) return <p>Checking authentication...</p>;
+  if (!isAuthenticated) return <p>You are not authenticated.</p>;
+  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
 
   const handleArchive = async (id: string) => {
     if (!confirm("Are you sure you want to archive this blog post?")) return;
@@ -1777,11 +1873,118 @@ export default function BlogManagement() {
 }
 
 ================
+File: portfolio.next/src/app/admin/comments/page.tsx
+================
+// portfolio.next/src/app/admin/comments/page.tsx
+"use client";
+
+import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import Link from "next/link";
+
+interface Comment {
+  _id: string;
+  author: string;
+  text: string;
+  createdAt: string;
+  redacted: boolean;
+  replies: Comment[];
+}
+
+export default function CommentManagement() {
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated, user } = useAuth();
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+  useEffect(() => {
+    async function fetchComments() {
+      try {
+        const res = await fetch(`${apiUrl}/api/comments/all`, {
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error("Failed to fetch comments");
+        const data = await res.json();
+        setComments(data);
+      } catch (err: any) {
+        setError(err.message);
+      }
+    }
+    if (isAuthenticated) fetchComments();
+  }, [isAuthenticated, apiUrl]);
+
+  const handleRedact = async (id: string) => {
+    if (!confirm("Mark this comment as redacted?")) return;
+    try {
+      const res = await fetch(`${apiUrl}/api/comments/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Redaction failed");
+      // Update the local state to mark the comment as redacted.
+      setComments(prev =>
+        prev.map(c => (c._id === id ? { ...c, redacted: true } : c))
+      );
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  if (!isAuthenticated) return <p>You are not authenticated.</p>;
+  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
+
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-4">Manage Comments</h1>
+      {error && <p className="text-red-500">{error}</p>}
+      <table className="w-full border-collapse border border-gray-300">
+        <thead>
+          <tr className="bg-gray-200">
+            <th className="border p-2 text-left">Author</th>
+            <th className="border p-2 text-left">Comment</th>
+            <th className="border p-2 text-left">Date</th>
+            <th className="border p-2 text-left">Status</th>
+            <th className="border p-2 text-left">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {comments.map(comment => (
+            <tr key={comment._id} className="border">
+              <td className="border p-2">{comment.author}</td>
+              <td className="border p-2">{comment.text}</td>
+              <td className="border p-2">
+                {new Date(comment.createdAt).toLocaleString()}
+              </td>
+              <td className="border p-2">
+                {comment.redacted ? "Redacted" : "Active"}
+              </td>
+              <td className="border p-2">
+                {!comment.redacted && (
+                  <button
+                    onClick={() => handleRedact(comment._id)}
+                    className="text-red-500 hover:underline"
+                  >
+                    Redact
+                  </button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <Link href="/admin" className="text-blue-500 underline mt-4 inline-block">
+        Back to Dashboard
+      </Link>
+    </div>
+  );
+}
+
+================
 File: portfolio.next/src/app/admin/login/page.tsx
 ================
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -1792,10 +1995,12 @@ export default function AdminLogin() {
   const [error, setError] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
+  const returnUrl = searchParams.get("returnUrl") || process.env.NEXT_PUBLIC_CLIENT_URL || "";
+
   // Get returnUrl from the query string, default to /admin if not provided
-  const returnUrl = searchParams.get("returnUrl") || "/admin";
+  // const returnUrl = window.location.href;
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  const {setIsAuthenticated} = useAuth();
+  const {isAuthenticated, setIsAuthenticated} = useAuth(); 
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1809,11 +2014,20 @@ export default function AdminLogin() {
 
     if (res.ok) {
       setIsAuthenticated(true);
-      router.push(returnUrl);
+      if ( returnUrl){
+        router.push(returnUrl);
+      }
     } else {
       setError("Invalid credentials");
     }
   };
+
+  useEffect(()=>{
+    if ( isAuthenticated && searchParams && searchParams.get("returnUrl")){
+      const dest = searchParams.get("returnUrl");
+      console.log("should push to ", dest);
+    }  
+  }, [isAuthenticated]);
 
   return (
     <div className="flex min-h-screen flex-col justify-center items-center bg-gray-100 space-y-6">
@@ -1861,7 +2075,7 @@ export default function AdminLogin() {
           >
             Login with Facebook
           </Link>
-          <Link
+          {/* <Link
             href={`${apiUrl}/api/auth/oauth2/github?returnUrl=${encodeURIComponent(returnUrl)}`}
             className="bg-gray-800 text-white text-center py-2 rounded"
           >
@@ -1872,7 +2086,7 @@ export default function AdminLogin() {
             className="bg-blue-400 text-white text-center py-2 rounded"
           >
             Login with Microsoft
-          </Link>
+          </Link> */}
         </div>
       </div>
     </div>
@@ -1888,44 +2102,58 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 
-
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function AdminDashboard() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const router = useRouter();
 
-
   if (!isAuthenticated) return <p>You are not authenticated.</p>;
+  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
 
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
-      <p className="mb-6">Welcome to the admin panel! You can now manage your blog and projects.</p>
-
-      <div className="flex gap-4">
-  <Link
-    href="/admin/blogs"
-    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition"
-  >
-    Manage Blogs
-  </Link>
-
-  <button
-    onClick={() => router.push("/admin/projects")}
-    className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition"
-  >
-    Manage Projects
-  </button>
-
-  <a
-    href={`${apiUrl}/api/auth/logout`}
-    className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition"
-  >
-    Logout
-  </a>
-</div>
-
+    <div className="p-8 max-w-5xl mx-auto">
+      <h1 className="text-4xl font-semibold mb-4">Admin Dashboard</h1>
+      <p className="text-gray-600 mb-8">
+        Welcome to the admin panel. Use the options below to manage your site.
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Link
+          href="/admin/blogs"
+          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+        >
+          <h2 className="text-lg font-medium text-gray-800">Manage Blogs</h2>
+          <p className="text-sm text-gray-500">Edit, create, and manage blog posts</p>
+        </Link>
+        <Link
+          href="/admin/projects"
+          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+        >
+          <h2 className="text-lg font-medium text-gray-800">Manage Projects</h2>
+          <p className="text-sm text-gray-500">Edit, create, and manage projects</p>
+        </Link>
+        <Link
+          href="/admin/comments"
+          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+        >
+          <h2 className="text-lg font-medium text-gray-800">Manage Comments</h2>
+          <p className="text-sm text-gray-500">Review and moderate user comments</p>
+        </Link>
+        <Link
+          href="/admin/analytics"
+          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+        >
+          <h2 className="text-lg font-medium text-gray-800">Analytics Dashboard</h2>
+          <p className="text-sm text-gray-500">View site metrics and performance data</p>
+        </Link>
+        <Link
+          href="/admin/settings/provider-config"
+          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+        >
+          <h2 className="text-lg font-medium text-gray-800">OAuth Provider Config</h2>
+          <p className="text-sm text-gray-500">Configure external identity providers</p>
+        </Link>
+      </div>
     </div>
   );
 }
@@ -1953,7 +2181,7 @@ export default function EditProject() {
   const [publishAt, setPublishAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -1994,8 +2222,9 @@ export default function EditProject() {
     }
   };
 
-  if (!isAuthenticated) return <p>Checking authentication...</p>;
-  if (loading) return <p>Loading...</p>;
+    if (loading) return <p>Loading...</p>;
+    if (!isAuthenticated) return <p>You are not authenticated.</p>;
+    if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
 
   return (
     <>
@@ -2078,7 +2307,7 @@ export default function NewProject() {
   const [publishAt, setPublishAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2097,7 +2326,8 @@ export default function NewProject() {
     }
   };
 
-  if (!isAuthenticated) return <p>Checking authentication...</p>;
+  if (!isAuthenticated) return <p>You are not authenticated.</p>;
+  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
 
   return (
     <>
@@ -2182,7 +2412,7 @@ interface Project {
 export default function ProjectManagement() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const router = useRouter();
 
   // Fetch projects once authenticated.
@@ -2215,7 +2445,8 @@ export default function ProjectManagement() {
     }
   };
 
-  if (!isAuthenticated) return <p>Checking authentication...</p>;
+  if (!isAuthenticated) return <p>You are not authenticated.</p>;
+  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
 
   return (
     <>
@@ -2280,6 +2511,338 @@ export default function ProjectManagement() {
         </tbody>
       </table>
     </>
+  );
+}
+
+================
+File: portfolio.next/src/app/admin/settings/provider-config/page.tsx
+================
+"use client";
+
+import { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import Link from "next/link";
+
+interface ProviderConfig {
+  _id?: string;
+  provider: string;
+  clientId: string;
+  clientSecret: string;
+  callbackURL: string;
+}
+
+export default function ProviderConfigPage() {
+  const { isAuthenticated, user } = useAuth();
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const [configs, setConfigs] = useState<ProviderConfig[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [editingConfigs, setEditingConfigs] = useState<Record<string, ProviderConfig>>({});
+  const [showNewForm, setShowNewForm] = useState(false);
+  const [newConfig, setNewConfig] = useState<ProviderConfig>({
+    provider: "",
+    clientId: "",
+    clientSecret: "",
+    callbackURL: "",
+  });
+
+  useEffect(() => {
+    async function fetchConfigs() {
+      try {
+        const res = await fetch(`${apiUrl}/api/provider-configs`, { credentials: "include" });
+        if (!res.ok) throw new Error("Failed to fetch provider configurations");
+        const data = await res.json();
+        setConfigs(data);
+        const initialEditing: Record<string, ProviderConfig> = {};
+        data.forEach((config: ProviderConfig) => {
+          initialEditing[config.provider] = config;
+        });
+        setEditingConfigs(initialEditing);
+        setLoading(false);
+      } catch (err: any) {
+        setError(err.message);
+        setLoading(false);
+      }
+    }
+    if (isAuthenticated) fetchConfigs();
+  }, [apiUrl, isAuthenticated]);
+
+  const handleChange = (provider: string, field: keyof ProviderConfig, value: string) => {
+    setEditingConfigs(prev => ({
+      ...prev,
+      [provider]: {
+        ...prev[provider],
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleSave = async (provider: string) => {
+    try {
+      const configToSave = editingConfigs[provider];
+      const res = await fetch(`${apiUrl}/api/provider-configs/${provider}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(configToSave),
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to update configuration");
+      }
+      const updatedConfig = await res.json();
+      setConfigs(prev => prev.map(c => (c.provider === provider ? updatedConfig : c)));
+      alert(`Configuration for ${provider} updated. A restart may be required to apply changes.`);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  // Handler for creating a new provider config.
+  const handleNewChange = (field: keyof ProviderConfig, value: string) => {
+    setNewConfig(prev => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleNewSave = async () => {
+    if (!newConfig.provider) {
+      setError("Provider field is required for new configuration.");
+      return;
+    }
+    try {
+      // Using the same PUT endpoint (with upsert) to create new configuration.
+      const res = await fetch(`${apiUrl}/api/provider-configs/${newConfig.provider}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(newConfig),
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to create new configuration");
+      }
+      const createdConfig = await res.json();
+      setConfigs(prev => [...prev, createdConfig]);
+      setEditingConfigs(prev => ({ ...prev, [createdConfig.provider]: createdConfig }));
+      setNewConfig({ provider: "", clientId: "", clientSecret: "", callbackURL: "" });
+      setShowNewForm(false);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+  
+  if (loading) return <p>Loading provider configurations...</p>;
+  if (!isAuthenticated) return <p>You are not authenticated.</p>;
+  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
+  
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-4">OAuth2/OIDC Provider Configuration</h1>
+      {error && <p className="text-red-500">{error}</p>}
+
+      <table className="w-full border-collapse border border-gray-300 mb-4">
+        <thead>
+          <tr className="bg-gray-200">
+            <th className="border p-2 text-left">Provider</th>
+            <th className="border p-2 text-left">Client ID</th>
+            <th className="border p-2 text-left">Client Secret</th>
+            <th className="border p-2 text-left">Callback URL</th>
+            <th className="border p-2 text-left">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {configs.map(config => (
+            <tr key={config.provider}>
+              <td className="border p-2">{config.provider}</td>
+              <td className="border p-2">
+                <input
+                  type="text"
+                  value={editingConfigs[config.provider]?.clientId || ""}
+                  onChange={(e) => handleChange(config.provider, "clientId", e.target.value)}
+                  className="w-full p-1 border rounded"
+                />
+              </td>
+              <td className="border p-2">
+                <input
+                  type="password"
+                  value={editingConfigs[config.provider]?.clientSecret || ""}
+                  onChange={(e) => handleChange(config.provider, "clientSecret", e.target.value)}
+                  className="w-full p-1 border rounded"
+                />
+              </td>
+              <td className="border p-2">
+                <input
+                  type="text"
+                  value={editingConfigs[config.provider]?.callbackURL || ""}
+                  onChange={(e) => handleChange(config.provider, "callbackURL", e.target.value)}
+                  className="w-full p-1 border rounded"
+                />
+              </td>
+              <td className="border p-2">
+                <button
+                  onClick={() => handleSave(config.provider)}
+                  className="bg-blue-500 text-white px-3 py-1 rounded"
+                >
+                  Save
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+          <div>
+      {/* New Provider Form */}
+      {showNewForm ? (
+        <div className="border p-4 mb-4">
+          <h2 className="text-xl font-semibold mb-2">Add New Provider</h2>
+          <input
+            type="text"
+            placeholder="Provider (e.g., custom)"
+            value={newConfig.provider}
+            onChange={(e) => handleNewChange("provider", e.target.value)}
+            className="w-full p-2 border rounded mb-2"
+            required
+          />
+          <input
+            type="text"
+            placeholder="Client ID"
+            value={newConfig.clientId}
+            onChange={(e) => handleNewChange("clientId", e.target.value)}
+            className="w-full p-2 border rounded mb-2"
+          />
+          <input
+            type="text"
+            placeholder="Client Secret"
+            value={newConfig.clientSecret}
+            onChange={(e) => handleNewChange("clientSecret", e.target.value)}
+            className="w-full p-2 border rounded mb-2"
+          />
+          <input
+            type="text"
+            placeholder="Callback URL"
+            value={newConfig.callbackURL}
+            onChange={(e) => handleNewChange("callbackURL", e.target.value)}
+            className="w-full p-2 border rounded mb-2"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={handleNewSave}
+              className="bg-green-500 text-white px-3 py-1 rounded"
+            >
+              Add Provider
+            </button>
+            <button
+              onClick={() => setShowNewForm(false)}
+              className="bg-gray-500 text-white px-3 py-1 rounded"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => setShowNewForm(true)}
+          className="bg-teal-500 text-white px-4 py-2 rounded mb-4"
+        >
+          New Provider
+        </button>
+      )}
+</div>
+      <Link href="/admin" className="text-blue-500 underline">
+        Back to Dashboard
+      </Link>
+    </div>
+  );
+}
+
+================
+File: portfolio.next/src/app/admin/setup/page.tsx
+================
+// portfolio.next/src/app/admin/setup/page.tsx
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+export default function AdminSetup() {
+  const [adminExists, setAdminExists] = useState<boolean | null>(null);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const router = useRouter();
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+  useEffect(() => {
+    async function checkAdmin() {
+      try {
+        const res = await fetch(`${apiUrl}/api/users/admin-exists`, {
+          credentials: "include",
+        });
+        const data = await res.json();
+        setAdminExists(data.exists);
+        if (data.exists) {
+          // If an admin exists, redirect to the admin dashboard.
+          router.push("/admin");
+        }
+      } catch (err: any) {
+        setError("Error checking admin status");
+      }
+    }
+    checkAdmin();
+  }, [apiUrl, router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    try {
+      // Use our existing user registration endpoint to create an admin.
+      const res = await fetch(`${apiUrl}/api/users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password, isAdmin: true }),
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Admin creation failed");
+      }
+      router.push("/admin");
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  if (adminExists === null) {
+    return <p>Loading...</p>;
+  }
+
+  return (
+    <div className="p-6 max-w-md mx-auto">
+      <h1 className="text-3xl font-bold mb-4">Admin Setup</h1>
+      {error && <p className="text-red-500 mb-4">{error}</p>}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input
+          type="text"
+          placeholder="Admin Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        />
+        <input
+          type="password"
+          placeholder="Admin Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        />
+        <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
+          Create Admin Account
+        </button>
+      </form>
+    </div>
   );
 }
 
@@ -2406,7 +2969,10 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/context/AuthContext";
-
+import ChatWrapper from "@/components/ChatWrapper";
+import Search from "@/components/Search";
+import { SearchProvider } from "@/context/SearchContext";
+import { ChatProvider } from "@/context/ChatContext";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -2431,12 +2997,17 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
       <AuthProvider>
-
+        <ChatProvider>
+        <SearchProvider>
         <Header />
-        <main className="p-6 mx-auto w-full max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl">
-          {children}
+        <main className="p-6 mx-auto w-full max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-7xl">
+        <Search />
+        {children}
         </main>
         <Footer />
+        <ChatWrapper />
+        </SearchProvider>
+        </ChatProvider>
         </AuthProvider>
 
       </body>
@@ -2490,10 +3061,10 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Toggle appears only on small screens */}
+          {/* Toggle appears only on small screens */}
       <SectionToggle activeSection={activeSection} setActiveSection={setActiveSection} />
-      <main className="container mx-auto px-6 py-10 flex flex-col lg:flex-row lg:gap-8 flex-1">
-        {/* Blogs Section: on small screens, display only if activeSection === "blogs"; always visible on md+ */}
+      <main className="mx-auto w-full px-6 py-10 flex flex-col lg:flex-row lg:gap-8 flex-1 max-w-screen-2xl">
+      {/* Blogs Section: on small screens, display only if activeSection === "blogs"; always visible on md+ */}
         <section className={`${activeSection === "blogs" ? "block" : "hidden"} md:block lg:flex-1`}>
           <h2 className="text-2xl font-semibold mb-6">Latest Posts</h2>
           <div className="space-y-4">
@@ -2514,21 +3085,157 @@ export default function Home() {
         <aside className={`${activeSection === "projects" ? "block" : "hidden"} md:block lg:w-1/3 bg-white rounded-sm shadow-md p-4 h-fit`}>
           <h2 className="text-xl font-semibold mb-4">Projects</h2>
           <div className="space-y-3">
-            {projects.map((project) => (
-              <a
-                key={`project_${project._id}`}
-                href={project.link}
-                className="block p-3 bg-gray-100 rounded-sm hover:bg-gray-200 transition"
-              >
+
+          {projects.map((project) => (
+            <a
+              key={`project_${project._id}`}
+              href={project.link}
+              className="flex items-center p-3 bg-gray-100 rounded-sm hover:bg-gray-200 transition"
+            >
+              <img
+                src={project.image}
+                alt={project.title}
+                className="max-h-12  object-cover mr-4 rounded"
+              />
+              <div>
                 <h3 className="text-lg font-semibold">{project.title}</h3>
                 <p className="text-sm text-gray-500">{project.description}</p>
-              </a>
-            ))}
+              </div>
+            </a>
+          ))}
+
           </div>
         </aside>
       </main>
     </div>
   );
+}
+
+================
+File: portfolio.next/src/app/privacy-policy/page.tsx
+================
+// app/policy-privacy/page.tsx
+"use client";
+
+export default function PrivacyPolicy() {
+  return (
+    <div className="p-6 max-w-3xl mx-auto">
+      <h1 className="text-4xl font-bold mb-4">Privacy Policy</h1>
+      <p className="mb-4">
+        This Privacy Policy describes how we collect, use, and protect your personal information when you visit and use this website.
+      </p>
+
+      <h2 className="text-2xl font-semibold mb-2">Information We Collect</h2>
+      <p className="mb-4">
+        We are committed to respecting your privacy. We do not track or record any personal information beyond what is voluntarily provided by you. The only information we collect is your email address, which is used solely as a reference for posting comments. We do not use your email address for any other purpose.
+      </p>
+
+      <h2 className="text-2xl font-semibold mb-2">How We Use Your Information</h2>
+      <p className="mb-4">
+        The email address you provide is used to associate your comment with your identity on our site. We do not sell, share, or distribute your email address or any personal information to third parties. Your information is used solely to help prevent spam and maintain the integrity of our comment system.
+      </p>
+
+      <h2 className="text-2xl font-semibold mb-2">Tracking and Cookies</h2>
+      <p className="mb-4">
+        We do not use any tracking mechanisms or cookies that would allow us to monitor your browsing behavior or gather additional personal data. Our goal is to provide you with a secure and private experience.
+      </p>
+
+      <h2 className="text-2xl font-semibold mb-2">Security</h2>
+      <p className="mb-4">
+        We take reasonable precautions to protect your personal information. However, please be aware that no method of transmission over the internet or method of electronic storage is 100% secure.
+      </p>
+
+      <h2 className="text-2xl font-semibold mb-2">Changes to This Privacy Policy</h2>
+      <p className="mb-4">
+        We may update this Privacy Policy from time to time. Any changes will be posted on this page along with an updated effective date.
+      </p>
+
+      <h2 className="text-2xl font-semibold mb-2">Contact Us</h2>
+      <p className="mb-4">
+        If you have any questions about this Privacy Policy, please contact us through the contact form on our website.
+      </p>
+
+      <p className="text-sm text-gray-500">Effective Date: March 1st, 2025</p>
+    </div>
+  );
+}
+
+================
+File: portfolio.next/src/components/Chat.tsx
+================
+import { useState } from "react";
+
+export default function Chat() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    { role: "system", text: "Hello! Ask me anything about my projects or skills." }
+  ]);
+  const [input, setInput] = useState("");
+
+  const sendMessage = async () => {
+    if (!input.trim()) return;
+    const userMessage = { role: "user", text: input };
+    setMessages([...messages, userMessage]);
+    setInput("");
+    
+    // Mock API response
+    setTimeout(() => {
+      setMessages(prev => [...prev, { role: "ai", text: "This is a mock response from AI." }]);
+    }, 1000);
+  };
+
+  return (
+    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end">
+      {isOpen && (
+        <div className="w-80 shadow-lg border border-gray-300 bg-white rounded-lg overflow-hidden">
+          <div className="p-4 flex flex-col space-y-2 max-h-80 overflow-auto">
+            {messages.map((msg, i) => (
+              <div
+                key={i}
+                className={`p-2 rounded-lg text-sm ${msg.role === "user" ? "bg-blue-500 text-white self-end" : "bg-gray-200 text-black self-start"}`}
+              >
+                {msg.text}
+              </div>
+            ))}
+            <div className="flex items-center space-x-2 border-t pt-2 p-2">
+              <input
+                type="text"
+                className="flex-1 p-2 border rounded text-sm"
+                placeholder="Ask something..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && sendMessage()}
+              />
+              <button
+                className="bg-gray-800 hover:bg-gray-600 transition text-white px-3 py-1 rounded text-sm"
+                onClick={sendMessage}
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      <button
+        className="bg-gray-800 hover:bg-gray-600 transition text-white p-3 rounded-full shadow-lg"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        {isOpen ? "✖" : "💬"}
+      </button>
+    </div>
+  );
+}
+
+================
+File: portfolio.next/src/components/ChatWrapper.tsx
+================
+'use client';
+import dynamic from 'next/dynamic';
+
+const Chat = dynamic(() => import("@/components/Chat"), { ssr: false });
+
+export default function ChatWrapper() {
+  return <Chat />; 
 }
 
 ================
@@ -2652,8 +3359,8 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
         </form>
       ) : (
         <p>
-    <a href={`/admin/login?returnUrl=${encodeURIComponent(pathname)}`} className="text-blue-500 underline">
-    Login to comment
+          <a href={`/admin/login?returnUrl=${encodeURIComponent(window.location.href )}`} className="text-blue-500 underline">
+          Login to comment
           </a>
         </p>
       )}
@@ -2677,14 +3384,14 @@ File: portfolio.next/src/components/Header.tsx
 ================
 "use client";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+import { faCog, faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
 export default function Header() {
-  const { isAuthenticated, refreshAuth, setIsAuthenticated } = useAuth();
-  const pathname = usePathname();
+  const { user, isAuthenticated, refreshAuth, setIsAuthenticated } = useAuth();
+  const pathname = window.location.href;
   const router = useRouter();
 
   async function handleLogout() {
@@ -2714,18 +3421,69 @@ export default function Header() {
           </div>
         </Link>
         <div>
+          { user?.isAdmin === true && (
+            <Link href={`/admin`}>
+              <FontAwesomeIcon icon={faCog} className="w-6 h-6 flex item-center text-white hover:text-gray-300 me-4" />
+            </Link>
+          )}
           {!isAuthenticated ? (
             <Link href={`/admin/login?returnUrl=${encodeURIComponent(pathname)}`}>
-              <FontAwesomeIcon icon={faSignInAlt} className="w-6 h-6 text-white hover:text-gray-300" />
+              <FontAwesomeIcon icon={faSignInAlt} className="w-6 h-6 flex item-center text-white hover:text-gray-300" />
+              <span>Login</span>
             </Link>
           ) : (
             <button onClick={handleLogout}>
-              <FontAwesomeIcon icon={faSignOutAlt} className="w-6 h-6 text-white hover:text-gray-300" />
+              <FontAwesomeIcon icon={faSignOutAlt} className="w-6 h-6 flex item-center text-white hover:text-gray-300" />
+              <span>Logout</span>
             </button>
           )}
         </div>
       </div>
     </header>
+  );
+}
+
+================
+File: portfolio.next/src/components/Search.tsx
+================
+'use client';
+import { useSearch } from "@/context/SearchContext";
+
+export default function Search() {
+    const { query, setQuery, results, handleSearch } = useSearch();
+
+  return (
+    <div className="relative w-full max-w-lg mx-auto mt-6">
+      <input
+        type="text"
+        className="w-full p-3 border rounded"
+        placeholder="Search projects, blogs, or skills..."
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+      />
+      <button
+        className="absolute right-2 top-2 px-4 py-1 bg-gray-800 hover:bg-gray-600 transition text-white rounded"
+        onClick={handleSearch}
+      >
+        Search
+      </button>
+      {results.length > 0 && (
+        <div className="mt-4 p-4 border rounded bg-white shadow-md">
+          <h3 className="text-lg font-semibold">Results:</h3>
+          <ul>
+            {results.map((result, index) => (
+              <li key={index} className="mt-2">
+                <a href={result.link} className="text-blue-500 hover:underline">
+                  {result.title} ({result.type})
+                </a>
+                <p className="text-gray-600 text-sm">{result.description}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -2770,25 +3528,35 @@ File: portfolio.next/src/context/AuthContext.tsx
 // portfolio.next/src/context/AuthContext.tsx
 "use client";
 import { createContext, useContext, useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  user: User | null;
   setIsAuthenticated: (val: boolean) => void;
+  setUser: (user: User | null) => void;
   refreshAuth: () => Promise<void>;
+} 
+
+interface User {
+  username: string;
+  isAdmin: boolean;
+  // Add other user properties as needed.
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
 
   async function refreshAuth() {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/check`, {
         credentials: "include",
       });
-      setIsAuthenticated(res.ok);
+      const data = await res.json();
+      setIsAuthenticated(data.authenticated);
+      setUser(data.authenticated ? data.user : null);
     } catch (error) {
       setIsAuthenticated(false);
     }
@@ -2799,7 +3567,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated, refreshAuth }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, setIsAuthenticated, setUser, refreshAuth }}>
       {children}
     </AuthContext.Provider>
   );
@@ -2809,6 +3577,108 @@ export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+}
+
+================
+File: portfolio.next/src/context/ChatContext.tsx
+================
+'use client';
+import { createContext, useContext, useState, ReactNode } from "react";
+
+type ChatMessage = {
+  role: "user" | "ai";
+  text: string;
+};
+
+type ChatContextType = {
+  messages: ChatMessage[];
+  addMessage: (message: ChatMessage) => void;
+  clearChat: () => void;
+};
+
+const ChatContext = createContext<ChatContextType | undefined>(undefined);
+
+export function ChatProvider({ children }: { children: ReactNode }) {
+  const [messages, setMessages] = useState<ChatMessage[]>([{
+    role: "ai",
+    text: "Hello! Ask me anything about my projects or skills."
+  }]);
+
+  const addMessage = (message: ChatMessage) => {
+    setMessages((prev) => [...prev, message]);
+  };
+
+  const clearChat = () => {
+    setMessages([{ role: "ai", text: "Hello! Ask me anything about my projects or skills." }]);
+  };
+
+  return (
+    <ChatContext.Provider value={{ messages, addMessage, clearChat }}>
+      {children}
+    </ChatContext.Provider>
+  );
+}
+
+export function useChat() {
+  const context = useContext(ChatContext);
+  if (!context) {
+    throw new Error("useChat must be used within a ChatProvider");
+  }
+  return context;
+}
+
+================
+File: portfolio.next/src/context/SearchContext.tsx
+================
+'use client';
+import { createContext, useContext, useState, ReactNode } from "react";
+
+type SearchResult = {
+  title: string;
+  description: string;
+  type: "project" | "blog";
+  link: string;
+};
+
+type SearchContextType = {
+  query: string;
+  setQuery: (query: string) => void;
+  results: SearchResult[];
+  setResults: (results: SearchResult[]) => void;
+  handleSearch: () => void;
+};
+
+const SearchContext = createContext<SearchContextType | undefined>(undefined);
+
+export function SearchProvider({ children }: { children: ReactNode }) {
+  const [query, setQuery] = useState<string>("");
+  const [results, setResults] = useState<SearchResult[]>([]);
+
+  const handleSearch = async () => {
+    if (!query.trim()) return;
+
+    // Mock API response
+    setTimeout(() => {
+      setResults([
+        { title: "Next.js Portfolio", description: "A modern portfolio built with Next.js", type: "project", link: "/projects/nextjs-portfolio" },
+        { title: "AI Chatbot Integration", description: "Implementing AI chatbot with Ollama.", type: "blog", link: "/blogs/ai-chatbot-integration" }
+      ]);
+    }, 1000);
+  };
+
+  return (
+    <SearchContext.Provider value={{ query, setQuery, results, setResults, handleSearch }}>
+      {children}
+    </SearchContext.Provider>
+  );
+}
+
+export function useSearch() {
+  const context = useContext(SearchContext);
+  if (!context) {
+    throw new Error("useSearch must be used within a SearchProvider");
   }
   return context;
 }
@@ -3516,11 +4386,16 @@ File: portfolio.node/package.json
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.56.1",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.57.2",
+    "@opentelemetry/sdk-node": "^0.57.2",
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "express-session": "^1.18.1",
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "marked": "^15.0.7",
@@ -3529,7 +4404,9 @@ File: portfolio.node/package.json
     "passport-facebook": "^3.0.0",
     "passport-github": "^1.1.0",
     "passport-google-oauth20": "^2.0.0",
-    "passport-microsoft": "^2.1.0"
+    "passport-microsoft": "^2.1.0",
+    "swagger-ui-express": "^5.0.1",
+    "yamljs": "^0.3.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
@@ -3544,24 +4421,37 @@ File: portfolio.node/package.json
 ================
 File: portfolio.node/src/app.js
 ================
-// portfolio.node/src/app.js
+// Telemetry first
+require('./tracing');
+// The rest.
 require("dotenv").config();
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 
 const connectDB = require("./config/db");
-const passport = require("./config/passport");
+const { passport, setupStrategies } = require("./config/passport");
+
 
 const authRoutes = require("./routes/authRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const blogRoutes = require("./routes/blogRoutes");
 const oauthRoutes = require("./routes/oauthRoutes");
 const commentRoutes = require("./routes/commentRoutes");
+const providerConfigRoutes = require("./routes/providerConfigRoutes"); // NEW
+
+const { prepopulateDefaultConfigs } = require("./services/providerConfigService");
+
+const metricsMiddleware = require("./middlewares/metrics");
+
+const { swaggerMiddleware, swaggerSetup } = require('./config/swagger');
 
 async function createApp() {
   // Connect to the database
   await connectDB();
+
+  // default configuration population
+  await prepopulateDefaultConfigs();
 
   const app = express();
 
@@ -3573,12 +4463,27 @@ async function createApp() {
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
 
+  app.use(metricsMiddleware);
+ 
+setupStrategies()
+  .then(() => {
+    console.log("Passport strategies initialized successfully.");
+    // Start your Express server here...
+  })
+  .catch((err) => {
+    console.error("Error initializing passport strategies:", err);
+  });
+
+  app.use(passport.initialize());
+
   // Set up routes
+  app.use('/api/docs', swaggerMiddleware, swaggerSetup);
   app.use("/api/auth", authRoutes);
   app.use("/api/auth/oauth2", oauthRoutes);
   app.use("/api/projects", projectRoutes);
   app.use("/api/blogs", blogRoutes);
   app.use("/api/comments", commentRoutes);
+  app.use("/api/provider-configs", providerConfigRoutes);
 
   return app;
 }
@@ -3675,6 +4580,7 @@ const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const FacebookStrategy = require("passport-facebook").Strategy;
 const GitHubStrategy = require("passport-github").Strategy;
 const MicrosoftStrategy = require("passport-microsoft").Strategy;
+const providerConfigService = require("../services/providerConfigService");
 
 // Serialize and deserialize user (for session support, if needed)
 passport.serializeUser((user, done) => {
@@ -3696,102 +4602,644 @@ async function findOrCreateUser(providerId, email) {
   const authService = require("../services/authService");
   let user = await User.findOne({ username: email });
   if (!user) {
-    // Use a dummy password based on providerId (in production, you might store provider data separately)
+    // Use a dummy password based on providerId (in production, store provider data separately)
     user = await authService.registerUser({ username: email, password: "oauth_" + providerId, isAdmin: false });
   }
   return user;
 }
 
-// Google Strategy
-passport.use(
-  new GoogleStrategy(
-    {
+// Helper function to set up an OAuth strategy for a provider
+async function setupOAuthStrategy(providerName, StrategyClass, defaultOptions) {
+  const providerConfig = await providerConfigService.getConfigByProvider(providerName);
+  const clientID = (providerConfig && providerConfig.clientId) || defaultOptions.clientID;
+  const clientSecret = (providerConfig && providerConfig.clientSecret) || defaultOptions.clientSecret;
+  const callbackURL = (providerConfig && providerConfig.callbackURL) || defaultOptions.callbackURL;
+
+  const strategyOptions = {
+    ...defaultOptions,
+    clientID,
+    clientSecret,
+    callbackURL,
+  };
+
+  if (clientID && clientSecret && callbackURL) {
+    passport.use(
+      new StrategyClass(strategyOptions, async (accessToken, refreshToken, profile, done) => {
+        try {
+          // For GitHub, use a fallback email if none is provided.
+          let email;
+          if (providerName === "github") {
+            email = profile.emails && profile.emails[0].value ? profile.emails[0].value : profile.username + "@github.com";
+          } else {
+            email = profile.emails && profile.emails[0].value;
+          }
+          if (!email) throw new Error(`No email returned from ${providerName}`);
+          const user = await findOrCreateUser(profile.id, email);
+          return done(null, user);
+        } catch (error) {
+          return done(error, null);
+        }
+      })
+    );
+    console.log(`Registered strategy for ${providerName}`);
+  } else {
+    console.warn(`Missing configuration for ${providerName}, strategy not registered.`);
+  }
+}
+
+// Set up strategies for all providers
+async function setupStrategies() {
+  await Promise.all([
+    setupOAuthStrategy("google", GoogleStrategy, {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "/api/auth/oauth2/google/callback",
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        const email = profile.emails && profile.emails[0].value;
-        if (!email) throw new Error("No email returned from Google");
-        const user = await findOrCreateUser(profile.id, email);
-        return done(null, user);
-      } catch (error) {
-        return done(error, null);
-      }
-    }
-  )
-);
-
-// Facebook Strategy
-passport.use(
-  new FacebookStrategy(
-    {
+      callbackURL: process.env.GOOGLE_CALLBACK_URL || "/api/auth/oauth2/google/callback",
+      scope: ["profile", "email"],
+    }),
+    setupOAuthStrategy("facebook", FacebookStrategy, {
       clientID: process.env.FACEBOOK_CLIENT_ID,
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
-      callbackURL: "/api/auth/oauth2/facebook/callback",
+      callbackURL: process.env.FACEBOOK_CALLBACK_URL || "/api/auth/oauth2/facebook/callback",
       profileFields: ["id", "emails", "name"],
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        const email = profile.emails && profile.emails[0].value;
-        if (!email) throw new Error("No email returned from Facebook");
-        const user = await findOrCreateUser(profile.id, email);
-        return done(null, user);
-      } catch (error) {
-        return done(error, null);
-      }
-    }
-  )
-);
-
-// GitHub Strategy
-passport.use(
-  new GitHubStrategy(
-    {
+    }),
+    setupOAuthStrategy("github", GitHubStrategy, {
       clientID: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      callbackURL: "/api/auth/oauth2/github/callback",
+      callbackURL: process.env.GITHUB_CALLBACK_URL || "/api/auth/oauth2/github/callback",
       scope: ["user:email"],
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        let email =
-          profile.emails && profile.emails[0].value
-            ? profile.emails[0].value
-            : profile.username + "@github.com";
-        const user = await findOrCreateUser(profile.id, email);
-        return done(null, user);
-      } catch (error) {
-        return done(error, null);
-      }
-    }
-  )
-);
-
-// Microsoft Strategy
-passport.use(
-  new MicrosoftStrategy(
-    {
+    }),
+    setupOAuthStrategy("microsoft", MicrosoftStrategy, {
       clientID: process.env.MICROSOFT_CLIENT_ID,
       clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
-      callbackURL: "/api/auth/oauth2/microsoft/callback",
+      callbackURL: process.env.MICROSOFT_CALLBACK_URL || "/api/auth/oauth2/microsoft/callback",
       scope: ["user.read"],
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        const email = profile.emails && profile.emails[0].value;
-        if (!email) throw new Error("No email returned from Microsoft");
-        const user = await findOrCreateUser(profile.id, email);
-        return done(null, user);
-      } catch (error) {
-        return done(error, null);
-      }
-    }
-  )
-);
+    }),
+  ]);
+}
 
-module.exports = passport;
+module.exports = { passport, setupStrategies };
+
+================
+File: portfolio.node/src/config/swagger.js
+================
+const swaggerUi = require('swagger-ui-express');
+const yaml = require('yamljs');
+const path = require('path');
+
+// Load OpenAPI YAML file
+const openApiDoc = yaml.load(path.join(__dirname, '../docs/openapi.yml'));
+
+// Middleware to serve Swagger UI
+const swaggerMiddleware = swaggerUi.serve;
+const swaggerSetup = swaggerUi.setup(openApiDoc);
+
+module.exports = { swaggerMiddleware, swaggerSetup };
+
+================
+File: portfolio.node/src/docs/openapi.yml
+================
+openapi: 3.0.0
+info:
+  title: Portfolio API
+  description: API for managing blogs, projects, AI chat, embeddings, search, and career timeline.
+  version: 1.4.0
+
+servers:
+  - url: http://localhost:5000/api
+    description: Local Development Server
+  - url: https://yourdomain.com/api
+    description: Production Server
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Blogs
+    description: Blog creation, retrieval, updates, and deletion
+  - name: Projects
+    description: Project portfolio management
+  - name: AI Chat
+    description: AI-powered chatbot using local LLM
+  - name: Search
+    description: Semantic search and source code search
+  - name: Embeddings
+    description: Vector embeddings for AI-powered search
+  - name: Career Timeline
+    description: Interactive career timeline and skills mapping
+  - name: System
+    description: Setup, settings, and configuration
+
+paths:
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login a user (session-based auth)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+        "401":
+          description: Invalid credentials
+
+  /auth/logout:
+    get:
+      tags: [Authentication]
+      summary: Logout user (clears session)
+      responses:
+        "200":
+          description: User logged out successfully
+
+  /blogs:
+    get:
+      tags: [Blogs]
+      summary: Retrieve all blog posts
+      responses:
+        "200":
+          description: List of blog posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Blog"
+    post:
+      tags: [Blogs]
+      summary: Create a new blog post
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BlogRequest"
+      responses:
+        "201":
+          description: Blog created
+        "400":
+          description: Validation error
+
+  /blogs/{id}:
+    get:
+      tags: [Blogs]
+      summary: Get a specific blog post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Blog entry retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Blog"
+        "404":
+          description: Blog not found
+    put:
+      tags: [Blogs]
+      summary: Update a blog post
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BlogRequest"
+      responses:
+        "200":
+          description: Blog updated
+        "404":
+          description: Blog not found
+    delete:
+      tags: [Blogs]
+      summary: Delete a blog post
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Blog deleted
+        "404":
+          description: Blog not found
+
+  /projects:
+    get:
+      tags: [Projects]
+      summary: Retrieve all projects
+      responses:
+        "200":
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+    post:
+      tags: [Projects]
+      summary: Create a new project
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectRequest"
+      responses:
+        "201":
+          description: Project created
+        "400":
+          description: Validation error
+
+  /projects/{id}:
+    put:
+      tags: [Projects]
+      summary: Update a project
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectRequest"
+      responses:
+        "200":
+          description: Project updated
+        "404":
+          description: Project not found
+    delete:
+      tags: [Projects]
+      summary: Delete a project
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Project deleted
+        "404":
+          description: Project not found
+
+  /career/timeline:
+    get:
+      tags: [Career Timeline]
+      summary: Retrieve career timeline
+      responses:
+        "200":
+          description: Career timeline retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CareerEntry"
+    post:
+      tags: [Career Timeline]
+      summary: Create a career timeline entry
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CareerEntry"
+      responses:
+        "201":
+          description: Career timeline entry created
+    delete:
+      tags: [Career Timeline]
+      summary: Delete a career timeline entry
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Career timeline entry deleted
+  /chat:
+    post:
+      tags: [AI Chat]
+      summary: Process user query with LLM chatbot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatRequest"
+      responses:
+        "200":
+          description: Chat response from LLM
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+    get:
+      tags: [AI Chat]
+      summary: Retrieve chat history for a session
+      parameters:
+        - name: sessionId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Chat history retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatMessage"
+
+  /search/semantic:
+    post:
+      tags: [Search]
+      summary: Perform AI-powered semantic search
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SemanticSearchRequest"
+      responses:
+        "200":
+          description: Search results retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SearchResult"
+
+  /search/codebase:
+    post:
+      tags: [Search]
+      summary: Search within indexed source code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CodeSearchRequest"
+      responses:
+        "200":
+          description: Code search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CodeSearchResult"
+
+  /embeddings/generate:
+    post:
+      tags: [Embeddings]
+      summary: Generate embeddings for blogs and projects
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Embeddings generated successfully
+
+  /embeddings/refresh:
+    post:
+      tags: [Embeddings]
+      summary: Refresh embeddings from the database
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Embeddings refreshed successfully
+
+  /embeddings/status:
+    get:
+      tags: [Embeddings]
+      summary: Retrieve embedding sync status
+      responses:
+        "200":
+          description: Embedding sync status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmbeddingStatus"
+
+
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+
+    Blog:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        excerpt:
+          type: string
+        body:
+          type: string
+        isDraft:
+          type: boolean
+        publishAt:
+          type: string
+          format: date-time
+
+    BlogRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        excerpt:
+          type: string
+        body:
+          type: string
+        isDraft:
+          type: boolean
+        publishAt:
+          type: string
+          format: date-time
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        image:
+          type: string
+        link:
+          type: string
+
+    ProjectRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        image:
+          type: string
+        link:
+          type: string
+
+    CareerEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        company:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+          nullable: true
+        technologies:
+          type: array
+          items:
+            type: string
+            
+    ChatRequest:
+      type: object
+      properties:
+        query:
+          type: string
+        sessionId:
+          type: string
+      required:
+        - query
+
+    ChatResponse:
+      type: object
+      properties:
+        response:
+          type: string
+        sources:
+          type: array
+          items:
+            type: string
+
+    ChatMessage:
+      type: object
+      properties:
+        query:
+          type: string
+        response:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    SemanticSearchRequest:
+      type: object
+      properties:
+        query:
+          type: string
+        top_k:
+          type: integer
+          default: 5
+      required:
+        - query
+
+    SearchResult:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        excerpt:
+          type: string
+        sourceType:
+          type: string
+          enum: [blog, project]
+
+    CodeSearchRequest:
+      type: object
+      properties:
+        query:
+          type: string
+      required:
+        - query
+
+    CodeSearchResult:
+      type: object
+      properties:
+        file:
+          type: string
+        snippet:
+          type: string
+        lineNumber:
+          type: integer
+
+    EmbeddingStatus:
+      type: object
+      properties:
+        lastUpdated:
+          type: string
+          format: date-time
+        totalEmbeddings:
+          type: integer
+
+securitySchemes:
+  cookieAuth:
+    type: apiKey
+    in: cookie
+    name: auth-token
 
 ================
 File: portfolio.node/src/middlewares/auth.js
@@ -3812,6 +5260,44 @@ module.exports = (req, res, next) => {
   } catch (error) {
     return res.status(401).json({ message: "Invalid or expired token" });
   }
+};
+
+================
+File: portfolio.node/src/middlewares/metrics.js
+================
+// portfolio.node/src/middleware/metrics.js
+'use strict';
+
+const opentelemetry = require('@opentelemetry/api');
+
+// Get a meter instance; the name can be anything that identifies your service.
+const meter = opentelemetry.metrics.getMeter('portfolio-node');
+
+// Create a histogram metric to record request durations (in seconds).
+const requestDurationHistogram = meter.createHistogram('http_request_duration_seconds', {
+  description: 'Duration of HTTP requests in seconds',
+  // Optional: define bucket boundaries if desired
+  boundaries: [0.1, 0.5, 1, 2, 5, 10],
+});
+
+module.exports = function metricsMiddleware(req, res, next) {
+  // Record the start time using high-resolution timer.
+  const start = process.hrtime();
+  
+  // When the response is finished, calculate duration and record metric.
+  res.on('finish', () => {
+    const diff = process.hrtime(start);
+    const durationSeconds = diff[0] + diff[1] / 1e9; // seconds
+
+    // Record the duration along with labels to distinguish endpoints.
+    requestDurationHistogram.record(durationSeconds, {
+      route: req.route ? req.route.path : req.path,
+      method: req.method,
+      statusCode: res.statusCode,
+    });
+  });
+  
+  next();
 };
 
 ================
@@ -3897,6 +5383,21 @@ const ProjectSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 module.exports = mongoose.model("Project", ProjectSchema);
+
+================
+File: portfolio.node/src/models/ProviderConfig.js
+================
+// portfolio.node/src/models/ProviderConfig.js
+const mongoose = require("mongoose");
+
+const ProviderConfigSchema = new mongoose.Schema({
+  provider: { type: String, required: true, unique: true },
+  clientId: { type: String, required: true },
+  clientSecret: { type: String, required: true },
+  callbackURL: { type: String, required: true },
+}, { timestamps: true });
+
+module.exports = mongoose.model("ProviderConfig", ProviderConfigSchema);
 
 ================
 File: portfolio.node/src/models/User.js
@@ -4001,8 +5502,13 @@ const { createBlogSchema } = require("../validators/blogValidator");
 // Create a new blog entry using the service module
 router.post("/", authMiddleware, validate(createBlogSchema), async (req, res) => {
   try {
-    const newEntry = await blogService.createBlogEntry(req.body);
-    res.status(201).json(newEntry);
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+    else{
+      const newEntry = await blogService.createBlogEntry(req.body);
+      res.status(201).json(newEntry);
+    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -4013,7 +5519,7 @@ router.get("/", async (req, res) => {
   try {
     let filter = {};
     // If no auth token, assume a public request.
-    if (!req.cookies["auth-token"]) {
+    if (!req.user?.isAdmin === true) {
       filter = { 
         isDraft: false, 
         publishAt: { $lte: new Date() } // only posts scheduled for now or earlier
@@ -4047,6 +5553,11 @@ router.get("/:id", async (req, res) => {
 // Update a blog entry by ID using the service module
 router.put("/:id", authMiddleware, validate(createBlogSchema), async (req, res) => {
   try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
     const updatedEntry = await blogService.updateBlogEntry(req.params.id, req.body);
     if (!updatedEntry) return res.status(404).json({ error: "Entry not found" });
     res.json(updatedEntry);
@@ -4058,6 +5569,11 @@ router.put("/:id", authMiddleware, validate(createBlogSchema), async (req, res) 
 // Delete a blog entry by ID using the service module
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
     const deletedEntry = await blogService.deleteBlogEntry(req.params.id);
     if (!deletedEntry) return res.status(404).json({ error: "Entry not found" });
     res.json({ message: "Entry deleted successfully" });
@@ -4084,6 +5600,11 @@ const router = express.Router();
  */
 router.post("/", authMiddleware, async (req, res) => {
   try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
     const { author, text, blog, parent } = req.body;
     if (!author || !text || !blog) {
       return res.status(400).json({ error: "author, text, and blog fields are required" });
@@ -4120,6 +5641,11 @@ router.get("/blog/:blogId", async (req, res) => {
  */
 router.put("/:id", authMiddleware, async (req, res) => {
   try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
     const { text, redacted } = req.body;
     const updateData = {};
     if (text !== undefined) updateData.text = text;
@@ -4137,9 +5663,23 @@ router.put("/:id", authMiddleware, async (req, res) => {
  */
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
+    
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
     const redactedComment = await commentService.redactComment(req.params.id);
     if (!redactedComment) return res.status(404).json({ error: "Comment not found" });
     res.json({ message: "Comment redacted", comment: redactedComment });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get("/all", authMiddleware, async (req, res) => {
+  try {
+    const comments = await commentService.getAllComments();
+    res.json(comments);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -4153,13 +5693,13 @@ File: portfolio.node/src/routes/oauthRoutes.js
 // portfolio.node/src/routes/oauthRoutes.js
 const express = require("express");
 const jwt = require("jsonwebtoken");
-const passport = require("../config/passport");
+const {passport} = require("../config/passport");
 const router = express.Router();
 
 const SECRET_KEY = process.env.SECRET_KEY || "your_secret_key";
 
 // Helper function to issue a JWT and set it as a cookie.
-function issueToken(req, res) {
+function issueToken(req, res, returnUrl) {
   const token = jwt.sign(
     { id: req.user.id, username: req.user.username, isAdmin: req.user.isAdmin },
     SECRET_KEY,
@@ -4171,25 +5711,108 @@ function issueToken(req, res) {
     sameSite: "Strict",
     maxAge: 3600000,
   });
-  res.redirect("/");
+  res.redirect(returnUrl);
 }
 
+
 // Google OAuth2 Routes
-router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
-router.get("/google/callback", passport.authenticate("google", { failureRedirect: "/login" }), issueToken);
+router.get("/google", (req, res, next) => {
+  const { returnUrl } = req.query;
+  // Generate a CSRF token (or use a library) – here we use a simple random string for illustration.
+  const csrf = Math.random().toString(36).slice(2);
+  // (If you use sessions, store the CSRF token for later verification.)
+  const state = Buffer.from(JSON.stringify({ returnUrl, csrf })).toString("base64");
+  passport.authenticate("google", { scope: ["profile", "email"], state })(req, res, next);
+});
 
-// Facebook OAuth2 Routes
-router.get("/facebook", passport.authenticate("facebook", { scope: ["email"] }));
-router.get("/facebook/callback", passport.authenticate("facebook", { failureRedirect: "/login" }), issueToken);
 
-// GitHub OAuth2 Routes
-router.get("/github", passport.authenticate("github", { scope: ["user:email"] }));
-router.get("/github/callback", passport.authenticate("github", { failureRedirect: "/login" }), issueToken);
+router.get("/google/callback", passport.authenticate("google", { failureRedirect: "/login", session: false  }), (req, res) => {
+  let returnUrl = "/";
+  if (req.query.state) {
+    try {
+      const state = JSON.parse(Buffer.from(req.query.state, "base64").toString("utf8"));
+      returnUrl = state.returnUrl || "/"; 
+      // Optionally: Compare state.csrf with the stored token.
+    } catch (e) {
+      console.error("Failed to parse state parameter:", e);
+    }
+  }
+  issueToken(req, res, returnUrl);
+});
 
-// Microsoft OAuth2 Routes
-router.get("/microsoft", passport.authenticate("microsoft", { scope: ["user.read"] }));
-router.get("/microsoft/callback", passport.authenticate("microsoft", { failureRedirect: "/login" }), issueToken);
 
+router.get("/facebook", (req, res, next) => {
+  const { returnUrl } = req.query;
+  // Generate a CSRF token (or use a library) – here we use a simple random string for illustration.
+  const csrf = Math.random().toString(36).slice(2);
+  // (If you use sessions, store the CSRF token for later verification.)
+  const state = Buffer.from(JSON.stringify({ returnUrl, csrf })).toString("base64");
+  passport.authenticate("facebook", { scope: ["public_profile", "email"], state })(req, res, next);
+});
+
+
+router.get("/facebook/callback", passport.authenticate("facebook", { failureRedirect: "/login", session: false  }), (req, res) => {
+  let returnUrl = "/";
+  if (req.query.state) {
+    try {
+      const state = JSON.parse(Buffer.from(req.query.state, "base64").toString("utf8"));
+      returnUrl = state.returnUrl || "/"; 
+
+      // Optionally: Compare state.csrf with the stored token.
+    } catch (e) {
+      console.error("Failed to parse state parameter:", e);
+    }
+  }
+  issueToken(req, res, returnUrl);
+});
+
+router.get("/github", (req, res, next) => {
+  const { returnUrl } = req.query;
+  // Generate a CSRF token (or use a library) – here we use a simple random string for illustration.
+  const csrf = Math.random().toString(36).slice(2);
+  // (If you use sessions, store the CSRF token for later verification.)
+  const state = Buffer.from(JSON.stringify({ returnUrl, csrf })).toString("base64");
+  passport.authenticate("github", { scope: ["user:email"], state })(req, res, next);
+});
+
+
+router.get("/github/callback", passport.authenticate("github", { failureRedirect: "/login", session: false  }), (req, res) => {
+  let returnUrl = "/";
+  if (req.query.state) {
+    try {
+      const state = JSON.parse(Buffer.from(req.query.state, "base64").toString("utf8"));
+      returnUrl = state.returnUrl || "/"; 
+      // Optionally: Compare state.csrf with the stored token.
+    } catch (e) {
+      console.error("Failed to parse state parameter:", e);
+    }
+  }
+  issueToken(req, res, returnUrl);
+});
+
+router.get("/microsoft", (req, res, next) => {
+  const { returnUrl } = req.query;
+  // Generate a CSRF token (or use a library) – here we use a simple random string for illustration.
+  const csrf = Math.random().toString(36).slice(2);
+  // (If you use sessions, store the CSRF token for later verification.)
+  const state = Buffer.from(JSON.stringify({ returnUrl, csrf })).toString("base64");
+  passport.authenticate("microsoft", { scope: ["profile", "email"], state })(req, res, next);
+});
+
+
+router.get("/microsoft/callback", passport.authenticate("microsoft", { failureRedirect: "/login", session: false  }), (req, res) => {
+  let returnUrl = "/";
+  if (req.query.state) {
+    try {
+      const state = JSON.parse(Buffer.from(req.query.state, "base64").toString("utf8"));
+      returnUrl = state.returnUrl || "/"; 
+      // Optionally: Compare state.csrf with the stored token.
+    } catch (e) {
+      console.error("Failed to parse state parameter:", e);
+    }
+  }
+  issueToken(req, res, returnUrl);
+});
 module.exports = router;
 
 ================
@@ -4203,6 +5826,11 @@ const router = express.Router();
 // Create a new project using the service module
 router.post("/", authMiddleware, async (req, res) => {
   try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
     const newProject = await projectService.createProject(req.body);
     res.status(201).json(newProject);
   } catch (error) {
@@ -4220,9 +5848,7 @@ router.get("/", async (req, res) => {
         publishAt: { $lte: new Date() }
       };
     }
-    console.log(`filter`, filter);
     const projects = await projectService.getAllProjects(filter);
-    console.log('projects', projects);
     res.json(projects);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -4243,6 +5869,11 @@ router.get("/:id", async (req, res) => {
 // Update a project by ID using the service module
 router.put("/:id", authMiddleware, async (req, res) => {
   try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
     const updatedProject = await projectService.updateProject(req.params.id, req.body);
     if (!updatedProject) return res.status(404).json({ error: "Project not found" });
     res.json(updatedProject);
@@ -4254,9 +5885,57 @@ router.put("/:id", authMiddleware, async (req, res) => {
 // Delete a project by ID using the service module
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
     const deletedProject = await projectService.deleteProject(req.params.id);
     if (!deletedProject) return res.status(404).json({ error: "Project not found" });
     res.json({ message: "Project deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+module.exports = router;
+
+================
+File: portfolio.node/src/routes/providerConfigRoutes.js
+================
+// portfolio.node/src/routes/providerConfigRoutes.js
+const express = require("express");
+const authMiddleware = require("../middlewares/auth");
+const providerConfigService = require("../services/providerConfigService");
+const router = express.Router();
+
+// GET /api/provider-configs: Retrieve all provider configurations.
+router.get("/", authMiddleware, async (req, res) => {
+  try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
+    const configs = await providerConfigService.getAllConfigs();
+    res.json(configs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PUT /api/provider-configs/:provider: Update configuration for a specific provider.
+router.put("/:provider", authMiddleware, async (req, res) => {
+  try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
+    const { provider } = req.params;
+    const configData = req.body;
+    const updatedConfig = await providerConfigService.updateConfig(provider, configData);
+    res.json(updatedConfig);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -4269,12 +5948,18 @@ File: portfolio.node/src/routes/userRoutes.js
 ================
 const express = require("express");
 const userService = require("../services/userService");
+const authMiddleware = require("../middlewares/auth");
 
 const router = express.Router();
 
 // Endpoint for user registration
-router.post("/", async (req, res) => {
+router.post("/", authMiddleware, async (req, res) => {
   try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
     const { username, password } = req.body;
 
     // Delegate the creation to the user service.
@@ -4286,6 +5971,15 @@ router.post("/", async (req, res) => {
     // Use 400 for client errors (e.g., missing fields or duplicate user)
     res.status(error.message === "User already exists" || error.message === "Username and password are required" ? 400 : 500)
        .json({ error: error.message });
+  }
+});
+
+router.get("/admin-exists", async (req, res) => {
+  try {
+    const admin = await User.findOne({ isAdmin: true });
+    res.json({ exists: !!admin });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -4470,8 +6164,18 @@ File: portfolio.node/src/services/commentService.js
 // portfolio.node/src/services/commentService.js
 const Comment = require("../models/Comment");
 
-async function getNestedReplies(parentId) {
-  const replies = await Comment.find({ parent: parentId }).sort({ createdAt: 1 });
+async function getAllComments() {
+  const comments = await Comment.find({ parent: null }).sort({ createdAt: -1 });
+  return Promise.all(
+    comments.map(async (comment) => {
+      const nestedReplies = await getNestedReplies(comment._id, comment.redacted);
+      return { ...comment.toObject(), replies: nestedReplies };
+    })
+  );
+}
+
+async function getNestedReplies(parentId, redacted) {
+  const replies = await Comment.find({ parent: parentId, redacted: redacted }).sort({ createdAt: 1 });
   return Promise.all(
     replies.map(async (reply) => {
       const nestedReplies = await getNestedReplies(reply._id);
@@ -4486,10 +6190,10 @@ async function getNestedReplies(parentId) {
  * @returns {Promise<Array>} - Array of comments with nested replies.
  */
 async function getCommentsByBlog(blogId) {
-  const comments = await Comment.find({ blog: blogId, parent: null }).sort({ createdAt: -1 });
+  const comments = await Comment.find({ blog: blogId, parent: null, redacted: false }).sort({ createdAt: -1 });
   return Promise.all(
     comments.map(async (comment) => {
-      const nestedReplies = await getNestedReplies(comment._id);
+      const nestedReplies = await getNestedReplies(comment._id, false);
       return { ...comment.toObject(), replies: nestedReplies };
     })
   );
@@ -4537,7 +6241,8 @@ module.exports = {
   createComment,
   getCommentsByBlog,
   updateComment,
-  redactComment
+  redactComment,
+  getAllComments
 };
 
 ================
@@ -4598,6 +6303,82 @@ module.exports = {
   getProjectById,
   updateProject,
   deleteProject,
+};
+
+================
+File: portfolio.node/src/services/providerConfigService.js
+================
+// portfolio.node/src/services/providerConfigService.js
+const ProviderConfig = require("../models/ProviderConfig");
+
+async function getAllConfigs() {
+  return ProviderConfig.find({});
+}
+
+async function getConfigByProvider(provider) {
+    return ProviderConfig.findOne({
+        provider: { $regex: '^' + provider + '$', $options: 'i' }
+      });
+}
+
+async function updateConfig(provider, configData) {
+  // Upsert: if a config for the provider exists, update it; otherwise, create it.
+  return ProviderConfig.findOneAndUpdate({ provider }, configData, { new: true, upsert: true });
+}
+
+async function prepopulateDefaultConfigs() {
+    const count = await ProviderConfig.countDocuments();
+    if (count === 0) {
+      const defaultConfigs = [];
+  
+      // Pre-populate for Google if env vars are provided.
+      if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_CALLBACK_URL) {
+        defaultConfigs.push({
+          provider: "google",
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          callbackURL: process.env.GOOGLE_CALLBACK_URL,
+        });
+      }
+      // Similarly for Facebook
+      if (process.env.FACEBOOK_CLIENT_ID && process.env.FACEBOOK_CLIENT_SECRET && process.env.FACEBOOK_CALLBACK_URL) {
+        defaultConfigs.push({
+          provider: "facebook",
+          clientId: process.env.FACEBOOK_CLIENT_ID,
+          clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
+          callbackURL: process.env.FACEBOOK_CALLBACK_URL,
+        });
+      }
+      // GitHub
+      if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.env.GITHUB_CALLBACK_URL) {
+        defaultConfigs.push({
+          provider: "github",
+          clientId: process.env.GITHUB_CLIENT_ID,
+          clientSecret: process.env.GITHUB_CLIENT_SECRET,
+          callbackURL: process.env.GITHUB_CALLBACK_URL,
+        });
+      }
+      // Microsoft
+      if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET && process.env.MICROSOFT_CALLBACK_URL) {
+        defaultConfigs.push({
+          provider: "microsoft",
+          clientId: process.env.MICROSOFT_CLIENT_ID,
+          clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
+          callbackURL: process.env.MICROSOFT_CALLBACK_URL,
+        });
+      }
+      if (defaultConfigs.length > 0) {
+        await ProviderConfig.insertMany(defaultConfigs);
+        console.log("Default provider configurations have been pre-populated.");
+      }
+    }
+  }
+
+module.exports = {
+  getAllConfigs,
+  getConfigByProvider,
+  updateConfig,
+  prepopulateDefaultConfigs
 };
 
 ================
@@ -4675,6 +6456,50 @@ module.exports = {
   updateUser,
   deleteUser,
 };
+
+================
+File: portfolio.node/src/tracing.js
+================
+// portfolio.node/src/tracing.js
+'use strict';
+
+const { NodeSDK } = require('@opentelemetry/sdk-node');
+const { getNodeAutoInstrumentations } = require('@opentelemetry/auto-instrumentations-node');
+const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
+
+// Configure the OTLP Trace Exporter.
+const traceExporter = new OTLPTraceExporter({
+  // Configure the exporter URL if needed.
+});
+
+// Create the NodeSDK instance.
+const sdk = new NodeSDK({
+  traceExporter,
+  instrumentations: [getNodeAutoInstrumentations()],
+});
+
+// Start the SDK.
+const startResult = sdk.start();
+if (startResult && typeof startResult.then === 'function') {
+  startResult
+    .then(() => {
+      console.log('Tracing initialized');
+    })
+    .catch((error) => {
+      console.error('Error initializing tracing', error);
+    });
+} else {
+  // If start() is synchronous.
+  console.log('Tracing initialized (synchronously)');
+}
+
+// Handle graceful shutdown.
+process.on('SIGTERM', () => {
+  sdk.shutdown()
+    .then(() => console.log('Tracing terminated'))
+    .catch((error) => console.log('Error terminating tracing', error))
+    .finally(() => process.exit(0));
+});
 
 ================
 File: portfolio.node/src/validators/blogValidator.js
