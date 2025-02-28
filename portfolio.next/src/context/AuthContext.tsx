@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 
 interface AuthContextType {
+  isAdmin: boolean;
   isAuthenticated: boolean;
   user: User | null;
   setIsAuthenticated: (val: boolean) => void;
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   async function refreshAuth() {
     try {
@@ -30,6 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await res.json();
       setIsAuthenticated(data.authenticated);
       setUser(data.authenticated ? data.user : null);
+      setIsAdmin(data.user?.isAdmin || false);
     } catch (error) {
       setIsAuthenticated(false);
     }
@@ -40,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, setIsAuthenticated, setUser, refreshAuth }}>
+    <AuthContext.Provider value={{ isAdmin, isAuthenticated, user, setIsAuthenticated, setUser, refreshAuth }}>
       {children}
     </AuthContext.Provider>
   );

@@ -7,11 +7,12 @@ import { useAuth } from "@/context/AuthContext";
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function AdminDashboard() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
   const router = useRouter();
 
   if (!isAuthenticated) return <p>You are not authenticated.</p>;
-  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
+  if (!isAdmin) return <p>Only admins can access this page.</p>;
+
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
@@ -54,6 +55,13 @@ export default function AdminDashboard() {
         >
           <h2 className="text-lg font-medium text-gray-800">OAuth Provider Config</h2>
           <p className="text-sm text-gray-500">Configure external identity providers</p>
+        </Link>
+        <Link
+          href="/admin/users"
+          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+        >
+          <h2 className="text-lg font-medium text-gray-800">Manage Users</h2>
+          <p className="text-sm text-gray-500">Edit, create and manage users</p>
         </Link>
       </div>
     </div>

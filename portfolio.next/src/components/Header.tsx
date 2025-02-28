@@ -6,7 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCog, faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
 export default function Header() {
-  const { user, isAuthenticated, refreshAuth, setIsAuthenticated } = useAuth();
+  const { isAdmin, isAuthenticated, refreshAuth } = useAuth();
   const pathname = window.location.href;
   const router = useRouter();
 
@@ -37,7 +37,7 @@ export default function Header() {
           </div>
         </Link>
         <div>
-          { user?.isAdmin === true && (
+          { isAuthenticated && isAdmin && (
             <Link href={`/admin`}>
               <FontAwesomeIcon icon={faCog} className="w-6 h-6 flex item-center text-white hover:text-gray-300 me-4" />
             </Link>

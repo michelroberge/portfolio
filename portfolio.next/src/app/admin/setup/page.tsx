@@ -36,7 +36,7 @@ export default function AdminSetup() {
     setError("");
     try {
       // Use our existing user registration endpoint to create an admin.
-      const res = await fetch(`${apiUrl}/api/users`, {
+      const res = await fetch(`${apiUrl}/api/users/initialize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password, isAdmin: true }),
@@ -45,7 +45,7 @@ export default function AdminSetup() {
         const errData = await res.json();
         throw new Error(errData.error || "Admin creation failed");
       }
-      router.push("/admin");
+      router.push("/admin/login");
     } catch (err: any) {
       setError(err.message);
     }

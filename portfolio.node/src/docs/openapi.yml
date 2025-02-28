@@ -25,8 +25,8 @@ tags:
     description: Vector embeddings for AI-powered search
   - name: Career Timeline
     description: Interactive career timeline and skills mapping
-  - name: System
-    description: Setup, settings, and configuration
+  - name: Users
+    description: Users management (admin)
 
 paths:
   /auth/login:
@@ -44,6 +44,16 @@ paths:
           description: Login successful
         "401":
           description: Invalid credentials
+
+  /auth/check:
+    get:
+      tags: [Authentication]
+      summary: Check if user logged and session valid
+      responses:
+        "200":
+          description: User logged in
+        "401":
+          description: User not logged in
 
   /auth/logout:
     get:
@@ -360,6 +370,154 @@ paths:
               schema:
                 $ref: "#/components/schemas/EmbeddingStatus"
 
+  /users/admin-exists:
+    get:
+      tags: [Users]
+      summary: Check if an admin user exists
+      description: Returns whether an admin user is already set up in the system.
+      responses:
+        "200":
+          description: Admin existence status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exists:
+                    type: boolean
+        "500":
+          description: Server error
+
+  /users:
+    post:
+      tags: [Users]
+      summary: Create a new user (non-admin)
+      description: Creates the user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRequest"
+      responses:
+        "201":
+          description: User created successfully
+        "400":
+          description: Invalid request or admin already exists
+        "500":
+          description: Server error
+
+    get:
+      tags: [Users]
+      summary: Retrieve all users
+      security:
+        - cookieAuth: []
+      description: Returns a list of all registered users (Admin-only).
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "403":
+          description: Forbidden (non-admin access)
+        "500":
+          description: Server error
+
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: Retrieve a single user by ID
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+        "500":
+          description: Server error
+
+    put:
+      tags: [Users]
+      summary: Update a user's information
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRequest"
+      responses:
+        "200":
+          description: User updated
+        "403":
+          description: Forbidden (non-admin access)
+        "404":
+          description: User not found
+        "500":
+          description: Server error
+
+    delete:
+      tags: [Users]
+      summary: Delete a user by ID
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User deleted
+        "403":
+          description: Forbidden (non-admin access)
+        "404":
+          description: User not found
+        "500":
+          description: Server error
+
+  /users/initialize:
+    post:
+      tags: [Users]
+      summary: Create a new administrator 
+      description: Creates the first admin user if no admin exists.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRequest"
+      responses:
+        "201":
+          description: User created successfully
+        "400":
+          description: Invalid request or admin already exists
+        "500":
+          description: Server error
+
 
 components:
   schemas:
@@ -534,6 +692,29 @@ components:
           format: date-time
         totalEmbeddings:
           type: integer
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        isAdmin:
+          type: boolean
+
+    UserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        isAdmin:
+          type: boolean
+      required:
+        - username
+        - password
 
 securitySchemes:
   cookieAuth:

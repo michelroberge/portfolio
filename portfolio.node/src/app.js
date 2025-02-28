@@ -15,6 +15,7 @@ const projectRoutes = require("./routes/projectRoutes");
 const blogRoutes = require("./routes/blogRoutes");
 const oauthRoutes = require("./routes/oauthRoutes");
 const commentRoutes = require("./routes/commentRoutes");
+const userRoutes = require("./routes/userRoutes");
 const providerConfigRoutes = require("./routes/providerConfigRoutes"); // NEW
 
 const { prepopulateDefaultConfigs } = require("./services/providerConfigService");
@@ -59,6 +60,7 @@ setupStrategies()
   app.use("/api/auth/oauth2", oauthRoutes);
   app.use("/api/projects", projectRoutes);
   app.use("/api/blogs", blogRoutes);
+  app.use("/api/users", userRoutes);
   app.use("/api/comments", commentRoutes);
   app.use("/api/provider-configs", providerConfigRoutes);
 
