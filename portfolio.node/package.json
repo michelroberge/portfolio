@@ -36,6 +36,7 @@
     "passport-microsoft": "^2.1.0",
     "qdrant-client": "^0.0.1",
     "swagger-ui-express": "^5.0.1",
+    "ws": "^8.18.1",
     "yamljs": "^0.3.0"
   },
   "devDependencies": {

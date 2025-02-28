@@ -18,10 +18,10 @@ const commentRoutes = require("./routes/commentRoutes");
 const userRoutes = require("./routes/userRoutes");
 const providerConfigRoutes = require("./routes/providerConfigRoutes");
 const searchRoutes = require("./routes/searchRoutes");
+const chatRoutes = require("./routes/chatRoutes");
 
 const { prepopulateDefaultConfigs } = require("./services/providerConfigService");
 const { initCollection } = require("./services/qdrantService");
-
 const metricsMiddleware = require("./middlewares/metrics");
 
 const { swaggerMiddleware, swaggerSetup } = require('./config/swagger');
@@ -71,6 +71,7 @@ setupStrategies()
   app.use("/api/comments", commentRoutes);
   app.use("/api/provider-configs", providerConfigRoutes);
   app.use("/api/search", searchRoutes);
+  app.use("/api/chat", chatRoutes);
 
   return app;
 }

@@ -102,9 +102,6 @@ async function searchQdrant(queryVector, collection, topK = 5) {
     }
   }
   
-  module.exports = { searchQdrant };
-  
-
 async function generateEmbedding(text) {
     try {
       const response = await fetch(`${OLLAMA_URL}api/embeddings`, {

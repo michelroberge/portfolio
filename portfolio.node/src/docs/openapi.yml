@@ -671,11 +671,14 @@ components:
     ChatRequest:
       type: object
       properties:
-        query:
-          type: string
         sessionId:
           type: string
+          description: Unique identifier for the chat session
+        query:
+          type: string
+          description: User's chat message
       required:
+        - sessionId
         - query
 
     ChatResponse:
@@ -683,21 +686,30 @@ components:
       properties:
         response:
           type: string
+          description: AI-generated response
         sources:
           type: array
+          description: Sources used for AI-generated response
           items:
             type: string
 
     ChatMessage:
       type: object
       properties:
-        query:
+        sessionId:
           type: string
-        response:
+          description: Unique chat session ID
+        role:
           type: string
-        timestamp:
+          enum: [user, ai]
+          description: Whether the message is from the user or AI
+        text:
+          type: string
+          description: Chat message content
+        createdAt:
           type: string
           format: date-time
+          description: Timestamp of the message
 
     SemanticSearchRequest:
       type: object
