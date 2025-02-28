@@ -220,6 +220,31 @@ paths:
           description: Project deleted
         "404":
           description: Project not found
+          
+  /projects/generate-embeddings:
+    post:
+      tags: [Projects]
+      summary: Generate AI embeddings for all projects
+      description: Uses an AI model to generate embeddings for each project and stores them in Qdrant.
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Successfully generated embeddings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Embeddings generated for all projects."
+                  embeddings:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProjectEmbedding"
+        "500":
+          description: Internal server error
 
   /career/timeline:
     get:
@@ -337,6 +362,38 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/CodeSearchResult"
+
+  /search/{collection}:
+    post:
+      tags: [Search]
+      summary: Search across different Qdrant collections
+      description: Performs a vector search within the specified collection.
+      parameters:
+        - name: collection
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "projects"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  example: "AI-powered projects"
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
 
   /embeddings/generate:
     post:
@@ -715,6 +772,18 @@ components:
       required:
         - username
         - password
+
+    ProjectEmbedding:
+      type: object
+      properties:
+        projectId:
+          type: string
+          example: "6543abcd5678ef9012345678"
+        embedding:
+          type: array
+          items:
+            type: number
+          description: "The generated AI embedding vector for this project."
 
 securitySchemes:
   cookieAuth:

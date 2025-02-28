@@ -10,6 +10,7 @@ const ProjectSchema = new mongoose.Schema({
   publishAt: { type: Date, default: Date.now },
   tags: { type: [String], default: [] }, 
   industry: { type: String, default: "General" }, 
+  vectorId : {type: Number, unique: true },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Project", ProjectSchema);

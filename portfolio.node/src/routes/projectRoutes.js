@@ -2,6 +2,7 @@ const express = require("express");
 const authMiddleware = require("../middlewares/auth");
 const projectService = require("../services/projectService");
 const adminAuth = require("../middlewares/admin");
+const Project = require("../models/Project");
 
 const router = express.Router();
 
@@ -72,5 +73,18 @@ router.post("/generate-embeddings", authMiddleware, adminAuth, async (req, res) 
   }
   res.json({ message: "Embeddings generated for all projects." });
 });
+
+router.post("/search", async (req, res) => {
+  const { query } = req.body;
+
+  if (!query) return res.status(400).json({ message: "Query is required" });
+
+  const embedding = await generateEmbedding(query);
+  if (!embedding) return res.status(500).json({ message: "Failed to generate query embedding" });
+
+  const results = await searchProjects(embedding);
+  res.json(results);
+});
+
 
 module.exports = router;

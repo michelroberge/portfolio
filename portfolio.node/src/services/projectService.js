@@ -1,5 +1,6 @@
 const Project = require("../models/Project");
-const qdrant = require("./qdrantService");
+const { storeEmbedding, generateEmbedding, searchQdrant } = require("../services/qdrantService");
+const {getNextVectorId} = require("../services/counterService");
 
 /**
  * Creates a new project.
@@ -9,6 +10,14 @@ const qdrant = require("./qdrantService");
 async function createProject(data) {
   const project = new Project(data);
   await project.save();
+
+  const textToEmbed = `${project.title} ${project.description} ${project.tags.join(" ")} ${project.industry}`;
+  const embedding = await generateEmbedding(textToEmbed);
+
+  if (embedding) {
+    await storeEmbedding(project._id, textToEmbed, embedding);
+  }
+
   return project;
 }
 
@@ -48,10 +57,44 @@ async function deleteProject(id) {
   return Project.findByIdAndDelete(id);
 }
 
+
 async function generateEmbeddingsAndStore(project) {
   const text = `${project.title} ${project.description} ${project.tags.join(" ")} ${project.industry}`;
-  await qdrant.storeEmbedding(project._id, text, "project");
+  
+  if (!project.vectorId) {
+    project.vectorId = await getNextVectorId("vectorId");  // ✅ Assign unique, thread-safe Qdrant ID
+    await project.save();
+  }
+
+  // 1️⃣ Generate the embedding vector
+  const vector = await generateEmbedding(text);
+  
+  if (!vector) {
+    console.error(`❌ Failed to generate embedding for project: ${project._id}`);
+    return;
+  }
+
+  // 2️⃣ Store the embedding in Qdrant
+  await storeEmbedding(project.vectorId, text, vector);  
 }
+
+/**
+ * Search the project collection
+ * @param {string} search - search text
+ * @returns {Promise<Object|null>} - The search response
+ */
+async function searchProjects(search) {
+  const { query } = req.body;
+
+  if (!query) return res.status(400).json({ message: "Query is required" });
+
+  const embedding = await generateEmbedding(query);
+  if (!embedding) return res.status(500).json({ message: "Failed to generate query embedding" });
+
+  const results = await searchQdrant(embedding, "projects");  // ✅ Always searches in "projects"
+  res.json(results);
+}
+
 
 module.exports = {
   createProject,
@@ -59,5 +102,6 @@ module.exports = {
   getProjectById,
   updateProject,
   deleteProject,
-  generateEmbeddingsAndStore
+  generateEmbeddingsAndStore,
+  searchProjects
 };

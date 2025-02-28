@@ -25,13 +25,14 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   const handleSearch = async () => {
     if (!query.trim()) return;
 
-    // Mock API response
-    setTimeout(() => {
-      setResults([
-        { title: "Next.js Portfolio", description: "A modern portfolio built with Next.js", type: "project", link: "/projects/nextjs-portfolio" },
-        { title: "AI Chatbot Integration", description: "Implementing AI chatbot with Ollama.", type: "blog", link: "/blogs/ai-chatbot-integration" }
-      ]);
-    }, 1000);
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/search/projects`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    });
+  
+    const results = await response.json();
+    setResults(results);
   };
 
   return (

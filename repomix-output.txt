@@ -47,7 +47,7 @@ Directory Structure
 ================================================================
 .gitignore
 docker-compose.yml
-docs/1. gap-analysis.md
+docs/1. UserRequirements.md
 docs/2. development-plan.md
 LICENSE
 portfolio.next/__tests__/apiServices.test.ts
@@ -79,6 +79,7 @@ portfolio.next/src/app/admin/projects/page.tsx
 portfolio.next/src/app/admin/settings/provider-config/page.tsx
 portfolio.next/src/app/admin/setup/page.tsx
 portfolio.next/src/app/admin/temp-layout.tsx
+portfolio.next/src/app/admin/users/page.tsx
 portfolio.next/src/app/blogs/[slug]/page.tsx
 portfolio.next/src/app/globals.css
 portfolio.next/src/app/layout.tsx
@@ -119,11 +120,13 @@ portfolio.node/src/config/db.js
 portfolio.node/src/config/passport.js
 portfolio.node/src/config/swagger.js
 portfolio.node/src/docs/openapi.yml
+portfolio.node/src/middlewares/admin.js
 portfolio.node/src/middlewares/auth.js
 portfolio.node/src/middlewares/metrics.js
 portfolio.node/src/middlewares/validate.js
 portfolio.node/src/models/BlogEntry.js
 portfolio.node/src/models/Comment.js
+portfolio.node/src/models/Counters.js
 portfolio.node/src/models/Project.js
 portfolio.node/src/models/ProviderConfig.js
 portfolio.node/src/models/User.js
@@ -133,13 +136,16 @@ portfolio.node/src/routes/commentRoutes.js
 portfolio.node/src/routes/oauthRoutes.js
 portfolio.node/src/routes/projectRoutes.js
 portfolio.node/src/routes/providerConfigRoutes.js
+portfolio.node/src/routes/searchRoutes.js
 portfolio.node/src/routes/userRoutes.js
 portfolio.node/src/server.js
 portfolio.node/src/services/authService.js
 portfolio.node/src/services/blogService.js
 portfolio.node/src/services/commentService.js
+portfolio.node/src/services/counterService.js
 portfolio.node/src/services/projectService.js
 portfolio.node/src/services/providerConfigService.js
+portfolio.node/src/services/qdrantService.js
 portfolio.node/src/services/userService.js
 portfolio.node/src/tracing.js
 portfolio.node/src/validators/blogValidator.js
@@ -301,123 +307,183 @@ services:
       - "5000:5000"
 
 ================
-File: docs/1. gap-analysis.md
+File: docs/1. UserRequirements.md
 ================
-# Gap Analysis Document
+# User Requirements for Portfolio Website
 
-## Overview
-This project is a personal portfolio website intended for distribution and reuse by developers—with future enhancements to make it accessible to non-coders. The system is built as a full-stack application with a Next.js frontend and a Node.js/Express backend using MongoDB (via Mongoose) for storage. It is deployed via Docker Compose.
+## Personality & Tone
+- **Perception**: Creative, innovative problem solver, approachable expert, technical mentor, fun, easygoing.
+- **Tone**: Friendly, witty, minimalist.
+- **Storytelling**: Career journey timeline and anecdotes from key projects.
 
-## Current Architecture
-- **Frontend (portfolio.next/):**
-  - Built with Next.js and TypeScript.
-  - Uses Tailwind CSS for responsive design (supports large vs. small screens).
-  - Implements basic pages for the blog, projects, admin dashboard, and user authentication.
-  - Includes light in-memory caching for performance.
-- **Backend (portfolio.node/):**
-  - An Express.js application managing authentication, blog CRUD, project CRUD, and comment data.
-  - Uses Mongoose for MongoDB models (users, blog posts, projects, etc.).
-- **Deployment:**
-  - Docker Compose is used for containerized deployment of both frontend and backend services.
-- **Existing Features:**
-  - Admin login and first-level authentication.
-  - Basic blog and project management.
-  - A simple admin dashboard.
-  - Responsive design and some caching mechanisms.
+## Core Objectives & Features
+- **Main Purpose**: Showcase talent and projects to attract high-profile job offers.
+- **Primary Audience**:
+  1. Fellow developers
+  2. Industry leaders
+  3. Recruiters / Potential Clients
+- **Visitor Interaction**:
+  1. AI Chat
+  2. Semi-structured browsing
 
-## Identified Gaps & Future Requirements
-1. **Customization & Configurability**
-   - **Site Settings:** Allow admins to easily update site title, description, and theme settings via configuration files.
-   - **Theme Customization:**
-     - Support for light/dark mode for end-users with their preferences stored in the database.
-     - Admin-driven theme customization via Tailwind configuration (using current best practices).
+## Content Prioritization
+- **Must-Haves**:
+  - Career timeline
+  - AI chatbot
+  - Project showcase
+  - Live demos
+- **Nice-to-Haves**:
+  - Blog
+- **Project Showcase Format**: Just a link (either on GitHub or self-hosted with a reverse proxy).
+- **Blog/Industry Insights**: Maybe, but not a priority.
 
-2. **Authentication Enhancements**
-   - **Consumer Authentication:** Extend authentication to support OAuth2/OpenID Connect for users leaving comments.
-   - **Admin Authentication:** Maintain local auth for administrators, with a first-time setup flow and subsequent admin additions only via existing admins.
+## AI & Interactivity
+- **AI Chat**:
+  - Random greeting + guided prompt suggestions.
+  - Freeform conversation allowed.
+  - AI should distinguish between generic data and user-specific knowledge.
+- **Search Functionality**:
+  - AI-powered search (e.g., "Show me projects using C# and MongoDB").
+  - Qdrant should index both project descriptions and full project source code.
+  - Everything should be locally hosted (no external embeddings).
+- **Interactive Elements**:
+  - Career timeline should be D3-like interactive (zoom, forward/backward movement).
+  - Skills map should be drillable from broad categories to code snippets.
 
-3. **Comment System Improvements**
-   - **Threaded Comments:** Enable nested replies.
-   - **Moderation:** Allow admins to mark comments as "redacted" instead of deleting them.
-   - **Security:** Implement rate limiting (handled by Nginx), and support user and email domain blocking.
-   - **Storage:** Use MongoDB/Mongoose for storing comments.
+## Technical Considerations
+- **Frontend**: Next.js with Tailwind CSS.
+- **Backend**: Node.js with MongoDB.
+- **Hosting**: Self-hosted on a local server.
+- **Search**: Qdrant for indexing projects and source code.
+- **AI Chat**: Ollama for chatbot interactions.
+- **Performance & Privacy**: Everything runs locally; no external dependencies for embeddings or AI models.
+- **CI/CD Automation**: GitHub, Jenkins, and Docker for automated deployment.
+- **Authentication**: Cookie-based authentication instead of bearer tokens.
 
-4. **Content Management Enhancements**
-   - **Drafts & Scheduling:** Allow blog posts and projects to be saved as drafts or scheduled for future publication.
-   - **Content Format:** Transition blog post content to Markdown, rendered to HTML dynamically.
-   - **Editability:** Enable updates to published content, with updates reflecting on the “last updated” date.
+## Development Approach
+- **Start with Frontend First**: Mock API calls before integrating the backend.
+- **Global State Management**:
+  - Search should have a `SearchContext` and `SearchProvider` for global accessibility.
+  - Chat should have a `ChatContext` and `ChatProvider` for global availability.
+- **Landing Page Layout**:
+  - AI chat should be site-wide, not just on a dedicated page.
+  - Main sections:
+    - "Time Machine" (Career Timeline)
+    - "Philosophy" (Skills & Problem-Solving Map)
+    - "Projects" (Live Demos, Searchable)
+    - "Contact Me" (Engaging Form)
+  - Clicking a section expands it, shrinking others into a sidebar.
+- **Final Features**:
+  - AI-powered guidance with optional interactivity.
+  - Running live demos from pet projects.
 
-5. **Admin Panel Enhancements**
-   - **Content & Comment Management:** Expand the admin interface to manage comments (including redaction and blocking), blog posts, and projects.
-   - **OAuth2/OIDC Provider Configuration:** Allow admins to configure external identity providers.
-   - **Telemetry & Analytics:** Collect and display basic statistics—such as number of users, sessions, and page hits—using a telemetry schema stored in MongoDB.
-   - **Admin Onboarding:** Implement a first-time setup flow for creating the initial admin account, with subsequent admin additions managed by existing admins.
+## Next Steps
+1. **Continue with frontend development**:
+   - Search component should be fully functional and globally accessible.
+   - AI Chat should be site-wide and utilize `ChatContext`.
+2. **Integrate real backend API calls** for search and chat functionalities.
+3. **Deploy and test CI/CD automation** using Jenkins and Docker.
 
-6. **Search Functionality**
-   - **Basic Text Search:** Implement MongoDB full-text search across blog posts and projects (title, description, and body).
-
-7. **Non-Functional Requirements**
-   - **SEO:** Enhance SEO with meta tags, structured data, and an SEO-friendly layout.
-   - **Accessibility:** Ensure accessibility by adhering to HTML/React standards.
-   - **Internationalization:** Prepare the system for future translations (e.g., support for French).
-   - **Performance:** Maintain a fast and lightweight application through in-memory caching and optimized code.
-
-8. **Deployment**
-   - **Docker-Compose:** Continue using a Docker Compose file as the sole deployment mechanism.
-
-## Conclusion
-The gap analysis highlights the need to expand configuration and content management capabilities, enhance the comment and authentication systems, and provide additional admin panel features. In parallel, non-functional aspects like SEO, accessibility, internationalization, and performance must be addressed to create a robust, distributable personal portfolio platform ready for both developer and non-developer audiences.
+This document captures the user’s full set of requirements for their AI-driven portfolio.
 
 ================
 File: docs/2. development-plan.md
 ================
-# Development Plan Summary
+# Development Plan for AI-Driven Portfolio
 
-## Objective
+## Overview
+This development plan is structured by functional areas, each broken into **end-to-end testable work units**. Each unit specifies APIs, models, UI components, backend services, and dependencies.
 
-Enhance the portfolio & blog platform by addressing gaps in configuration, authentication, comments, content management, admin features, search functionality, and non-functional requirements using a Test-Driven Development approach.
+---
+## **1. Authentication & User Management (Must-Have)**
+### **Work Units:**
+✅ **Cookie-Based Authentication**
+- API: `/auth/login`, `/auth/logout`, `/auth/check`
+- Backend: `authService.js`, `passport.js`
+- Frontend: `/admin/login`, `Header.tsx`
+- **E2E Test:** Validate login/logout session behavior.
 
-## Phases:
-### 1. Testing Infrastructure & Refactoring:
-   - Setup Jest (backend and frontend) & Supertest.
-   - Refactor code for dependency injection and modularity.
+✅ **First-Time Admin Setup**
+- API: `/users/admin-exists`
+- Backend: `/admin/setup` flow
+- **E2E Test:** Validate initial admin creation.
 
-### 2. Authentication Enhancements:
-   - Implement first-time admin setup flow.
-   - Add consumer OAuth2/OIDC endpoints.
-   - Write comprehensive unit/integration tests.
+✅ **Admin vs. Non-Admin Role Enforcement**
+- Backend: `authMiddleware.js`
+- Frontend: Hide admin sections for non-admins.
+- **E2E Test:** Ensure non-admins cannot access admin features.
 
-### 3. Comment System Improvements:
-   - Create a Comment model (with nested replies and redaction flag).
-   - Develop REST endpoints for comment CRUD.
-   - Write tests for validation, authorization, and edge cases.
+⏳ **OAuth2 Authentication for Visitors** *(Google, Facebook, GitHub, Microsoft)*
+- API: `/auth/oauth2/google`, `/auth/oauth2/facebook`, etc.
+- Backend: `passport.js`, `providerConfigService.js`
+- Frontend: OAuth login buttons in `/admin/login`.
+- **E2E Test:** Validate OAuth login and redirection.
 
-### 4. Content Management Enhancements:
-   - Extend models to support drafts, scheduling, and last-updated timestamps.
-   - Integrate Markdown to HTML conversion.
-   - Write tests for state transitions and content rendering.
+---
+## **2. Blog System (Must-Have)**
+### **Work Units:**
+✅ **CRUD for Blog Posts** *(API: `/blogs`)*
+✅ **Markdown Support (No WYSIWYG)**
+✅ **Draft & Scheduled Publishing**
+✅ **Comment System with Nested Replies** *(API: `/comments`)*
+✅ **Comment Moderation (Hide Instead of Delete)**
 
-### 5. Admin Panel Enhancements:
-   - Expand admin UI to manage comments, posts, projects, and telemetry.
-   - Implement admin onboarding wizard.
-   - Write integration and E2E tests for admin flows.
+---
+## **3. Project Showcase (Must-Have)**
+### **Work Units:**
+✅ **CRUD for Projects** *(API: `/projects`)*
+⏳ **Project Metadata for AI Search** *(Tags, Technologies, Industry Focus)*
+⏳ **AI-Powered "Magic" Blog-Project Linking via Qdrant**
+✅ **Self-Hosted Project Links via Reverse Proxy**
 
-### 6. Search Functionality:
-   - Implement full-text search on blog posts and projects.
-   - Create API endpoints and write search tests.
+---
+## **4. AI Chat (Must-Have)**
+### **Work Units:**
+⏳ **Session-Based AI Chat (Resets Per Visit)** *(API: `/chat`)*
+⏳ **AI Uses Qdrant for Blog/Project Knowledge Retrieval**
+⏳ **AI Summarizes Portfolio & Technologies**
+- Backend: Structured prompt generation
+- **External Dependency:** **Qdrant must be set up & indexed.**
 
-### 7. Non-Functional Improvements:
-   - Enhance SEO with dynamic meta tags and structured data.
-   - Improve accessibility and prepare for internationalization.
-   - Optimize caching and monitor performance.
-   - Write tests/audits for SEO and accessibility.
+---
+## **5. Search System (Must-Have)**
+### **Work Units:**
+⏳ **Semantic Search for Blogs & Projects** *(API: `/search/semantic`)*
+⏳ **Full Codebase Search for Projects** *(API: `/search/codebase`)*
+⏳ **Hook for Future Search Weighting** *(Defaulting to Static Weights)*
+- **External Dependency:** **Qdrant for indexing & retrieval.**
 
-### 8. Deployment:
-   - Maintain Docker Compose deployment.
-   - Update Dockerfiles and write integration tests for container startup.
+---
+## **6. Career Timeline & Skills Map (Must-Have)**
+### **Work Units:**
+⏳ **AI-Assisted Timeline Generation (From Repos & Manual Events)** *(API: `/career/timeline`)*
+⏳ **Metadata for Timeline Entries (Technologies, Linked Projects)**
+⏳ **AI-Assisted Skills Map (Graph-Based AI Relationships)** *(API: `/career/skills-map`)*
+⏳ **Linking Skills to Real Projects & Code Snippets** *(Qdrant-powered)*
+⏳ **Import Career Timeline from LinkedIn Public Profile**
 
-## Outcome:
-A robust, test-covered, modular, and enhanced portfolio & blog platform ready for both developer and non-developer audiences, with clear documentation and automated tests ensuring future maintainability.
+---
+## **7. Admin Dashboard & Content Management (Should-Have)**
+### **Work Units:**
+✅ **OAuth Provider Config Management**
+⏳ **CRUD for Comments (Delete in Addition to Redact)**
+⏳ **Admin Panel for Career Timeline & Skills Map** *(UI for Manual Editing)*
+
+---
+## **8. AI Infrastructure & Hosting (Must-Have)**
+### **Work Units:**
+⏳ **Qdrant & Ollama Auto-Start via Docker Compose**
+⏳ **Embeddings Generation from File Path + MongoDB Content** *(Parse `/data/embeddings-source/` & Merge DB Content)*
+⏳ **Content Review/Edit UI Before Generating Embeddings** *(Admin Panel for Structuring Content Before AI Processing)*
+⏳ **Automatic Reindexing & Periodic Updates** *(Cron Job for `/embeddings/refresh`)*
+
+---
+## **Final Steps**
+✅ **Qdrant & Ollama need auto-start setup.**
+✅ **A review/editing UI for embeddings will improve content organization.**
+✅ **Reindexing automation depends on UI implementation.**
+
+This plan provides a structured roadmap for development. 🚀
 
 ================
 File: LICENSE
@@ -2105,11 +2171,12 @@ import { useAuth } from "@/context/AuthContext";
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function AdminDashboard() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
   const router = useRouter();
 
   if (!isAuthenticated) return <p>You are not authenticated.</p>;
-  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
+  if (!isAdmin) return <p>Only admins can access this page.</p>;
+
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
@@ -2153,6 +2220,13 @@ export default function AdminDashboard() {
           <h2 className="text-lg font-medium text-gray-800">OAuth Provider Config</h2>
           <p className="text-sm text-gray-500">Configure external identity providers</p>
         </Link>
+        <Link
+          href="/admin/users"
+          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+        >
+          <h2 className="text-lg font-medium text-gray-800">Manage Users</h2>
+          <p className="text-sm text-gray-500">Edit, create and manage users</p>
+        </Link>
       </div>
     </div>
   );
@@ -2181,6 +2255,9 @@ export default function EditProject() {
   const [publishAt, setPublishAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tags, setTags] = useState<string[]>([]);
+  const [industry, setIndustry] = useState("General");
+
   const { isAuthenticated, user } = useAuth();
 
   useEffect(() => {
@@ -2207,7 +2284,7 @@ export default function EditProject() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const projectData = { title, description, image, link, isDraft, publishAt };
+    const projectData = { title, description, image, link, isDraft, publishAt, tags, industry };
     try {
       const response = await fetch(`${apiUrl}/api/projects/${id}`, {
         method: "PUT",
@@ -2278,6 +2355,20 @@ export default function EditProject() {
             className="w-full p-2 border rounded"
           />
         </label>
+        <input
+          type="text"
+          placeholder="Tags (comma-separated)"
+          value={tags.join(", ")}
+          onChange={(e) => setTags(e.target.value.split(",").map((t) => t.trim()))}
+          className="w-full p-2 border rounded"
+        />
+
+        <select value={industry} onChange={(e) => setIndustry(e.target.value)} className="w-full p-2 border rounded">
+          <option>General</option>
+          <option>Healthcare</option>
+          <option>Finance</option>
+          <option>Education</option>
+        </select>
         <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
           Save Changes
         </button>
@@ -2306,12 +2397,14 @@ export default function NewProject() {
   const [isDraft, setIsDraft] = useState(false);
   const [publishAt, setPublishAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tags, setTags] = useState<string[]>([]);
+  const [industry, setIndustry] = useState("General");
   const router = useRouter();
   const { isAuthenticated, user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const projectData = { title, description, image, link, isDraft, publishAt };
+    const projectData = { title, description, image, link, isDraft, publishAt, tags, industry };
     try {
       const response = await fetch(`${apiUrl}/api/projects`, {
         method: "POST",
@@ -2381,6 +2474,21 @@ export default function NewProject() {
             className="w-full p-2 border rounded"
           />
         </label>
+        <input
+          type="text"
+          placeholder="Tags (comma-separated)"
+          value={tags.join(", ")}
+          onChange={(e) => setTags(e.target.value.split(",").map((t) => t.trim()))}
+          className="w-full p-2 border rounded"
+        />
+
+        <select value={industry} onChange={(e) => setIndustry(e.target.value)} className="w-full p-2 border rounded">
+          <option>General</option>
+          <option>Healthcare</option>
+          <option>Finance</option>
+          <option>Education</option>
+        </select>
+
         <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
           Create Project
         </button>
@@ -2798,7 +2906,7 @@ export default function AdminSetup() {
     setError("");
     try {
       // Use our existing user registration endpoint to create an admin.
-      const res = await fetch(`${apiUrl}/api/users`, {
+      const res = await fetch(`${apiUrl}/api/users/initialize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password, isAdmin: true }),
@@ -2807,7 +2915,7 @@ export default function AdminSetup() {
         const errData = await res.json();
         throw new Error(errData.error || "Admin creation failed");
       }
-      router.push("/admin");
+      router.push("/admin/login");
     } catch (err: any) {
       setError(err.message);
     }
@@ -2859,6 +2967,124 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <Header />
       <main className="flex-grow p-6">{children}</main>
       <Footer />
+    </div>
+  );
+}
+
+================
+File: portfolio.next/src/app/admin/users/page.tsx
+================
+"use client";
+
+import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+
+interface User {
+  _id: string;
+  username: string;
+  isAdmin: boolean;
+}
+
+export default function UserManagement() {
+  const { isAuthenticated, isAdmin } = useAuth();
+  const [users, setUsers] = useState<User[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+  useEffect(() => {
+    if (!isAuthenticated || !isAdmin) return;
+
+    async function fetchUsers() {
+      try {
+        const res = await fetch(`${apiUrl}/api/users`, {
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error("Failed to fetch users");
+        const data = await res.json();
+        setUsers(data);
+      } catch (err) {
+        setError((err as Error).message);
+      }
+    }
+
+    fetchUsers();
+  }, [isAuthenticated, isAdmin, apiUrl]);
+
+  const toggleAdmin = async (id: string) => {
+    try {
+      const user = users.find((u) => u._id === id);
+      if (!user) return;
+      
+      const updatedUser = { ...user, isAdmin: !user.isAdmin };
+      const res = await fetch(`${apiUrl}/api/users/${id}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedUser),
+      });
+
+      if (!res.ok) throw new Error("Failed to update user");
+      setUsers(users.map((u) => (u._id === id ? updatedUser : u)));
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  const deleteUser = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this user?")) return;
+
+    try {
+      const res = await fetch(`${apiUrl}/api/users/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!res.ok) throw new Error("Failed to delete user");
+      setUsers(users.filter((u) => u._id !== id));
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  if (!isAuthenticated) return <p>You are not authenticated.</p>;
+  if (!isAdmin) return <p>Only admins can access this page.</p>;
+
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-4">Manage Users</h1>
+      {error && <p className="text-red-500">{error}</p>}
+      <table className="w-full border-collapse border border-gray-300">
+        <thead>
+          <tr className="bg-gray-200">
+            <th className="border p-2 text-left">Username</th>
+            <th className="border p-2 text-left">Role</th>
+            <th className="border p-2 text-left">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((user) => (
+            <tr key={user._id} className="border">
+              <td className="border p-2">{user.username}</td>
+              <td className="border p-2">{user.isAdmin ? "Admin" : "User"}</td>
+              <td className="border p-2">
+                <button
+                  onClick={() => toggleAdmin(user._id)}
+                  className="text-blue-500 hover:underline mr-4"
+                >
+                  {user.isAdmin ? "Demote to User" : "Promote to Admin"}
+                </button>
+                <button
+                  onClick={() => deleteUser(user._id)}
+                  className="text-red-500 hover:underline"
+                  disabled={user.isAdmin} // Prevent deleting admins for now
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -3251,6 +3477,7 @@ interface Comment {
   author: string;
   text: string;
   createdAt: string;
+  redacted: boolean;
   replies: Comment[];
 }
 
@@ -3263,7 +3490,7 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
   const [newComment, setNewComment] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const pathname = usePathname();
   
@@ -3275,6 +3502,7 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
         // console.error("Expected an array of comments, but got:", data);
         setComments([]);
       } else {
+        console.log("data", data);
         setComments(data);
       }
     } catch {
@@ -3295,7 +3523,7 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
         headers: { "Content-Type": "application/json" },
         credentials: "include", // Ensures auth cookie is sent
         body: JSON.stringify({
-          author: "CurrentUser", // Replace with actual user context
+          author: user?.username,
           text: newComment,
           blog: blogId,
           parent: replyTo,
@@ -3319,9 +3547,13 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
       <div key={comment._id} style={{ marginLeft: level * 20 }}>
         <div className="p-2 border rounded mb-1">
           <p className="font-bold">{comment.author}</p>
-          <p>{comment.text}</p>
+          <p>{comment.redacted ? (
+            <span className="text-gray-500 italic">[This comment has been redacted]</span>
+          ) : (
+            comment.text
+          )}</p>
           <p className="text-xs text-gray-500">{new Date(comment.createdAt).toLocaleString()}</p>
-          <button onClick={() => setReplyTo(comment._id)} className="text-blue-500 text-sm">Reply</button>
+          {!comment.redacted && <button onClick={() => setReplyTo(comment._id)} className="text-blue-500 text-sm">Reply</button>}
         </div>
         {comment.replies && comment.replies.length > 0 && renderComments(comment.replies, level + 1)}
       </div>
@@ -3390,7 +3622,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCog, faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
 export default function Header() {
-  const { user, isAuthenticated, refreshAuth, setIsAuthenticated } = useAuth();
+  const { isAdmin, isAuthenticated, refreshAuth } = useAuth();
   const pathname = window.location.href;
   const router = useRouter();
 
@@ -3421,7 +3653,7 @@ export default function Header() {
           </div>
         </Link>
         <div>
-          { user?.isAdmin === true && (
+          { isAuthenticated && isAdmin && (
             <Link href={`/admin`}>
               <FontAwesomeIcon icon={faCog} className="w-6 h-6 flex item-center text-white hover:text-gray-300 me-4" />
             </Link>
@@ -3530,6 +3762,7 @@ File: portfolio.next/src/context/AuthContext.tsx
 import { createContext, useContext, useState, useEffect } from "react";
 
 interface AuthContextType {
+  isAdmin: boolean;
   isAuthenticated: boolean;
   user: User | null;
   setIsAuthenticated: (val: boolean) => void;
@@ -3548,6 +3781,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   async function refreshAuth() {
     try {
@@ -3557,6 +3791,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await res.json();
       setIsAuthenticated(data.authenticated);
       setUser(data.authenticated ? data.user : null);
+      setIsAdmin(data.user?.isAdmin || false);
     } catch (error) {
       setIsAuthenticated(false);
     }
@@ -3567,7 +3802,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, setIsAuthenticated, setUser, refreshAuth }}>
+    <AuthContext.Provider value={{ isAdmin, isAuthenticated, user, setIsAuthenticated, setUser, refreshAuth }}>
       {children}
     </AuthContext.Provider>
   );
@@ -3659,13 +3894,14 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   const handleSearch = async () => {
     if (!query.trim()) return;
 
-    // Mock API response
-    setTimeout(() => {
-      setResults([
-        { title: "Next.js Portfolio", description: "A modern portfolio built with Next.js", type: "project", link: "/projects/nextjs-portfolio" },
-        { title: "AI Chatbot Integration", description: "Implementing AI chatbot with Ollama.", type: "blog", link: "/blogs/ai-chatbot-integration" }
-      ]);
-    }, 1000);
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/search/projects`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    });
+  
+    const results = await response.json();
+    setResults(results);
   };
 
   return (
@@ -4390,6 +4626,7 @@ File: portfolio.node/package.json
     "@opentelemetry/auto-instrumentations-node": "^0.56.1",
     "@opentelemetry/exporter-trace-otlp-http": "^0.57.2",
     "@opentelemetry/sdk-node": "^0.57.2",
+    "@qdrant/js-client-rest": "^1.13.0",
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -4405,6 +4642,7 @@ File: portfolio.node/package.json
     "passport-github": "^1.1.0",
     "passport-google-oauth20": "^2.0.0",
     "passport-microsoft": "^2.1.0",
+    "qdrant-client": "^0.0.1",
     "swagger-ui-express": "^5.0.1",
     "yamljs": "^0.3.0"
   },
@@ -4438,17 +4676,25 @@ const projectRoutes = require("./routes/projectRoutes");
 const blogRoutes = require("./routes/blogRoutes");
 const oauthRoutes = require("./routes/oauthRoutes");
 const commentRoutes = require("./routes/commentRoutes");
-const providerConfigRoutes = require("./routes/providerConfigRoutes"); // NEW
+const userRoutes = require("./routes/userRoutes");
+const providerConfigRoutes = require("./routes/providerConfigRoutes");
+const searchRoutes = require("./routes/searchRoutes");
 
 const { prepopulateDefaultConfigs } = require("./services/providerConfigService");
+const { initCollection } = require("./services/qdrantService");
 
 const metricsMiddleware = require("./middlewares/metrics");
 
 const { swaggerMiddleware, swaggerSetup } = require('./config/swagger');
 
+const { dropCollection } = require('./services/qdrantService');
+
 async function createApp() {
   // Connect to the database
   await connectDB();
+
+  // await dropCollection();
+  await initCollection();
 
   // default configuration population
   await prepopulateDefaultConfigs();
@@ -4467,14 +4713,14 @@ async function createApp() {
  
 setupStrategies()
   .then(() => {
-    console.log("Passport strategies initialized successfully.");
+    console.log("Passport strategies initialized successfully."); 
     // Start your Express server here...
   })
   .catch((err) => {
     console.error("Error initializing passport strategies:", err);
   });
 
-  app.use(passport.initialize());
+  app.use(passport.initialize());  
 
   // Set up routes
   app.use('/api/docs', swaggerMiddleware, swaggerSetup);
@@ -4482,8 +4728,10 @@ setupStrategies()
   app.use("/api/auth/oauth2", oauthRoutes);
   app.use("/api/projects", projectRoutes);
   app.use("/api/blogs", blogRoutes);
+  app.use("/api/users", userRoutes);
   app.use("/api/comments", commentRoutes);
   app.use("/api/provider-configs", providerConfigRoutes);
+  app.use("/api/search", searchRoutes);
 
   return app;
 }
@@ -4725,8 +4973,8 @@ tags:
     description: Vector embeddings for AI-powered search
   - name: Career Timeline
     description: Interactive career timeline and skills mapping
-  - name: System
-    description: Setup, settings, and configuration
+  - name: Users
+    description: Users management (admin)
 
 paths:
   /auth/login:
@@ -4744,6 +4992,16 @@ paths:
           description: Login successful
         "401":
           description: Invalid credentials
+
+  /auth/check:
+    get:
+      tags: [Authentication]
+      summary: Check if user logged and session valid
+      responses:
+        "200":
+          description: User logged in
+        "401":
+          description: User not logged in
 
   /auth/logout:
     get:
@@ -4910,6 +5168,31 @@ paths:
           description: Project deleted
         "404":
           description: Project not found
+          
+  /projects/generate-embeddings:
+    post:
+      tags: [Projects]
+      summary: Generate AI embeddings for all projects
+      description: Uses an AI model to generate embeddings for each project and stores them in Qdrant.
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Successfully generated embeddings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Embeddings generated for all projects."
+                  embeddings:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProjectEmbedding"
+        "500":
+          description: Internal server error
 
   /career/timeline:
     get:
@@ -5028,6 +5311,38 @@ paths:
                 items:
                   $ref: "#/components/schemas/CodeSearchResult"
 
+  /search/{collection}:
+    post:
+      tags: [Search]
+      summary: Search across different Qdrant collections
+      description: Performs a vector search within the specified collection.
+      parameters:
+        - name: collection
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "projects"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  example: "AI-powered projects"
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
   /embeddings/generate:
     post:
       tags: [Embeddings]
@@ -5059,6 +5374,154 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EmbeddingStatus"
+
+  /users/admin-exists:
+    get:
+      tags: [Users]
+      summary: Check if an admin user exists
+      description: Returns whether an admin user is already set up in the system.
+      responses:
+        "200":
+          description: Admin existence status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exists:
+                    type: boolean
+        "500":
+          description: Server error
+
+  /users:
+    post:
+      tags: [Users]
+      summary: Create a new user (non-admin)
+      description: Creates the user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRequest"
+      responses:
+        "201":
+          description: User created successfully
+        "400":
+          description: Invalid request or admin already exists
+        "500":
+          description: Server error
+
+    get:
+      tags: [Users]
+      summary: Retrieve all users
+      security:
+        - cookieAuth: []
+      description: Returns a list of all registered users (Admin-only).
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "403":
+          description: Forbidden (non-admin access)
+        "500":
+          description: Server error
+
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: Retrieve a single user by ID
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+        "500":
+          description: Server error
+
+    put:
+      tags: [Users]
+      summary: Update a user's information
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRequest"
+      responses:
+        "200":
+          description: User updated
+        "403":
+          description: Forbidden (non-admin access)
+        "404":
+          description: User not found
+        "500":
+          description: Server error
+
+    delete:
+      tags: [Users]
+      summary: Delete a user by ID
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User deleted
+        "403":
+          description: Forbidden (non-admin access)
+        "404":
+          description: User not found
+        "500":
+          description: Server error
+
+  /users/initialize:
+    post:
+      tags: [Users]
+      summary: Create a new administrator 
+      description: Creates the first admin user if no admin exists.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRequest"
+      responses:
+        "201":
+          description: User created successfully
+        "400":
+          description: Invalid request or admin already exists
+        "500":
+          description: Server error
 
 
 components:
@@ -5235,11 +5698,56 @@ components:
         totalEmbeddings:
           type: integer
 
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        isAdmin:
+          type: boolean
+
+    UserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        isAdmin:
+          type: boolean
+      required:
+        - username
+        - password
+
+    ProjectEmbedding:
+      type: object
+      properties:
+        projectId:
+          type: string
+          example: "6543abcd5678ef9012345678"
+        embedding:
+          type: array
+          items:
+            type: number
+          description: "The generated AI embedding vector for this project."
+
 securitySchemes:
   cookieAuth:
     type: apiKey
     in: cookie
     name: auth-token
+
+================
+File: portfolio.node/src/middlewares/admin.js
+================
+module.exports = (req, res, next) => {
+    if (!req.user || !req.user.isAdmin) {
+      return res.status(403).json({ message: "Forbidden: Admin access required" });
+    }
+    next();
+  };
 
 ================
 File: portfolio.node/src/middlewares/auth.js
@@ -5326,6 +5834,7 @@ const BlogEntrySchema = new mongoose.Schema({
   body: { type: String, required: true },
   isDraft: { type: Boolean, default: false },
   publishAt: { type: Date },
+  vectorId : {type: Number, unique: true },
 }, { timestamps: true });
 
 // Generate slug and link from title.
@@ -5368,6 +5877,20 @@ const CommentSchema = new mongoose.Schema(
 module.exports = mongoose.model("Comment", CommentSchema);
 
 ================
+File: portfolio.node/src/models/Counters.js
+================
+// portfolio.node/src/models/ProviderConfig.js
+const mongoose = require("mongoose");
+
+const CounterSchema = new mongoose.Schema({
+  Value: { type: Number, required: true},
+  Name: {type: String},
+
+}, { timestamps: true });
+
+module.exports = mongoose.model("Counter", CounterSchema);
+
+================
 File: portfolio.node/src/models/Project.js
 ================
 // portfolio.node/src/models/Project.js
@@ -5380,6 +5903,9 @@ const ProjectSchema = new mongoose.Schema({
   link: { type: String },
   isDraft: { type: Boolean, default: false },
   publishAt: { type: Date, default: Date.now },
+  tags: { type: [String], default: [] }, 
+  industry: { type: String, default: "General" }, 
+  vectorId : {type: Number, unique: true },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Project", ProjectSchema);
@@ -5593,6 +6119,7 @@ const authMiddleware = require("../middlewares/auth"); // Protect endpoints wher
 const commentService = require("../services/commentService");
 const Comment = require("../models/Comment");
 const router = express.Router();
+const adminAuth = require("../middlewares/admin");
 
 /**
  * Create a new comment.
@@ -5661,20 +6188,12 @@ router.put("/:id", authMiddleware, async (req, res) => {
 /**
  * Redact (soft-delete) a comment by marking it as redacted.
  */
-router.delete("/:id", authMiddleware, async (req, res) => {
-  try {
-    
-    if  (!req.user?.isAdmin === true){
-      res.status(403);
-    }
-
-    const redactedComment = await commentService.redactComment(req.params.id);
-    if (!redactedComment) return res.status(404).json({ error: "Comment not found" });
-    res.json({ message: "Comment redacted", comment: redactedComment });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+router.delete("/:id", authMiddleware, adminAuth, async (req, res) => {
+  const updatedComment = await commentService.redactComment(req.params.id);
+  if (!updatedComment) return res.status(404).json({ message: "Comment not found" });
+  res.json({ message: "Comment redacted", comment: updatedComment });
 });
+
 
 router.get("/all", authMiddleware, async (req, res) => {
   try {
@@ -5821,16 +6340,14 @@ File: portfolio.node/src/routes/projectRoutes.js
 const express = require("express");
 const authMiddleware = require("../middlewares/auth");
 const projectService = require("../services/projectService");
+const adminAuth = require("../middlewares/admin");
+const Project = require("../models/Project");
+
 const router = express.Router();
 
 // Create a new project using the service module
-router.post("/", authMiddleware, async (req, res) => {
+router.post("/", authMiddleware, adminAuth, async (req, res) => {
   try {
-
-    if  (!req.user?.isAdmin === true){
-      res.status(403);
-    }
-
     const newProject = await projectService.createProject(req.body);
     res.status(201).json(newProject);
   } catch (error) {
@@ -5867,13 +6384,8 @@ router.get("/:id", async (req, res) => {
 });
 
 // Update a project by ID using the service module
-router.put("/:id", authMiddleware, async (req, res) => {
+router.put("/:id", authMiddleware, adminAuth, async (req, res) => {
   try {
-
-    if  (!req.user?.isAdmin === true){
-      res.status(403);
-    }
-
     const updatedProject = await projectService.updateProject(req.params.id, req.body);
     if (!updatedProject) return res.status(404).json({ error: "Project not found" });
     res.json(updatedProject);
@@ -5883,13 +6395,8 @@ router.put("/:id", authMiddleware, async (req, res) => {
 });
 
 // Delete a project by ID using the service module
-router.delete("/:id", authMiddleware, async (req, res) => {
+router.delete("/:id", authMiddleware, adminAuth, async (req, res) => {
   try {
-
-    if  (!req.user?.isAdmin === true){
-      res.status(403);
-    }
-
     const deletedProject = await projectService.deleteProject(req.params.id);
     if (!deletedProject) return res.status(404).json({ error: "Project not found" });
     res.json({ message: "Project deleted successfully" });
@@ -5897,6 +6404,27 @@ router.delete("/:id", authMiddleware, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+router.post("/generate-embeddings", authMiddleware, adminAuth, async (req, res) => {
+  const projects = await Project.find();
+  for (const project of projects) {
+    await projectService.generateEmbeddingsAndStore(project);
+  }
+  res.json({ message: "Embeddings generated for all projects." });
+});
+
+router.post("/search", async (req, res) => {
+  const { query } = req.body;
+
+  if (!query) return res.status(400).json({ message: "Query is required" });
+
+  const embedding = await generateEmbedding(query);
+  if (!embedding) return res.status(500).json({ message: "Failed to generate query embedding" });
+
+  const results = await searchProjects(embedding);
+  res.json(results);
+});
+
 
 module.exports = router;
 
@@ -5944,26 +6472,53 @@ router.put("/:provider", authMiddleware, async (req, res) => {
 module.exports = router;
 
 ================
+File: portfolio.node/src/routes/searchRoutes.js
+================
+const express = require("express");
+const {searchQdrant, generateEmbedding} = require("../services/qdrantService");
+const router = express.Router();
+
+
+router.post("/:collection", async (req, res) => {
+    const { query } = req.body;
+    const { collection } = req.params;
+  
+    if (!query) return res.status(400).json({ message: "Query is required" });
+  
+    const embedding = await generateEmbedding(query);
+    if (!embedding) return res.status(500).json({ message: "Failed to generate query embedding" });
+  
+    const results = await searchQdrant(embedding, collection);
+    res.json(results);
+  });
+  
+  module.exports = router;
+
+================
 File: portfolio.node/src/routes/userRoutes.js
 ================
 const express = require("express");
 const userService = require("../services/userService");
 const authMiddleware = require("../middlewares/auth");
+const User = require('../models/User');
+const adminAuth = require('../middlewares/admin');
 
 const router = express.Router();
 
-// Endpoint for user registration
-router.post("/", authMiddleware, async (req, res) => {
+
+router.post("/initialize", async (req, res) => {
   try {
 
-    if  (!req.user?.isAdmin === true){
-      res.status(403);
+    const admin = await User.findOne({ isAdmin: true });
+    if ( admin ){
+      res.status(403).json({ message: "Admin user already exists." });
+      return;
     }
 
     const { username, password } = req.body;
 
     // Delegate the creation to the user service.
-    const newUser = await userService.createUser({ username, password });
+    const newUser = await userService.createUser({ username, password, isAdmin: true });
     console.log("New User Created:", newUser.username);
     res.status(201).json({ message: "User created successfully" });
   } catch (error) {
@@ -5973,6 +6528,7 @@ router.post("/", authMiddleware, async (req, res) => {
        .json({ error: error.message });
   }
 });
+
 
 router.get("/admin-exists", async (req, res) => {
   try {
@@ -5998,6 +6554,51 @@ router.get("/create", async (req, res) => {
         </body>
         </html>
     `);
+});
+
+// Endpoint for user registration
+router.post("/", authMiddleware, async (req, res) => {
+  try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
+    const { username, password } = req.body;
+
+    // Delegate the creation to the user service.
+    const newUser = await userService.createUser({ username, password });
+    console.log("New User Created:", newUser.username);
+    res.status(201).json({ message: "User created successfully" });
+  } catch (error) {
+    console.error("Error creating user:", error);
+    // Use 400 for client errors (e.g., missing fields or duplicate user)
+    res.status(error.message === "User already exists" || error.message === "Username and password are required" ? 400 : 500)
+       .json({ error: error.message });
+  }
+});
+
+router.get("/", authMiddleware, adminAuth, async (req, res) => {
+  const users = await userService.getAllUsers();
+  res.json(users);
+});
+
+router.get("/:id", authMiddleware, adminAuth, async (req, res) => {
+  const user = await userService.getUserById(req.params.id);
+  if (!user) return res.status(404).json({ message: "User not found" });
+  res.json(user);
+});
+
+router.put("/:id", authMiddleware, adminAuth, async (req, res) => {
+  const updatedUser = await userService.updateUser(req.params.id, req.body);
+  if (!updatedUser) return res.status(404).json({ message: "User not found" });
+  res.json(updatedUser);
+});
+
+router.delete("/:id", authMiddleware, adminAuth, async (req, res) => {
+  const deletedUser = await userService.deleteUser(req.params.id);
+  if (!deletedUser) return res.status(404).json({ message: "User not found" });
+  res.json({ message: "User deleted" });
 });
 
 module.exports = router;
@@ -6190,7 +6791,7 @@ async function getNestedReplies(parentId, redacted) {
  * @returns {Promise<Array>} - Array of comments with nested replies.
  */
 async function getCommentsByBlog(blogId) {
-  const comments = await Comment.find({ blog: blogId, parent: null, redacted: false }).sort({ createdAt: -1 });
+  const comments = await Comment.find({ blog: blogId, parent: null }).sort({ createdAt: -1 });
   return Promise.all(
     comments.map(async (comment) => {
       const nestedReplies = await getNestedReplies(comment._id, false);
@@ -6246,9 +6847,35 @@ module.exports = {
 };
 
 ================
+File: portfolio.node/src/services/counterService.js
+================
+const Counter = require("../models/Counters");
+
+/**
+ * Get the next unique vectorId in a multi-user safe way.
+ * Uses MongoDB's atomic `$inc` operation to prevent race conditions.
+ *
+ * @param {string} name - The counter name (e.g., "vectorId")
+ * @returns {Promise<number>} - The next incremented value
+ */
+async function getNextVectorId(name = "vectorId") {
+  const counter = await Counter.findOneAndUpdate(
+    { Name: name },  // Find by counter name
+    { $inc: { Value: 1 } },  // Atomically increment the counter
+    { new: true, upsert: true } // Create if not exists
+  );
+
+  return counter.Value;
+}
+
+module.exports = { getNextVectorId };
+
+================
 File: portfolio.node/src/services/projectService.js
 ================
 const Project = require("../models/Project");
+const { storeEmbedding, generateEmbedding, searchQdrant } = require("../services/qdrantService");
+const {getNextVectorId} = require("../services/counterService");
 
 /**
  * Creates a new project.
@@ -6258,6 +6885,14 @@ const Project = require("../models/Project");
 async function createProject(data) {
   const project = new Project(data);
   await project.save();
+
+  const textToEmbed = `${project.title} ${project.description} ${project.tags.join(" ")} ${project.industry}`;
+  const embedding = await generateEmbedding(textToEmbed);
+
+  if (embedding) {
+    await storeEmbedding(project._id, textToEmbed, embedding);
+  }
+
   return project;
 }
 
@@ -6297,12 +6932,53 @@ async function deleteProject(id) {
   return Project.findByIdAndDelete(id);
 }
 
+
+async function generateEmbeddingsAndStore(project) {
+  const text = `${project.title} ${project.description} ${project.tags.join(" ")} ${project.industry}`;
+  
+  if (!project.vectorId) {
+    project.vectorId = await getNextVectorId("vectorId");  // ✅ Assign unique, thread-safe Qdrant ID
+    await project.save();
+  }
+
+  // 1️⃣ Generate the embedding vector
+  const vector = await generateEmbedding(text);
+  
+  if (!vector) {
+    console.error(`❌ Failed to generate embedding for project: ${project._id}`);
+    return;
+  }
+
+  // 2️⃣ Store the embedding in Qdrant
+  await storeEmbedding(project.vectorId, text, vector);  
+}
+
+/**
+ * Search the project collection
+ * @param {string} search - search text
+ * @returns {Promise<Object|null>} - The search response
+ */
+async function searchProjects(search) {
+  const { query } = req.body;
+
+  if (!query) return res.status(400).json({ message: "Query is required" });
+
+  const embedding = await generateEmbedding(query);
+  if (!embedding) return res.status(500).json({ message: "Failed to generate query embedding" });
+
+  const results = await searchQdrant(embedding, "projects");  // ✅ Always searches in "projects"
+  res.json(results);
+}
+
+
 module.exports = {
   createProject,
   getAllProjects,
   getProjectById,
   updateProject,
   deleteProject,
+  generateEmbeddingsAndStore,
+  searchProjects
 };
 
 ================
@@ -6380,6 +7056,144 @@ module.exports = {
   updateConfig,
   prepopulateDefaultConfigs
 };
+
+================
+File: portfolio.node/src/services/qdrantService.js
+================
+require("dotenv").config();
+const { QdrantClient } = require("@qdrant/js-client-rest");
+
+const QDRANT_URL = process.env.QDRANT_URL || "http://10.0.0.42:6333";
+const OLLAMA_URL = process.env.OLLAMA_URL || "http://10.0.0.42:11434";
+const COLLECTION_NAME = "projects";
+
+const qdrantClient = new QdrantClient({ url: QDRANT_URL });
+
+/**
+ * Initializes the Qdrant collection if it does not exist.
+ */
+async function initCollection() {
+  try {
+    await qdrantClient.getCollection(COLLECTION_NAME);
+    console.log(`✅ Qdrant collection "${COLLECTION_NAME}" already exists.`);
+  } catch (error) {
+    console.log(`⚠️ Qdrant collection "${COLLECTION_NAME}" not found. Creating...`);
+
+    await qdrantClient.createCollection(COLLECTION_NAME, {
+      vectors: {
+        size: 4096, // OpenAI-compatible embedding size (modify as needed)
+        distance: "Cosine"
+      }
+    });
+
+    console.log(`✅ Qdrant collection "${COLLECTION_NAME}" created.`);
+  }
+}
+
+/**
+ * Stores a project embedding in Qdrant.
+ * @param {string} id - The project ID.
+ * @param {string} text - The text content to embed.
+ * @param {number[]} vector - The embedding vector.
+ */
+async function storeEmbedding(id, text, vector) {
+    try {
+      // Validate vector
+      if (!Array.isArray(vector)) {
+        throw new Error(`Vector is not an array: ${typeof vector}`);
+      }
+      
+      if (vector.length !== 4096) {
+        throw new Error(`Vector length mismatch: expected 4096, got ${vector.length}`);
+      }
+      
+      // Validate that all values are numbers
+      const allNumbers = vector.every(val => typeof val === 'number' && !isNaN(val));
+      if (!allNumbers) {
+        throw new Error('Vector contains non-numeric values');
+      }
+  
+      console.log(`📡 Storing embedding: ID=${id}, Vector Length=${vector.length}`);
+      
+      // Convert id to string if it's not already
+      const pointId = typeof id === 'string' ? id : String(id);
+      
+      // For testing, use a simple numeric ID
+      const testId = Math.floor(Math.random() * 1000000);
+      await qdrantClient.upsert(COLLECTION_NAME, {
+        points: [
+          {
+            id: testId,
+            vector: vector,
+            payload: { text }
+          }
+        ]
+      });
+  
+      console.log(`✅ Stored embedding for project ${id}`);
+    } catch (error) {
+      console.error(`❌ Qdrant Error:`, error.response?.data || error.message);
+      
+      // Log more details about the vector for debugging
+      if (vector) {
+        console.error(`Vector sample (first 5 elements):`, vector.slice(0, 5));
+      }
+    }
+  }
+
+/**
+ * Performs a semantic search in Qdrant.
+ * @param {number[]} queryVector - The query embedding.
+ * @param {string} collection - The sollection to search.
+ * @param {number} topK - Number of results to retrieve.
+ * @returns {Promise<object[]>} - List of matching projects.
+ */
+async function searchQdrant(queryVector, collection, topK = 5) {
+    try {
+      console.log(`📡 Searching Qdrant in collection "${collection}"`);
+      
+      const response = await qdrantClient.search(collection, {
+        vector: queryVector,
+        limit: topK
+      });
+  
+      return response || [];
+    } catch (error) {
+      console.error(`❌ Qdrant Search Error: ${error.message}`);
+      return [];
+    }
+  }
+  
+  module.exports = { searchQdrant };
+  
+
+async function generateEmbedding(text) {
+    try {
+      const response = await fetch(`${OLLAMA_URL}api/embeddings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "mistral", prompt: text })
+      });
+  
+      const data = await response.json();
+      return data.embedding;
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  }
+
+  async function dropCollection() {
+    try {
+      await qdrantClient.deleteCollection(COLLECTION_NAME);
+      console.log(`✅ Dropped Qdrant collection "${COLLECTION_NAME}"`);
+    } catch (error) {
+      console.error(`❌ Error dropping collection: ${error.message}`);
+    }
+  }
+  
+  
+module.exports = { initCollection, storeEmbedding, generateEmbedding, dropCollection, searchQdrant };
 
 ================
 File: portfolio.node/src/services/userService.js

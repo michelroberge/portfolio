@@ -16,17 +16,24 @@ const blogRoutes = require("./routes/blogRoutes");
 const oauthRoutes = require("./routes/oauthRoutes");
 const commentRoutes = require("./routes/commentRoutes");
 const userRoutes = require("./routes/userRoutes");
-const providerConfigRoutes = require("./routes/providerConfigRoutes"); // NEW
+const providerConfigRoutes = require("./routes/providerConfigRoutes");
+const searchRoutes = require("./routes/searchRoutes");
 
 const { prepopulateDefaultConfigs } = require("./services/providerConfigService");
+const { initCollection } = require("./services/qdrantService");
 
 const metricsMiddleware = require("./middlewares/metrics");
 
 const { swaggerMiddleware, swaggerSetup } = require('./config/swagger');
 
+const { dropCollection } = require('./services/qdrantService');
+
 async function createApp() {
   // Connect to the database
   await connectDB();
+
+  // await dropCollection();
+  await initCollection();
 
   // default configuration population
   await prepopulateDefaultConfigs();
@@ -45,14 +52,14 @@ async function createApp() {
  
 setupStrategies()
   .then(() => {
-    console.log("Passport strategies initialized successfully.");
+    console.log("Passport strategies initialized successfully."); 
     // Start your Express server here...
   })
   .catch((err) => {
     console.error("Error initializing passport strategies:", err);
   });
 
-  app.use(passport.initialize());
+  app.use(passport.initialize());  
 
   // Set up routes
   app.use('/api/docs', swaggerMiddleware, swaggerSetup);
@@ -63,6 +70,7 @@ setupStrategies()
   app.use("/api/users", userRoutes);
   app.use("/api/comments", commentRoutes);
   app.use("/api/provider-configs", providerConfigRoutes);
+  app.use("/api/search", searchRoutes);
 
   return app;
 }
