@@ -67,9 +67,8 @@ export default function Chat() {
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end">
       {isOpen && (
         <div
-          className={`w-80 ${
-            isExpanded ? "h-[90vh] w-[50vw]" : "h-96"
-          } shadow-lg border border-gray-300 bg-white rounded-lg overflow-hidden transition-all duration-300`}
+          className={`shadow-lg border border-gray-300 bg-white rounded-lg overflow-hidden transition-all duration-300
+            ${isExpanded ? "h-[90vh] w-[90vw] md:w-[50vw]" : "h-96 w-[50vw] md:w-80"}`}
         >
           {/* ✅ Chat Header with Expand/Minimize Buttons */}
           <div className="p-3 bg-gray-800 text-white flex justify-between items-center">
