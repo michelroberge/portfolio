@@ -4,6 +4,7 @@ const authMiddleware = require("../middlewares/auth"); // Protect endpoints wher
 const commentService = require("../services/commentService");
 const Comment = require("../models/Comment");
 const router = express.Router();
+const adminAuth = require("../middlewares/admin");
 
 /**
  * Create a new comment.
@@ -72,20 +73,12 @@ router.put("/:id", authMiddleware, async (req, res) => {
 /**
  * Redact (soft-delete) a comment by marking it as redacted.
  */
-router.delete("/:id", authMiddleware, async (req, res) => {
-  try {
-    
-    if  (!req.user?.isAdmin === true){
-      res.status(403);
-    }
-
-    const redactedComment = await commentService.redactComment(req.params.id);
-    if (!redactedComment) return res.status(404).json({ error: "Comment not found" });
-    res.json({ message: "Comment redacted", comment: redactedComment });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+router.delete("/:id", authMiddleware, adminAuth, async (req, res) => {
+  const updatedComment = await commentService.redactComment(req.params.id);
+  if (!updatedComment) return res.status(404).json({ message: "Comment not found" });
+  res.json({ message: "Comment redacted", comment: updatedComment });
 });
+
 
 router.get("/all", authMiddleware, async (req, res) => {
   try {

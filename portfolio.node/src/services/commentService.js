@@ -27,7 +27,7 @@ async function getNestedReplies(parentId, redacted) {
  * @returns {Promise<Array>} - Array of comments with nested replies.
  */
 async function getCommentsByBlog(blogId) {
-  const comments = await Comment.find({ blog: blogId, parent: null, redacted: false }).sort({ createdAt: -1 });
+  const comments = await Comment.find({ blog: blogId, parent: null }).sort({ createdAt: -1 });
   return Promise.all(
     comments.map(async (comment) => {
       const nestedReplies = await getNestedReplies(comment._id, false);

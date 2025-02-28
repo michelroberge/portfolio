@@ -18,6 +18,9 @@ export default function EditProject() {
   const [publishAt, setPublishAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tags, setTags] = useState<string[]>([]);
+  const [industry, setIndustry] = useState("General");
+
   const { isAuthenticated, user } = useAuth();
 
   useEffect(() => {
@@ -44,7 +47,7 @@ export default function EditProject() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const projectData = { title, description, image, link, isDraft, publishAt };
+    const projectData = { title, description, image, link, isDraft, publishAt, tags, industry };
     try {
       const response = await fetch(`${apiUrl}/api/projects/${id}`, {
         method: "PUT",
@@ -115,6 +118,20 @@ export default function EditProject() {
             className="w-full p-2 border rounded"
           />
         </label>
+        <input
+          type="text"
+          placeholder="Tags (comma-separated)"
+          value={tags.join(", ")}
+          onChange={(e) => setTags(e.target.value.split(",").map((t) => t.trim()))}
+          className="w-full p-2 border rounded"
+        />
+
+        <select value={industry} onChange={(e) => setIndustry(e.target.value)} className="w-full p-2 border rounded">
+          <option>General</option>
+          <option>Healthcare</option>
+          <option>Finance</option>
+          <option>Education</option>
+        </select>
         <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
           Save Changes
         </button>

@@ -1,4 +1,5 @@
 const Project = require("../models/Project");
+const qdrant = require("./qdrantService");
 
 /**
  * Creates a new project.
@@ -47,10 +48,16 @@ async function deleteProject(id) {
   return Project.findByIdAndDelete(id);
 }
 
+async function generateEmbeddingsAndStore(project) {
+  const text = `${project.title} ${project.description} ${project.tags.join(" ")} ${project.industry}`;
+  await qdrant.storeEmbedding(project._id, text, "project");
+}
+
 module.exports = {
   createProject,
   getAllProjects,
   getProjectById,
   updateProject,
   deleteProject,
+  generateEmbeddingsAndStore
 };

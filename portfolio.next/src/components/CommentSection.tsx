@@ -8,6 +8,7 @@ interface Comment {
   author: string;
   text: string;
   createdAt: string;
+  redacted: boolean;
   replies: Comment[];
 }
 
@@ -20,7 +21,7 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
   const [newComment, setNewComment] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const pathname = usePathname();
   
@@ -32,6 +33,7 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
         // console.error("Expected an array of comments, but got:", data);
         setComments([]);
       } else {
+        console.log("data", data);
         setComments(data);
       }
     } catch {
@@ -52,7 +54,7 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
         headers: { "Content-Type": "application/json" },
         credentials: "include", // Ensures auth cookie is sent
         body: JSON.stringify({
-          author: "CurrentUser", // Replace with actual user context
+          author: user?.username,
           text: newComment,
           blog: blogId,
           parent: replyTo,
@@ -76,9 +78,13 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
       <div key={comment._id} style={{ marginLeft: level * 20 }}>
         <div className="p-2 border rounded mb-1">
           <p className="font-bold">{comment.author}</p>
-          <p>{comment.text}</p>
+          <p>{comment.redacted ? (
+            <span className="text-gray-500 italic">[This comment has been redacted]</span>
+          ) : (
+            comment.text
+          )}</p>
           <p className="text-xs text-gray-500">{new Date(comment.createdAt).toLocaleString()}</p>
-          <button onClick={() => setReplyTo(comment._id)} className="text-blue-500 text-sm">Reply</button>
+          {!comment.redacted && <button onClick={() => setReplyTo(comment._id)} className="text-blue-500 text-sm">Reply</button>}
         </div>
         {comment.replies && comment.replies.length > 0 && renderComments(comment.replies, level + 1)}
       </div>
