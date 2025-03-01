@@ -125,6 +125,7 @@ portfolio.node/src/middlewares/auth.js
 portfolio.node/src/middlewares/metrics.js
 portfolio.node/src/middlewares/validate.js
 portfolio.node/src/models/BlogEntry.js
+portfolio.node/src/models/ChatMessage.js
 portfolio.node/src/models/Comment.js
 portfolio.node/src/models/Counters.js
 portfolio.node/src/models/Project.js
@@ -132,6 +133,7 @@ portfolio.node/src/models/ProviderConfig.js
 portfolio.node/src/models/User.js
 portfolio.node/src/routes/authRoutes.js
 portfolio.node/src/routes/blogRoutes.js
+portfolio.node/src/routes/chatRoutes.js
 portfolio.node/src/routes/commentRoutes.js
 portfolio.node/src/routes/oauthRoutes.js
 portfolio.node/src/routes/projectRoutes.js
@@ -141,12 +143,15 @@ portfolio.node/src/routes/userRoutes.js
 portfolio.node/src/server.js
 portfolio.node/src/services/authService.js
 portfolio.node/src/services/blogService.js
+portfolio.node/src/services/chatService.js
 portfolio.node/src/services/commentService.js
 portfolio.node/src/services/counterService.js
+portfolio.node/src/services/ollamaService.js
 portfolio.node/src/services/projectService.js
 portfolio.node/src/services/providerConfigService.js
 portfolio.node/src/services/qdrantService.js
 portfolio.node/src/services/userService.js
+portfolio.node/src/services/wsChatService.js
 portfolio.node/src/tracing.js
 portfolio.node/src/validators/blogValidator.js
 README.md
@@ -3389,59 +3394,137 @@ export default function PrivacyPolicy() {
 ================
 File: portfolio.next/src/components/Chat.tsx
 ================
-import { useState } from "react";
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { useChat } from "@/context/ChatContext";
 
 export default function Chat() {
+  const { messages, addMessage } = useChat();
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { role: "system", text: "Hello! Ask me anything about my projects or skills." }
-  ]);
+  const [isExpanded, setIsExpanded] = useState(false); // ✅ Expand/Minimize state
   const [input, setInput] = useState("");
+  const [ws, setWs] = useState<WebSocket | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const streamingResponseRef = useRef(""); // Stores the AI's full response
+  const [streamingResponse, setStreamingResponse] = useState(""); // Triggers UI updates
 
-  const sendMessage = async () => {
-    if (!input.trim()) return;
-    const userMessage = { role: "user", text: input };
-    setMessages([...messages, userMessage]);
+  useEffect(() => {
+    if (isOpen && !ws) {
+      const websocket = new WebSocket("ws://localhost:5000");
+
+      websocket.onopen = () => console.log("Connected to WebSocket");
+
+      websocket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.response) {
+          setIsStreaming(true);
+          streamingResponseRef.current += data.response; // ✅ Append to ref
+          setStreamingResponse(streamingResponseRef.current); // ✅ Trigger UI update
+        }
+
+        if (data.done) {
+          setIsStreaming(false);
+        }
+      };
+
+      websocket.onclose = () => console.log("WebSocket disconnected");
+      setWs(websocket);
+    }
+
+    return () => ws?.close();
+  }, [isOpen]);
+
+  // ✅ Ensure AI response is stored in chat history after streaming ends
+  useEffect(() => {
+    if (!isStreaming && streamingResponseRef.current) {
+      addMessage({ role: "ai", text: streamingResponseRef.current });
+      streamingResponseRef.current = ""; // Reset buffer
+      setStreamingResponse(""); // Clear state after saving
+    }
+  }, [isStreaming]);
+
+  const sendMessage = () => {
+    if (!input.trim() || !ws) return;
+
+    const userMessage = { role: "user" as "user", text: input };
+    addMessage(userMessage);
+    ws.send(JSON.stringify({ sessionId: "123", query: input }));
     setInput("");
-    
-    // Mock API response
-    setTimeout(() => {
-      setMessages(prev => [...prev, { role: "ai", text: "This is a mock response from AI." }]);
-    }, 1000);
+
+    // ✅ Reset streaming response before AI starts replying
+    streamingResponseRef.current = "";
+    setStreamingResponse("");
+    setIsStreaming(true);
   };
 
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end">
       {isOpen && (
-        <div className="w-80 shadow-lg border border-gray-300 bg-white rounded-lg overflow-hidden">
-          <div className="p-4 flex flex-col space-y-2 max-h-80 overflow-auto">
+        <div
+          className={`shadow-lg border border-gray-300 bg-white rounded-lg overflow-hidden transition-all duration-300
+            ${isExpanded ? "h-[90vh] w-[90vw] md:w-[50vw]" : "h-96 w-[50vw] md:w-80"}`}
+        >
+          {/* ✅ Chat Header with Expand/Minimize Buttons */}
+          <div className="p-3 bg-gray-800 text-white flex justify-between items-center">
+            <span>Chat</span>
+            <div>
+              <button
+                className="text-lg mx-2"
+                onClick={() => setIsExpanded(!isExpanded)}
+                title={isExpanded ? "Minimize" : "Maximize"}
+              >
+                {isExpanded ? "🗕" : "⛶"}
+              </button>
+              <button className="text-lg" onClick={() => setIsOpen(false)} title="Close">
+                ✖
+              </button>
+            </div>
+          </div>
+
+          {/* Chat Messages */}
+          <div className="p-4 flex flex-col space-y-2 max-h-[80%] overflow-auto">
             {messages.map((msg, i) => (
               <div
                 key={i}
-                className={`p-2 rounded-lg text-sm ${msg.role === "user" ? "bg-blue-500 text-white self-end" : "bg-gray-200 text-black self-start"}`}
+                className={`p-2 rounded-lg text-sm ${
+                  msg.role === "user" ? "bg-blue-500 text-white self-end" : "bg-gray-200 text-black self-start"
+                }`}
               >
                 {msg.text}
               </div>
             ))}
-            <div className="flex items-center space-x-2 border-t pt-2 p-2">
-              <input
-                type="text"
-                className="flex-1 p-2 border rounded text-sm"
-                placeholder="Ask something..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && sendMessage()}
-              />
-              <button
-                className="bg-gray-800 hover:bg-gray-600 transition text-white px-3 py-1 rounded text-sm"
-                onClick={sendMessage}
-              >
-                Send
-              </button>
-            </div>
+
+            {/* ✅ Show Streaming AI Response (Live Updating) */}
+            {isStreaming && (
+              <div className="p-2 rounded-lg text-sm bg-gray-200 text-black self-start">
+                {streamingResponse}
+              </div>
+            )}
+          </div>
+
+          {/* Input Bar */}
+          <div className="flex items-center space-x-2 border-t pt-2 p-2">
+            <input
+              type="text"
+              className="flex-1 p-2 border rounded text-sm"
+              placeholder="Ask something..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && sendMessage()}
+            />
+            <button
+              className="bg-gray-800 hover:bg-gray-600 transition text-white px-3 py-1 rounded text-sm"
+              onClick={sendMessage}
+            >
+              Send
+            </button>
           </div>
         </div>
       )}
+      
+      {/* Floating Chat Button */}
       <button
         className="bg-gray-800 hover:bg-gray-600 transition text-white p-3 rounded-full shadow-lg"
         onClick={() => setIsOpen(!isOpen)}
@@ -4644,6 +4727,7 @@ File: portfolio.node/package.json
     "passport-microsoft": "^2.1.0",
     "qdrant-client": "^0.0.1",
     "swagger-ui-express": "^5.0.1",
+    "ws": "^8.18.1",
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
@@ -4679,10 +4763,10 @@ const commentRoutes = require("./routes/commentRoutes");
 const userRoutes = require("./routes/userRoutes");
 const providerConfigRoutes = require("./routes/providerConfigRoutes");
 const searchRoutes = require("./routes/searchRoutes");
+const chatRoutes = require("./routes/chatRoutes");
 
 const { prepopulateDefaultConfigs } = require("./services/providerConfigService");
 const { initCollection } = require("./services/qdrantService");
-
 const metricsMiddleware = require("./middlewares/metrics");
 
 const { swaggerMiddleware, swaggerSetup } = require('./config/swagger');
@@ -4732,6 +4816,7 @@ setupStrategies()
   app.use("/api/comments", commentRoutes);
   app.use("/api/provider-configs", providerConfigRoutes);
   app.use("/api/search", searchRoutes);
+  app.use("/api/chat", chatRoutes);
 
   return app;
 }
@@ -5619,11 +5704,14 @@ components:
     ChatRequest:
       type: object
       properties:
-        query:
-          type: string
         sessionId:
           type: string
+          description: Unique identifier for the chat session
+        query:
+          type: string
+          description: User's chat message
       required:
+        - sessionId
         - query
 
     ChatResponse:
@@ -5631,21 +5719,30 @@ components:
       properties:
         response:
           type: string
+          description: AI-generated response
         sources:
           type: array
+          description: Sources used for AI-generated response
           items:
             type: string
 
     ChatMessage:
       type: object
       properties:
-        query:
+        sessionId:
           type: string
-        response:
+          description: Unique chat session ID
+        role:
           type: string
-        timestamp:
+          enum: [user, ai]
+          description: Whether the message is from the user or AI
+        text:
+          type: string
+          description: Chat message content
+        createdAt:
           type: string
           format: date-time
+          description: Timestamp of the message
 
     SemanticSearchRequest:
       type: object
@@ -5850,6 +5947,36 @@ BlogEntrySchema.pre('save', function(next) {
 });
 
 module.exports = mongoose.model("BlogEntry", BlogEntrySchema);
+
+================
+File: portfolio.node/src/models/ChatMessage.js
+================
+// portfolio.node/src/models/ChatMessage.js
+const mongoose = require("mongoose");
+
+const chatMessageSchema = new mongoose.Schema(
+  {
+    sessionId: {
+      type: String,
+      required: true,
+      index: true, // Optimized lookup
+    },
+    role: {
+      type: String,
+      enum: ["user", "ai"],
+      required: true,
+    },
+    text: {
+      type: String,
+      required: true,
+    },
+  },
+  {
+    timestamps: true, // Adds createdAt and updatedAt fields
+  }
+);
+
+module.exports = mongoose.model("ChatMessage", chatMessageSchema);
 
 ================
 File: portfolio.node/src/models/Comment.js
@@ -6105,6 +6232,54 @@ router.delete("/:id", authMiddleware, async (req, res) => {
     res.json({ message: "Entry deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+module.exports = router;
+
+================
+File: portfolio.node/src/routes/chatRoutes.js
+================
+// portfolio.node/src/routes/chatRoutes.js
+const express = require("express");
+const router = express.Router();
+const { processChatMessage, getChatHistory } = require("../services/chatService");
+
+/**
+ * POST /chat
+ * Handles a new chat message, retrieves relevant context, and generates an AI response.
+ */
+router.post("/", async (req, res) => {
+  try {
+    const { sessionId, query } = req.body;
+    if (!sessionId || !query) {
+      return res.status(400).json({ error: "sessionId and query are required." });
+    }
+
+    const response = await processChatMessage(sessionId, query);
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error("Error processing chat message:", error);
+    return res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+/**
+ * GET /chat
+ * Retrieves the chat history for a given session.
+ */
+router.get("/", async (req, res) => {
+  try {
+    const { sessionId } = req.query;
+    if (!sessionId) {
+      return res.status(400).json({ error: "sessionId is required." });
+    }
+
+    const history = await getChatHistory(sessionId);
+    return res.status(200).json(history);
+  } catch (error) {
+    console.error("Error retrieving chat history:", error);
+    return res.status(500).json({ error: "Internal server error." });
   }
 });
 
@@ -6607,13 +6782,21 @@ module.exports = router;
 File: portfolio.node/src/server.js
 ================
 // portfolio.node/src/server.js
+const http = require("http");
 const { createApp } = require("./app");
+const { setupWebSocketServer } = require("./services/wsChatService");
 
 const PORT = process.env.PORT || 5000;
 
 createApp()
   .then(app => {
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    // Create HTTP Server
+    const server = http.createServer(app);
+
+    // Attach WebSocket Server to HTTP Server
+    setupWebSocketServer(server);
+
+    server.listen(PORT, () => console.log(`Server running on port ${PORT} with WebSocket support`));
   })
   .catch(err => {
     console.error("Failed to create app:", err);
@@ -6760,6 +6943,63 @@ module.exports = {
 };
 
 ================
+File: portfolio.node/src/services/chatService.js
+================
+// portfolio.node/src/services/chatService.js
+const ChatMessage = require("../models/ChatMessage");
+const {searchQdrant, generateEmbedding} = require("../services/qdrantService");
+const ollamaService = require("../services/ollamaService"); // AI Model Integration
+
+/**
+ * Stores user messages and AI responses in the chat history.
+ * @param {string} sessionId - The chat session identifier.
+ * @param {string} userQuery - The user's input message.
+ * @returns {Promise<{ response: string, sources: string[] }>} - AI response with sources.
+ */
+async function processChatMessage(sessionId, userQuery) {
+  // Store user message
+  await ChatMessage.create({ sessionId, role: "user", text: userQuery });
+
+  // Retrieve relevant knowledge from Qdrant
+  const vectors = await generateEmbedding(userQuery);
+  const relatedDocs = await searchQdrant(vectors, "projects");
+
+  // Structure a prompt for AI based on retrieved context
+  const context = relatedDocs.map((doc) => doc.payload.text).join("\n");
+  const structuredPrompt = `
+  You are an AI assistant helping showcase my portfolio. You ONLY use the provided context to answer questions.
+  If a question is about my projects, focus specifically on projects in the provided context.
+  If the question is unrelated to my work, say "I'm here to discuss my portfolio. Ask me about my projects or skills!"
+  
+  ### Context:
+  ${context || "No relevant projects found in the database."}
+  
+  ### User Question:
+  ${userQuery}
+  
+  ### AI Response:
+  `.trim();
+  // Get AI response
+  const aiResponse = await ollamaService.generateResponse(structuredPrompt);
+
+  // Store AI response
+  await ChatMessage.create({ sessionId, role: "ai", text: aiResponse.response });
+
+  return { response: aiResponse.response, sources: relatedDocs.map((doc) => doc.source) };
+}
+
+/**
+ * Retrieves chat history for a session.
+ * @param {string} sessionId - The chat session identifier.
+ * @returns {Promise<ChatMessage[]>} - Chat history messages.
+ */
+async function getChatHistory(sessionId) {
+  return await ChatMessage.find({ sessionId }).sort({ createdAt: 1 });
+}
+
+module.exports = { processChatMessage, getChatHistory };
+
+================
 File: portfolio.node/src/services/commentService.js
 ================
 // portfolio.node/src/services/commentService.js
@@ -6869,6 +7109,117 @@ async function getNextVectorId(name = "vectorId") {
 }
 
 module.exports = { getNextVectorId };
+
+================
+File: portfolio.node/src/services/ollamaService.js
+================
+// portfolio.node/src/services/ollamaService.js
+
+const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
+
+/**
+ * Sends a structured prompt to the Ollama AI model and retrieves a response.
+ * @param {string} prompt - The structured prompt with context and user query.
+ * @returns {Promise<{ response: string }>} - AI-generated response.
+ */
+async function generateResponse(prompt) {
+  try {
+    const response = await fetch(`${OLLAMA_URL}api/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "mistral", // Change this if using a different model
+        prompt: prompt,
+        max_tokens: 200,
+        temperature: 0.7,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama API returned an error: ${response.statusText}`);
+    }
+
+    // Read the response as a stream
+    const reader = response.body.getReader();
+    let fullResponse = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      // Convert chunk to string
+      const chunk = new TextDecoder().decode(value);
+      
+      // Process each JSON object (one per line)
+      chunk.split("\n").forEach((line) => {
+        if (line.trim()) {
+          try {
+            const parsed = JSON.parse(line);
+            if (parsed.response) {
+              fullResponse += parsed.response; // Append each part of the response
+            }
+          } catch (err) {
+            console.warn("Skipping invalid JSON chunk:", line);
+          }
+        }
+      });
+    }
+
+    return { response: fullResponse.trim() || "No response generated." };
+  } catch (error) {
+    console.error("Error communicating with Ollama:", error);
+    return { response: "I'm having trouble generating a response right now. Try again later." };
+  }
+}
+
+async function generateResponseStream(prompt) {
+    const response = await fetch(`${OLLAMA_URL}api/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "mistral",
+        prompt: prompt,
+        max_tokens: 200,
+        temperature: 0.7,
+      }),
+    });
+  
+    const reader = response.body.getReader();
+    
+    return new ReadableStream({
+      async start(controller) {
+        let accumulatedResponse = "";
+  
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            controller.close();
+            break;
+          }
+  
+          const chunk = new TextDecoder().decode(value);
+  
+          // Process streamed JSON lines
+          chunk.split("\n").forEach((line) => {
+            if (line.trim()) {
+              try {
+                const parsed = JSON.parse(line);
+                if (parsed.response) {
+                  accumulatedResponse += parsed.response;
+                  controller.enqueue(parsed.response); // Send each chunk immediately
+                }
+              } catch (err) {
+                console.warn("Skipping invalid JSON chunk:", line);
+              }
+            }
+          });
+        }
+      }
+    });
+  }
+  
+
+module.exports = { generateResponse, generateResponseStream };
 
 ================
 File: portfolio.node/src/services/projectService.js
@@ -7164,9 +7515,6 @@ async function searchQdrant(queryVector, collection, topK = 5) {
     }
   }
   
-  module.exports = { searchQdrant };
-  
-
 async function generateEmbedding(text) {
     try {
       const response = await fetch(`${OLLAMA_URL}api/embeddings`, {
@@ -7270,6 +7618,79 @@ module.exports = {
   updateUser,
   deleteUser,
 };
+
+================
+File: portfolio.node/src/services/wsChatService.js
+================
+// portfolio.node/src/services/wsChatService.js
+const WebSocket = require("ws");
+const ChatMessage = require("../models/ChatMessage");
+const {generateEmbedding, searchQdrant} = require("../services/qdrantService");
+const ollamaService = require("../services/ollamaService");
+
+const setupWebSocketServer = (server) => {
+  const wss = new WebSocket.Server({ server });
+
+  wss.on("connection", (ws) => {
+    console.log("New WebSocket connection established.");
+
+    ws.on("message", async (message) => {
+      try {
+        const { sessionId, query } = JSON.parse(message);
+        if (!sessionId || !query) {
+          ws.send(JSON.stringify({ error: "sessionId and query are required." }));
+          return;
+        }
+
+        // Store user message in DB
+        await ChatMessage.create({ sessionId, role: "user", text: query });
+
+
+        const vectors = await generateEmbedding(query);
+        const relatedDocs = await searchQdrant(vectors, "projects");
+      
+        // Structure a prompt for AI based on retrieved context
+        const context = relatedDocs.map((doc) => doc.payload.text).join("\n");
+
+        const structuredPrompt = `
+        You are an AI assistant helping showcase my portfolio. You ONLY use the provided context to answer questions.
+        If a question is about my projects, focus specifically on projects in the provided context.
+        If the question is unrelated to my work, say "I'm here to discuss my portfolio. Ask me about my projects or skills!"
+        
+        ### Context:
+        ${context || "No relevant projects found in the database."}
+        
+        ### User Question:
+        ${query}
+        
+        ### AI Response:
+        `.trim();
+
+        // Stream AI response
+        const responseStream = await ollamaService.generateResponseStream(structuredPrompt);
+
+        // Send streamed data
+        for await (const chunk of responseStream) {
+          ws.send(JSON.stringify({ response: chunk }));
+        }
+
+        ws.send(JSON.stringify({ done: true }));
+
+      } catch (error) {
+        console.error("WebSocket error:", error);
+        ws.send(JSON.stringify({ error: "An error occurred while processing your request." }));
+      }
+    });
+
+    ws.on("close", () => {
+      console.log("WebSocket connection closed.");
+    });
+  });
+
+  return wss;
+};
+
+module.exports = { setupWebSocketServer };
 
 ================
 File: portfolio.node/src/tracing.js

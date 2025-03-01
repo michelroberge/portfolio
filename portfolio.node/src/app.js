@@ -19,6 +19,8 @@ const userRoutes = require("./routes/userRoutes");
 const providerConfigRoutes = require("./routes/providerConfigRoutes");
 const searchRoutes = require("./routes/searchRoutes");
 const chatRoutes = require("./routes/chatRoutes");
+const embeddingRoutes = require("./routes/embeddingRoutes");
+const promptRoutes = require("./routes/promptRoutes");
 
 const { prepopulateDefaultConfigs } = require("./services/providerConfigService");
 const { initCollection } = require("./services/qdrantService");
@@ -72,6 +74,8 @@ setupStrategies()
   app.use("/api/provider-configs", providerConfigRoutes);
   app.use("/api/search", searchRoutes);
   app.use("/api/chat", chatRoutes);
+  app.use("/api/embeddings", embeddingRoutes);
+  app.use("/api/prompts", promptRoutes);
 
   return app;
 }

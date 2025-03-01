@@ -1,24 +1,21 @@
 // portfolio.node/src/routes/chatRoutes.js
 const express = require("express");
 const router = express.Router();
-const { processChatMessage, getChatHistory } = require("../services/chatService");
+const { processChat, getChatHistory } = require("../services/chatService");
 
 /**
- * POST /chat
- * Handles a new chat message, retrieves relevant context, and generates an AI response.
+ * @route POST /api/chat
+ * @desc Process user query with AI model
  */
 router.post("/", async (req, res) => {
   try {
-    const { sessionId, query } = req.body;
-    if (!sessionId || !query) {
-      return res.status(400).json({ error: "sessionId and query are required." });
-    }
-
-    const response = await processChatMessage(sessionId, query);
-    return res.status(200).json(response);
+      const { sessionId, query, history, webContext } = req.body;
+      const response = await processChat(sessionId, query, history || [], webContext || "");
+      
+      res.status(200).json({ response });
   } catch (error) {
-    console.error("Error processing chat message:", error);
-    return res.status(500).json({ error: "Internal server error." });
+      console.error("❌ Chat API error:", error.message);
+      res.status(500).json({ error: error.message });
   }
 });
 

@@ -27,6 +27,8 @@ tags:
     description: Interactive career timeline and skills mapping
   - name: Users
     description: Users management (admin)
+  - name: Prompts
+    description: Prompts configuration and fine tuning
 
 paths:
   /auth/login:
@@ -575,6 +577,155 @@ paths:
         "500":
           description: Server error
 
+  /embeddings/local-directory:
+    post:
+      tags: [Embeddings]
+      summary: Generate embeddings from a local directory
+      description: Parses a local directory and generates embeddings for the contained files.
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmbeddingDirectoryRequest"
+      responses:
+        "200":
+          description: Successfully generated embeddings from the directory
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmbeddingStatus"
+        "400":
+          description: Invalid request
+        "500":
+          description: Internal server error
+
+  /embeddings/{id}/metadata:
+    put:
+      tags: [Embeddings]
+      summary: Update metadata for an embedding entry
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmbeddingMetadataRequest"
+      responses:
+        "200":
+          description: Metadata updated successfully
+        "404":
+          description: Embedding not found
+
+  /embeddings/list:
+    get:
+      tags: [Embeddings]
+      summary: Retrieve a list of all embeddings with metadata
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: List of embeddings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EmbeddingEntry"
+        "500":
+          description: Internal server error
+
+  /chat/context:
+    post:
+      tags: [AI Chat]
+      summary: Inject web page context into chat
+      description: Allows the frontend to inject a web page's content into the chat session.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebContextRequest"
+      responses:
+        "200":
+          description: Web context added successfully
+
+  /prompts:
+    get:
+      tags: [Prompts]
+      summary: Retrieve all stored prompts
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: List of prompts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Prompt"
+
+    post:
+      tags: [Prompts]
+      summary: Create a new prompt
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PromptRequest"
+      responses:
+        "201":
+          description: Prompt created
+
+  /prompts/{id}:
+    put:
+      tags: [Prompts]
+      summary: Update an existing prompt
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PromptRequest"
+      responses:
+        "200":
+          description: Prompt updated
+
+    delete:
+      tags: [Prompts]
+      summary: Delete a prompt
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Prompt deleted
 
 components:
   schemas:
@@ -673,10 +824,12 @@ components:
       properties:
         sessionId:
           type: string
-          description: Unique identifier for the chat session
         query:
           type: string
-          description: User's chat message
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
       required:
         - sessionId
         - query
@@ -796,6 +949,81 @@ components:
           items:
             type: number
           description: "The generated AI embedding vector for this project."
+
+    EmbeddingDirectoryRequest:
+      type: object
+      properties:
+        directoryPath:
+          type: string
+          description: Absolute path to the directory to be processed
+        includeExtensions:
+          type: array
+          items:
+            type: string
+          example: [".js", ".md", ".txt", ".json"]
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Optional metadata for embeddings
+
+    EmbeddingMetadataRequest:
+      type: object
+      properties:
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Metadata to associate with an embedding entry
+
+    EmbeddingEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        filePath:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+
+    WebContextRequest:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          description: Unique identifier for the chat session
+        content:
+          type: string
+          description: Extracted content from the web page
+      required:
+        - sessionId
+        - content
+
+    Prompt:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          description: Friendly name for the prompt
+        template:
+          type: string
+          description: Prompt template with placeholders
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Optional metadata for the prompt
+
+    PromptRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        template:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
 
 securitySchemes:
   cookieAuth:
