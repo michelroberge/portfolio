@@ -5,7 +5,9 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 # Copy package.json and package-lock.json
-COPY package.json package-lock.json ./
+# COPY package.json package-lock.json ./
+COPY package.json package-lock.json tsconfig.json next.config.ts ./ 
+COPY .env ./
 
 # Install dependencies
 RUN npm install --production
@@ -24,9 +26,13 @@ WORKDIR /app
 
 # Copy only necessary files from the builder stage
 COPY --from=builder /app/package.json ./
-COPY --from=builder /app/src/.next ./.next
-COPY --from=builder /app/src/public ./public
-COPY --from=builder /app/src/node_modules ./node_modules
+# COPY --from=builder /app/src/.next ./.next
+COPY --from=builder /app/next ./next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/tsconfig.json ./
+
+# COPY --from=builder /app/src/node_modules ./node_modules
 
 # Set environment variables
 ENV NODE_ENV=production

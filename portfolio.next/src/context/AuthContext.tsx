@@ -1,6 +1,6 @@
 // portfolio.next/src/context/AuthContext.tsx
 "use client";
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState } from "react";
 import { useRouter } from "next/navigation"; 
 
 interface AuthContextType {
@@ -45,9 +45,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  useEffect(() => {
-    refreshAuth();
-  }, []);
+  // useEffect(() => {
+  //   refreshAuth();
+  // }, []);
 
   return (
     <AuthContext.Provider value={{ isAdmin, isAuthenticated, user, setIsAuthenticated, setUser, refreshAuth }}>
