@@ -11,12 +11,12 @@ interface TelemetryData {
   sessions: number;
   pageHits: number;
 }
+const apiUrl : string = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function AnalyticsDashboard() {
   const [data, setData] = useState<TelemetryData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, user } = useAuth();
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   useEffect(() => {
     async function fetchTelemetry() {
@@ -27,12 +27,14 @@ export default function AnalyticsDashboard() {
         if (!res.ok) throw new Error("Failed to fetch telemetry data");
         const telemetry = await res.json();
         setData(telemetry);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) { // ✅ Use "unknown" instead of "any"
+        if (err instanceof Error) {
+          setError(err.message);
+        }
       }
     }
     if (isAuthenticated) fetchTelemetry();
-  }, [isAuthenticated, apiUrl]);
+  }, [isAuthenticated]);
 
   if (!isAuthenticated) return <p>You are not authenticated.</p>;
   if (!user?.isAdmin) return <p>Only admins can access this page.</p>;

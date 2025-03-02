@@ -8,6 +8,7 @@ import ChatWrapper from "@/components/ChatWrapper";
 import Search from "@/components/Search";
 import { SearchProvider } from "@/context/SearchContext";
 import { ChatProvider } from "@/context/ChatContext";
+import { Suspense } from "react";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -31,6 +32,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <Suspense>
       <AuthProvider>
         <ChatProvider>
         <SearchProvider>
@@ -44,7 +46,7 @@ export default function RootLayout({
         </SearchProvider>
         </ChatProvider>
         </AuthProvider>
-
+        </Suspense>
       </body>
     </html>
   );

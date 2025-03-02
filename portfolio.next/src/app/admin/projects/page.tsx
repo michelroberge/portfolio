@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import Image from "next/image";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -19,7 +19,6 @@ export default function ProjectManagement() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, user } = useAuth();
-  const router = useRouter();
 
   // Fetch projects once authenticated.
   useEffect(() => {
@@ -82,7 +81,7 @@ export default function ProjectManagement() {
               <td className="border border-gray-300 p-2">{project.title}</td>
               <td className="border border-gray-300 p-2">{project.description}</td>
               <td className="border border-gray-300 p-2">
-                <img
+                <Image
                   src={project.image}
                   alt={project.title}
                   className="h-16 w-auto object-contain"

@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { marked } from "marked";
 import { useAuth } from "@/context/AuthContext";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+const apiUrl :string = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function EditBlogEntry() {
   const router = useRouter();

@@ -1,14 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
 export default function AdminDashboard() {
   const { isAuthenticated, isAdmin } = useAuth();
-  const router = useRouter();
 
   if (!isAuthenticated) return <p>You are not authenticated.</p>;
   if (!isAdmin) return <p>Only admins can access this page.</p>;

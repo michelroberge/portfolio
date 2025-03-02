@@ -19,13 +19,12 @@ export default function ProviderConfigPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [editingConfigs, setEditingConfigs] = useState<Record<string, ProviderConfig>>({});
-  const [showNewForm, setShowNewForm] = useState(false);
-  const [newConfig, setNewConfig] = useState<ProviderConfig>({
-    provider: "",
-    clientId: "",
-    clientSecret: "",
-    callbackURL: "",
-  });
+  // const [newConfig, setNewConfig] = useState<ProviderConfig>({
+  //   provider: "",
+  //   clientId: "",
+  //   clientSecret: "",
+  //   callbackURL: "",
+  // });
 
   useEffect(() => {
     async function fetchConfigs() {
@@ -40,16 +39,21 @@ export default function ProviderConfigPage() {
         });
         setEditingConfigs(initialEditing);
         setLoading(false);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) { // ✅ Use unknown instead of any
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("An unexpected error occurred while fetching provider configurations.");
+        }
         setLoading(false);
       }
     }
+
     if (isAuthenticated) fetchConfigs();
   }, [apiUrl, isAuthenticated]);
 
   const handleChange = (provider: string, field: keyof ProviderConfig, value: string) => {
-    setEditingConfigs(prev => ({
+    setEditingConfigs((prev) => ({
       ...prev,
       [provider]: {
         ...prev[provider],
@@ -72,28 +76,29 @@ export default function ProviderConfigPage() {
         throw new Error(errData.error || "Failed to update configuration");
       }
       const updatedConfig = await res.json();
-      setConfigs(prev => prev.map(c => (c.provider === provider ? updatedConfig : c)));
+      setConfigs((prev) => prev.map((c) => (c.provider === provider ? updatedConfig : c)));
       alert(`Configuration for ${provider} updated. A restart may be required to apply changes.`);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) { // ✅ Use unknown instead of any
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unexpected error occurred while saving the configuration.");
+      }
     }
   };
-
-  // Handler for creating a new provider config.
+/*
   const handleNewChange = (field: keyof ProviderConfig, value: string) => {
-    setNewConfig(prev => ({
+    setNewConfig((prev) => ({
       ...prev,
       [field]: value,
     }));
   };
-
   const handleNewSave = async () => {
     if (!newConfig.provider) {
       setError("Provider field is required for new configuration.");
       return;
     }
     try {
-      // Using the same PUT endpoint (with upsert) to create new configuration.
       const res = await fetch(`${apiUrl}/api/provider-configs/${newConfig.provider}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -105,19 +110,22 @@ export default function ProviderConfigPage() {
         throw new Error(errData.error || "Failed to create new configuration");
       }
       const createdConfig = await res.json();
-      setConfigs(prev => [...prev, createdConfig]);
-      setEditingConfigs(prev => ({ ...prev, [createdConfig.provider]: createdConfig }));
+      setConfigs((prev) => [...prev, createdConfig]);
+      setEditingConfigs((prev) => ({ ...prev, [createdConfig.provider]: createdConfig }));
       setNewConfig({ provider: "", clientId: "", clientSecret: "", callbackURL: "" });
-      setShowNewForm(false);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) { // ✅ Use unknown instead of any
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unexpected error occurred while creating a new configuration.");
+      }
     }
-  };
-  
+  };*/
+
   if (loading) return <p>Loading provider configurations...</p>;
   if (!isAuthenticated) return <p>You are not authenticated.</p>;
   if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
-  
+
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-4">OAuth2/OIDC Provider Configuration</h1>
@@ -134,7 +142,7 @@ export default function ProviderConfigPage() {
           </tr>
         </thead>
         <tbody>
-          {configs.map(config => (
+          {configs.map((config) => (
             <tr key={config.provider}>
               <td className="border p-2">{config.provider}</td>
               <td className="border p-2">
@@ -173,64 +181,7 @@ export default function ProviderConfigPage() {
           ))}
         </tbody>
       </table>
-          <div>
-      {/* New Provider Form */}
-      {showNewForm ? (
-        <div className="border p-4 mb-4">
-          <h2 className="text-xl font-semibold mb-2">Add New Provider</h2>
-          <input
-            type="text"
-            placeholder="Provider (e.g., custom)"
-            value={newConfig.provider}
-            onChange={(e) => handleNewChange("provider", e.target.value)}
-            className="w-full p-2 border rounded mb-2"
-            required
-          />
-          <input
-            type="text"
-            placeholder="Client ID"
-            value={newConfig.clientId}
-            onChange={(e) => handleNewChange("clientId", e.target.value)}
-            className="w-full p-2 border rounded mb-2"
-          />
-          <input
-            type="text"
-            placeholder="Client Secret"
-            value={newConfig.clientSecret}
-            onChange={(e) => handleNewChange("clientSecret", e.target.value)}
-            className="w-full p-2 border rounded mb-2"
-          />
-          <input
-            type="text"
-            placeholder="Callback URL"
-            value={newConfig.callbackURL}
-            onChange={(e) => handleNewChange("callbackURL", e.target.value)}
-            className="w-full p-2 border rounded mb-2"
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={handleNewSave}
-              className="bg-green-500 text-white px-3 py-1 rounded"
-            >
-              Add Provider
-            </button>
-            <button
-              onClick={() => setShowNewForm(false)}
-              className="bg-gray-500 text-white px-3 py-1 rounded"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button
-          onClick={() => setShowNewForm(true)}
-          className="bg-teal-500 text-white px-4 py-2 rounded mb-4"
-        >
-          New Provider
-        </button>
-      )}
-</div>
+
       <Link href="/admin" className="text-blue-500 underline">
         Back to Dashboard
       </Link>

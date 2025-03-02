@@ -4,14 +4,14 @@ import { getBlog } from "@/services/blogService";
 import { marked } from "marked";
 import CommentSection from "@/components/CommentSection";
 
-interface BlogEntry {
-  _id: number;
-  title: string;
-  publishAt: string;
-  body: string;
-  excerpt?: string;
-  link: string;
-}
+// interface BlogEntry {
+//   _id: number;
+//   title: string;
+//   publishAt: string;
+//   body: string;
+//   excerpt?: string;
+//   link: string;
+// }
 
 type Props = {
   params: Promise<{ slug: string }>;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useChat } from "@/context/ChatContext";
 
 export default function Chat() {
@@ -8,13 +8,13 @@ export default function Chat() {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false); // ✅ Expand/Minimize state
   const [input, setInput] = useState("");
-  const [ws, setWs] = useState<WebSocket | null>(null);
+  const wsRef = useRef<WebSocket | null>(null); // ✅ Use ref instead of state
   const [isStreaming, setIsStreaming] = useState(false);
   const streamingResponseRef = useRef(""); // Stores the AI's full response
   const [streamingResponse, setStreamingResponse] = useState(""); // Triggers UI updates
 
   useEffect(() => {
-    if (isOpen && !ws) {
+    if (isOpen && !wsRef.current) {
       const websocket = new WebSocket("ws://localhost:5000");
 
       websocket.onopen = () => console.log("Connected to WebSocket");
@@ -33,28 +33,43 @@ export default function Chat() {
         }
       };
 
-      websocket.onclose = () => console.log("WebSocket disconnected");
-      setWs(websocket);
+      websocket.onclose = () => {
+        console.log("WebSocket disconnected");
+        wsRef.current = null; // ✅ Ensure it resets on close
+      };
+
+      wsRef.current = websocket;
     }
 
-    return () => ws?.close();
-  }, [isOpen]);
+    return () => {
+      wsRef.current?.close();
+      wsRef.current = null;
+    };
+  }, [isOpen]); // ✅ Removed ws from dependencies
+
+  // ✅ Use useCallback to prevent unnecessary re-renders
+  const safeAddMessage = useCallback(
+    (message: { role: "user" | "ai"; text: string }) => {
+      addMessage(message);
+    },
+    [addMessage]
+  );
 
   // ✅ Ensure AI response is stored in chat history after streaming ends
   useEffect(() => {
     if (!isStreaming && streamingResponseRef.current) {
-      addMessage({ role: "ai", text: streamingResponseRef.current });
+      safeAddMessage({ role: "ai", text: streamingResponseRef.current });
       streamingResponseRef.current = ""; // Reset buffer
       setStreamingResponse(""); // Clear state after saving
     }
-  }, [isStreaming]);
+  }, [isStreaming, safeAddMessage]);
 
   const sendMessage = () => {
-    if (!input.trim() || !ws) return;
+    if (!input.trim() || !wsRef.current) return;
 
-    const userMessage = { role: "user" as "user", text: input };
-    addMessage(userMessage);
-    ws.send(JSON.stringify({ sessionId: "123", query: input }));
+    const userMessage = { role: "user", text: input } as const; // ✅ Fixed type assertion
+    safeAddMessage(userMessage);
+    wsRef.current.send(JSON.stringify({ sessionId: "123", query: input }));
     setInput("");
 
     // ✅ Reset streaming response before AI starts replying
@@ -116,7 +131,7 @@ export default function Chat() {
               placeholder="Ask something..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && sendMessage()}
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()} // ✅ Changed to onKeyDown
             />
             <button
               className="bg-gray-800 hover:bg-gray-600 transition text-white px-3 py-1 rounded text-sm"
