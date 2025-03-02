@@ -1,13 +1,19 @@
 version: "3.8"
 services:
   frontend:
+    image: profolio-frontend
     build: ./portfolio.next
     ports:
-      - "3000:3000"
+      - "0.0.0.0:3300:3000"
     depends_on:
       - backend
+    environment:
+      - NODE_ENV=production
 
   backend:
+    image: profolio-backend
     build: ./portfolio.node
     ports:
-      - "5000:5000"
+      - "0.0.0.0:5500:5000"
+    environment:
+      - NODE_ENV=production
