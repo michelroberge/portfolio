@@ -11,7 +11,7 @@ COPY package.json package-lock.json ./
 RUN npm install --production
 
 # Copy the entire source code from `src/`
-COPY src ./src
+COPY . .
 
 # Build the Next.js app
 RUN npm run build --workspace=src
