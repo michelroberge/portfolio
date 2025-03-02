@@ -29,8 +29,10 @@ export default function CommentManagement() {
         if (!res.ok) throw new Error("Failed to fetch comments");
         const data = await res.json();
         setComments(data);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) { // ✅ Use unknown instead of any
+        if (err instanceof Error) {
+          setError(err.message);
+        }
       }
     }
     if (isAuthenticated) fetchComments();
@@ -48,8 +50,10 @@ export default function CommentManagement() {
       setComments(prev =>
         prev.map(c => (c._id === id ? { ...c, redacted: true } : c))
       );
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) { // ✅ Use unknown instead of any
+      if (err instanceof Error) {
+        setError(err.message);
+      }
     }
   };
 

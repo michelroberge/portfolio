@@ -9,7 +9,7 @@ const User = require("../models/User");
  * @returns {Promise<Object>} - The newly created user.
  * @throws {Error} - If username or password is missing or if the user already exists.
  */
-async function createUser({ username, password }) {
+async function createUser({ username, password, isAdmin = false }) {
     if (!username || !password) {
       throw new Error("Username and password are required");
     }
@@ -22,7 +22,7 @@ async function createUser({ username, password }) {
   
     // Create the user instance.
     // The User model's pre-save hook will hash the password automatically.
-    const newUser = new User({ username, passwordHash: password });
+    const newUser = new User({ username, passwordHash: password, isAdmin });
     await newUser.save();
     return newUser;
   }

@@ -4,9 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+const apiUrl :string = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function NewBlogEntry() {
+  
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
   const [body, setBody] = useState("");
@@ -32,8 +33,10 @@ export default function NewBlogEntry() {
       if (!response.ok) throw new Error("Failed to create blog post");
 
       router.push("/admin/blogs");
-    } catch (err) {
-      setError((err as Error).message);
+    } catch (err: unknown) { 
+      if (err instanceof Error) {
+        setError((err as Error).message);
+      }
     }
   };
 

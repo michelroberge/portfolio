@@ -1,6 +1,7 @@
 // portfolio.next/src/context/AuthContext.tsx
 "use client";
 import { createContext, useContext, useState, useEffect } from "react";
+import { useRouter } from "next/navigation"; 
 
 interface AuthContextType {
   isAdmin: boolean;
@@ -23,6 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const router = useRouter();
 
   async function refreshAuth() {
     try {
@@ -30,10 +32,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         credentials: "include",
       });
       const data = await res.json();
+      if ( data.setupRequired){
+        router.push("/admin/setup"); // Redirect to setup page
+        return;
+      }
       setIsAuthenticated(data.authenticated);
       setUser(data.authenticated ? data.user : null);
       setIsAdmin(data.user?.isAdmin || false);
     } catch (error) {
+      console.error(error);
       setIsAuthenticated(false);
     }
   }

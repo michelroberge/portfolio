@@ -20,7 +20,6 @@ router.post("/initialize", async (req, res) => {
 
     // Delegate the creation to the user service.
     const newUser = await userService.createUser({ username, password, isAdmin: true });
-    console.log("New User Created:", newUser.username);
     res.status(201).json({ message: "User created successfully" });
   } catch (error) {
     console.error("Error creating user:", error);

@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCog, faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
-
+import { usePathname } from "next/navigation";
 export default function Header() {
   const { isAdmin, isAuthenticated, refreshAuth } = useAuth();
-  const pathname = window.location.href;
+  const pathname = usePathname();
   const router = useRouter();
 
   async function handleLogout() {

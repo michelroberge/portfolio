@@ -34,16 +34,21 @@ async function createApp() {
   // Connect to the database
   await connectDB();
 
-  // await dropCollection();
-  await initCollection();
+  try{
 
+    // await dropCollection();
+    await initCollection();
+  }
+  catch(err){
+    console.error("Cannot initialize collections", err);
+  }
   // default configuration population
   await prepopulateDefaultConfigs();
 
   const app = express();
 
   app.use(cors({
-    origin: "http://localhost:3000",
+    origin: process.env.ALLOW_CORS || "http://localhost:3000",
     credentials: true, // Allow cookies to be sent
   }));
   app.use(express.json());

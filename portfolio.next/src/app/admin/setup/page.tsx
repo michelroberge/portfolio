@@ -1,4 +1,3 @@
-// portfolio.next/src/app/admin/setup/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -21,11 +20,20 @@ export default function AdminSetup() {
         const data = await res.json();
         setAdminExists(data.exists);
         if (data.exists) {
+          console.log("Admin already exists");
           // If an admin exists, redirect to the admin dashboard.
           router.push("/admin");
+        }else{
+          console.log("Should creste new admin");
         }
-      } catch (err: any) {
-        setError("Error checking admin status");
+      } catch (err: unknown) { // ✅ Use "unknown" instead of "any"
+        if (err instanceof Error) {
+          console.error(err.message);
+          setError(err.message);
+        } else {
+          console.error("Error checking admin status", err);
+          setError("Error checking admin status");
+        }
       }
     }
     checkAdmin();
@@ -46,8 +54,12 @@ export default function AdminSetup() {
         throw new Error(errData.error || "Admin creation failed");
       }
       router.push("/admin/login");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) { // ✅ Use "unknown" instead of "any"
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unknown error occurred.");
+      }
     }
   };
 

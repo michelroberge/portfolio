@@ -43,7 +43,7 @@ export default function AdminLogin() {
       const dest = searchParams.get("returnUrl");
       console.log("should push to ", dest);
     }  
-  }, [isAuthenticated]);
+  }, [isAuthenticated, searchParams]);
 
   return (
     <div className="flex min-h-screen flex-col justify-center items-center bg-gray-100 space-y-6">

@@ -1,11 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 interface BlogEntry {
   _id: string;
@@ -15,14 +12,13 @@ interface BlogEntry {
   publishAt?: string;
 }
 
+const apiUrl :string = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 export default function BlogManagement() {
 
   const [blogs, setBlogs] = useState<BlogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, user } = useAuth();
-
-  const router = useRouter();
-
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -32,8 +28,10 @@ export default function BlogManagement() {
         if (!response.ok) throw new Error("Failed to fetch blogs");
         const data = await response.json();
         setBlogs(data);
-      } catch (err) {
-        setError((err as Error).message);
+      } catch (err: unknown) { 
+        if (err instanceof Error) {
+          setError((err as Error).message);
+        }
       }
     }
     fetchBlogs();
