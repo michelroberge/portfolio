@@ -1,6 +1,6 @@
 // portfolio.next/src/services/blogService.ts
 export interface BlogEntry {
-    id: number;
+    _id: number;
     title: string;
     publishAt: string;
     body: string;

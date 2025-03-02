@@ -1,5 +1,6 @@
 const express = require("express");
 const authService = require("../services/authService");
+const User = require('../models/User');
 const router = express.Router();
 
 // Register a new user using the auth service
@@ -34,7 +35,12 @@ router.post("/login", async (req, res) => {
 });
 
 // Check authentication using the auth service
-router.get("/check", (req, res) => {
+router.get("/check", async (req, res) => {
+
+  const admin = await User.findOne({ isAdmin: true });
+  if ( !admin){
+    return res.status(200).json({ authenticated: false, setupRequired: true });
+  }
   const token = req.cookies["auth-token"];
   if (!token) {
     return res.status(401).json({ authenticated: false, message: "No token provided" });

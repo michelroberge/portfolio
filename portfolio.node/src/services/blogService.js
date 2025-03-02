@@ -18,9 +18,8 @@ async function createBlogEntry(data) {
  * Retrieves all blog entries sorted by creation date.
  * @returns {Promise<Array>} - Array of blog entries.
  */
-async function getAllBlogEntries() {
-  // Optionally, you could integrate caching here as well.
-  const blogs = await BlogEntry.find().sort({ createdAt: -1 });
+async function getAllBlogEntries(filter = {}) {
+  const blogs = await BlogEntry.find(filter).sort({ createdAt: -1 });
   return blogs;
 }
 

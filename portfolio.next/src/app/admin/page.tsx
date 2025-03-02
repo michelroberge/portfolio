@@ -1,62 +1,65 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-
-
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+import { useAuth } from "@/context/AuthContext";
 
 export default function AdminDashboard() {
-  const [authenticated, setAuthenticated] = useState(false);
-  const router = useRouter();
+  const { isAuthenticated, isAdmin } = useAuth();
 
-  useEffect(() => {
-    async function checkAuth() {
-      const res = await fetch("http://localhost:5000/api/auth/check", {
-        credentials: "include",
-      });
+  if (!isAuthenticated) return <p>You are not authenticated.</p>;
+  if (!isAdmin) return <p>Only admins can access this page.</p>;
 
-      if (res.ok) {
-        setAuthenticated(true);
-      } else {
-        router.push("/admin/login");
-      }
-    }
-
-    checkAuth();
-  }, []);
-
-  if (!authenticated) return <p>You are not authenticated.</p>;
 
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
-      <p className="mb-6">Welcome to the admin panel! You can now manage your blog and projects.</p>
-
-      <div className="flex gap-4">
-  <Link
-    href="/admin/blogs"
-    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition"
-  >
-    Manage Blogs
-  </Link>
-
-  <button
-    onClick={() => router.push("/admin/projects")}
-    className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition"
-  >
-    Manage Projects
-  </button>
-
-  <a
-    href={`${apiUrl}/api/auth/logout`}
-    className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition"
-  >
-    Logout
-  </a>
-</div>
-
+    <div className="p-8 max-w-5xl mx-auto">
+      <h1 className="text-4xl font-semibold mb-4">Admin Dashboard</h1>
+      <p className="text-gray-600 mb-8">
+        Welcome to the admin panel. Use the options below to manage your site.
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Link
+          href="/admin/blogs"
+          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+        >
+          <h2 className="text-lg font-medium text-gray-800">Manage Blogs</h2>
+          <p className="text-sm text-gray-500">Edit, create, and manage blog posts</p>
+        </Link>
+        <Link
+          href="/admin/projects"
+          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+        >
+          <h2 className="text-lg font-medium text-gray-800">Manage Projects</h2>
+          <p className="text-sm text-gray-500">Edit, create, and manage projects</p>
+        </Link>
+        <Link
+          href="/admin/comments"
+          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+        >
+          <h2 className="text-lg font-medium text-gray-800">Manage Comments</h2>
+          <p className="text-sm text-gray-500">Review and moderate user comments</p>
+        </Link>
+        <Link
+          href="/admin/analytics"
+          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+        >
+          <h2 className="text-lg font-medium text-gray-800">Analytics Dashboard</h2>
+          <p className="text-sm text-gray-500">View site metrics and performance data</p>
+        </Link>
+        <Link
+          href="/admin/settings/provider-config"
+          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+        >
+          <h2 className="text-lg font-medium text-gray-800">OAuth Provider Config</h2>
+          <p className="text-sm text-gray-500">Configure external identity providers</p>
+        </Link>
+        <Link
+          href="/admin/users"
+          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+        >
+          <h2 className="text-lg font-medium text-gray-800">Manage Users</h2>
+          <p className="text-sm text-gray-500">Edit, create and manage users</p>
+        </Link>
+      </div>
     </div>
   );
 }

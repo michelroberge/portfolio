@@ -1,7 +1,9 @@
+// portfolio.next/src/app/admin/projects/edit/[id]/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -12,30 +14,17 @@ export default function EditProject() {
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
   const [link, setLink] = useState("");
+  const [isDraft, setIsDraft] = useState(false);
+  const [publishAt, setPublishAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [tags, setTags] = useState<string[]>([]);
+  const [industry, setIndustry] = useState("General");
 
-  // Check authentication
-  useEffect(() => {
-    async function checkAuth() {
-      try {
-        const res = await fetch(`${apiUrl}/api/auth/check`, { credentials: "include" });
-        if (!res.ok) {
-          router.push("/admin/login");
-        } else {
-          setAuthenticated(true);
-        }
-      } catch {
-        router.push("/admin/login");
-      }
-    }
-    checkAuth();
-  }, [router]);
+  const { isAuthenticated, user } = useAuth();
 
-  // Fetch project details once authenticated
   useEffect(() => {
-    if (!authenticated) return;
+    if (!isAuthenticated) return;
     async function fetchProject() {
       try {
         const response = await fetch(`${apiUrl}/api/projects/${id}`);
@@ -45,6 +34,8 @@ export default function EditProject() {
         setDescription(data.description);
         setImage(data.image);
         setLink(data.link);
+        setIsDraft(data.isDraft);
+        setPublishAt(data.publishAt ? new Date(data.publishAt).toISOString().split("T")[0] : null);
         setLoading(false);
       } catch (err) {
         setError((err as Error).message);
@@ -52,11 +43,11 @@ export default function EditProject() {
       }
     }
     fetchProject();
-  }, [authenticated, id]);
+  }, [isAuthenticated, id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const projectData = { title, description, image, link };
+    const projectData = { title, description, image, link, isDraft, publishAt, tags, industry };
     try {
       const response = await fetch(`${apiUrl}/api/projects/${id}`, {
         method: "PUT",
@@ -71,8 +62,9 @@ export default function EditProject() {
     }
   };
 
-  if (!authenticated) return <p>Checking authentication...</p>;
-  if (loading) return <p>Loading...</p>;
+    if (loading) return <p>Loading...</p>;
+    if (!isAuthenticated) return <p>You are not authenticated.</p>;
+    if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
 
   return (
     <>
@@ -108,6 +100,38 @@ export default function EditProject() {
           onChange={(e) => setLink(e.target.value)}
           className="w-full p-2 border rounded"
         />
+        <label className="block">
+          <input
+            type="checkbox"
+            checked={isDraft}
+            onChange={(e) => setIsDraft(e.target.checked)}
+            className="mr-2"
+          />
+          Save as Draft
+        </label>
+        <label className="block">
+          Publish Date:
+          <input
+            type="date"
+            value={publishAt || ""}
+            onChange={(e) => setPublishAt(e.target.value)}
+            className="w-full p-2 border rounded"
+          />
+        </label>
+        <input
+          type="text"
+          placeholder="Tags (comma-separated)"
+          value={tags.join(", ")}
+          onChange={(e) => setTags(e.target.value.split(",").map((t) => t.trim()))}
+          className="w-full p-2 border rounded"
+        />
+
+        <select value={industry} onChange={(e) => setIndustry(e.target.value)} className="w-full p-2 border rounded">
+          <option>General</option>
+          <option>Healthcare</option>
+          <option>Finance</option>
+          <option>Education</option>
+        </select>
         <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
           Save Changes
         </button>

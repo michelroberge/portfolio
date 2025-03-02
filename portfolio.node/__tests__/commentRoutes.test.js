@@ -66,4 +66,61 @@ describe("Comment Routes", () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.comment.redacted).toBe(true);
   });
+
+  test("Nested replies retrieval returns full tree", async () => {
+    // Create a root comment.
+    const rootRes = await request(app)
+      .post("/api/comments")
+      .send({
+        author: "Root Author",
+        text: "Root comment",
+        blog: blogId.toString()
+      });
+    const rootId = rootRes.body._id;
+  
+    // Create first-level reply.
+    const reply1Res = await request(app)
+      .post("/api/comments")
+      .send({
+        author: "Reply1",
+        text: "First reply",
+        blog: blogId.toString(),
+        parent: rootId
+      });
+    const reply1Id = reply1Res.body._id;
+  
+    // Create second-level reply (reply to first-level reply).
+    await request(app)
+      .post("/api/comments")
+      .send({
+        author: "Reply2",
+        text: "Second level reply",
+        blog: blogId.toString(),
+        parent: reply1Id
+      });
+  
+    // Fetch comments and verify nested structure.
+    const res = await request(app).get(`/api/comments/blog/${blogId.toString()}`).send();
+    expect(res.statusCode).toBe(200);
+    const rootComment = res.body.find((c) => c._id === rootId);
+    expect(rootComment).toBeDefined();
+    expect(rootComment.replies).toHaveLength(1);
+    expect(rootComment.replies[0]._id).toBe(reply1Id);
+    expect(rootComment.replies[0].replies).toHaveLength(1);
+  });
+  
+  test("POST /api/comments returns error for non-existent parent", async () => {
+    const fakeParentId = "000000000000000000000000"; // Valid ObjectId format but non-existent.
+    const res = await request(app)
+      .post("/api/comments")
+      .send({
+        author: "Test",
+        text: "Should fail",
+        blog: blogId.toString(),
+        parent: fakeParentId
+      });
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toMatch(/Parent comment not found/);
+  });
+  
 });

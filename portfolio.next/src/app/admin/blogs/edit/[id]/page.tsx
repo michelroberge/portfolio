@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { marked } from "marked";
+import { useAuth } from "@/context/AuthContext";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+const apiUrl :string = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function EditBlogEntry() {
   const router = useRouter();
@@ -15,28 +16,12 @@ export default function EditBlogEntry() {
   const [isDraft, setIsDraft] = useState(false);
   const [publishAt, setPublishAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit"); // Tab state
+  const { isAuthenticated, user } = useAuth();
 
   useEffect(() => {
-    async function checkAuth() {
-      try {
-        const res = await fetch(`${apiUrl}/api/auth/check`, { credentials: "include" });
-        if (!res.ok) {
-          router.push("/admin/login");
-        } else {
-          setAuthenticated(true);
-        }
-      } catch {
-        router.push("/admin/login");
-      }
-    }
-    checkAuth();
-  }, []);
-
-  useEffect(() => {
-    if (!authenticated) return;
+    if (!isAuthenticated) return;
 
     async function fetchBlog() {
       try {
@@ -57,7 +42,7 @@ export default function EditBlogEntry() {
     }
 
     fetchBlog();
-  }, [authenticated, id]);
+  }, [isAuthenticated, id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,9 +63,10 @@ export default function EditBlogEntry() {
     }
   };
 
-  if (!authenticated) return <p>Checking authentication...</p>;
   if (loading) return <p>Loading...</p>;
-
+  if (!isAuthenticated) return <p>You are not authenticated.</p>;
+  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
+  
   return (
     <>
       <h1 className="text-2xl font-bold mb-4">Edit Blog Entry</h1>

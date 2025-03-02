@@ -1,35 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+const apiUrl :string = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function NewBlogEntry() {
+  
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
   const [body, setBody] = useState("");
   const [isDraft, setIsDraft] = useState(false);
   const [publishAt, setPublishAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [authenticated, setAuthenticated] = useState(false);
   const router = useRouter();
-
-  useEffect(() => {
-    async function checkAuth() {
-      try {
-        const res = await fetch(`${apiUrl}/api/auth/check`, { credentials: "include" });
-        if (!res.ok) {
-          router.push("/admin/login");
-        } else {
-          setAuthenticated(true);
-        }
-      } catch {
-        router.push("/admin/login");
-      }
-    }
-    checkAuth();
-  }, []);
+  const { isAuthenticated, user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,12 +33,15 @@ export default function NewBlogEntry() {
       if (!response.ok) throw new Error("Failed to create blog post");
 
       router.push("/admin/blogs");
-    } catch (err) {
-      setError((err as Error).message);
+    } catch (err: unknown) { 
+      if (err instanceof Error) {
+        setError((err as Error).message);
+      }
     }
   };
 
-  if (!authenticated) return <p>Checking authentication...</p>;
+  if (!isAuthenticated) return <p>You are not authenticated.</p>;
+  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
 
   return (
     <div className="p-6">

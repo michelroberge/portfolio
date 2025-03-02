@@ -2,15 +2,16 @@
 import { notFound } from "next/navigation";
 import { getBlog } from "@/services/blogService";
 import { marked } from "marked";
+import CommentSection from "@/components/CommentSection";
 
-interface BlogEntry {
-  id: number;
-  title: string;
-  publishAt: string;
-  body: string;
-  excerpt?: string;
-  link: string;
-}
+// interface BlogEntry {
+//   _id: number;
+//   title: string;
+//   publishAt: string;
+//   body: string;
+//   excerpt?: string;
+//   link: string;
+// }
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -48,6 +49,9 @@ export default async function BlogPage({ params }: Props) {
         {/* Wrap the Markdown content inside a "prose" div */}
         <div className="mt-4 prose lg:prose-lg xl:prose-xl max-w-none"
              dangerouslySetInnerHTML={{ __html: marked.parse(blog.body) }} />
+
+        <CommentSection blogId={String(blog._id)} />
+
       </main>
     </>
   );

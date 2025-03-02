@@ -3,7 +3,12 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-
+import { AuthProvider } from "@/context/AuthContext";
+import ChatWrapper from "@/components/ChatWrapper";
+import Search from "@/components/Search";
+import { SearchProvider } from "@/context/SearchContext";
+import { ChatProvider } from "@/context/ChatContext";
+import { Suspense } from "react";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -27,11 +32,21 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <Suspense>
+      <AuthProvider>
+        <ChatProvider>
+        <SearchProvider>
         <Header />
-        <main className="p-6 mx-auto w-full max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl">
-          {children}
+        <main className="p-6 mx-auto w-full max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-7xl">
+        <Search />
+        {children}
         </main>
         <Footer />
+        <ChatWrapper />
+        </SearchProvider>
+        </ChatProvider>
+        </AuthProvider>
+        </Suspense>
       </body>
     </html>
   );
