@@ -14,7 +14,7 @@ RUN npm install --production
 COPY . .
 
 # Build the Next.js app
-RUN npm run build --workspace=src
+RUN npm run build 
 
 # Use a smaller base image for production
 FROM node:22-alpine
@@ -36,4 +36,4 @@ ENV PORT=3000
 EXPOSE 3000
 
 # Start the Next.js server
-CMD ["npm", "start", "--workspace=src"]
+CMD ["npm", "start"]
