@@ -48,7 +48,10 @@ Directory Structure
 .gitignore
 docker-compose.yml
 docs/1. UserRequirements.md
+docs/1.b.UserRequirements.v2.md
 docs/2. development-plan.md
+docs/2.b.development-plan.v2.md
+docs/prompts/default.md
 LICENSE
 portfolio.next/__tests__/apiServices.test.ts
 portfolio.next/__tests__/blogServices.test.ts
@@ -66,6 +69,7 @@ portfolio.next/public/next.svg
 portfolio.next/public/vercel.svg
 portfolio.next/public/window.svg
 portfolio.next/README.md
+portfolio.next/src/app/_not-found/page.tsx
 portfolio.next/src/app/admin/analytics/page.tsx
 portfolio.next/src/app/admin/blogs/edit/[id]/page.tsx
 portfolio.next/src/app/admin/blogs/new/page.tsx
@@ -128,15 +132,19 @@ portfolio.node/src/models/BlogEntry.js
 portfolio.node/src/models/ChatMessage.js
 portfolio.node/src/models/Comment.js
 portfolio.node/src/models/Counters.js
+portfolio.node/src/models/Embedding.js
 portfolio.node/src/models/Project.js
+portfolio.node/src/models/Prompt.js
 portfolio.node/src/models/ProviderConfig.js
 portfolio.node/src/models/User.js
 portfolio.node/src/routes/authRoutes.js
 portfolio.node/src/routes/blogRoutes.js
 portfolio.node/src/routes/chatRoutes.js
 portfolio.node/src/routes/commentRoutes.js
+portfolio.node/src/routes/embeddingRoutes.js
 portfolio.node/src/routes/oauthRoutes.js
 portfolio.node/src/routes/projectRoutes.js
+portfolio.node/src/routes/promptRoutes.js
 portfolio.node/src/routes/providerConfigRoutes.js
 portfolio.node/src/routes/searchRoutes.js
 portfolio.node/src/routes/userRoutes.js
@@ -146,13 +154,16 @@ portfolio.node/src/services/blogService.js
 portfolio.node/src/services/chatService.js
 portfolio.node/src/services/commentService.js
 portfolio.node/src/services/counterService.js
+portfolio.node/src/services/embeddingService.js
 portfolio.node/src/services/ollamaService.js
 portfolio.node/src/services/projectService.js
+portfolio.node/src/services/promptService.js
 portfolio.node/src/services/providerConfigService.js
 portfolio.node/src/services/qdrantService.js
 portfolio.node/src/services/userService.js
 portfolio.node/src/services/wsChatService.js
 portfolio.node/src/tracing.js
+portfolio.node/src/utils/generatePrompt.js
 portfolio.node/src/validators/blogValidator.js
 README.md
 
@@ -300,16 +311,22 @@ File: docker-compose.yml
 version: "3.8"
 services:
   frontend:
+    image: profolio-frontend
     build: ./portfolio.next
     ports:
-      - "3000:3000"
+      - "0.0.0.0:3300:3000"
     depends_on:
       - backend
+    environment:
+      - NODE_ENV=production
 
   backend:
+    image: profolio-backend
     build: ./portfolio.node
     ports:
-      - "5000:5000"
+      - "0.0.0.0:5500:5000"
+    environment:
+      - NODE_ENV=production
 
 ================
 File: docs/1. UserRequirements.md
@@ -390,6 +407,101 @@ File: docs/1. UserRequirements.md
 3. **Deploy and test CI/CD automation** using Jenkins and Docker.
 
 This document captures the user’s full set of requirements for their AI-driven portfolio.
+
+================
+File: docs/1.b.UserRequirements.v2.md
+================
+# User Requirements for Portfolio Website
+
+## Personality & Tone
+- **Perception**: Creative, innovative problem solver, approachable expert, technical mentor, fun, easygoing.
+- **Tone**: Friendly, witty, minimalist.
+- **Storytelling**: Career journey timeline and anecdotes from key projects.
+
+## Core Objectives & Features
+- **Main Purpose**: Showcase talent and projects to attract high-profile job offers.
+- **Primary Audience**:
+  1. Fellow developers
+  2. Industry leaders
+  3. Recruiters / Potential Clients
+- **Visitor Interaction**:
+  1. AI Chat
+  2. Semi-structured browsing
+
+## Content Prioritization
+- **Must-Haves**:
+  - Career timeline
+  - AI chatbot
+  - Project showcase
+  - Live demos
+- **Nice-to-Haves**:
+  - Blog
+- **Project Showcase Format**: Just a link (either on GitHub or self-hosted with a reverse proxy).
+- **Blog/Industry Insights**: Maybe, but not a priority.
+
+## AI & Interactivity
+- **AI Chat**:
+  - Random greeting + guided prompt suggestions.
+  - Freeform conversation allowed.
+  - AI should distinguish between generic data and user-specific knowledge.
+  - AI chat should retain session-based context.
+  - **Web Context Injection**: AI will incorporate the full content of a loaded page into the chat context.
+  - **Prompt History Integration**: The AI will receive the last few user messages to improve context handling.
+
+- **Search Functionality**:
+  - AI-powered search (e.g., "Show me projects using C# and MongoDB").
+  - Qdrant should index both project descriptions and full project source code.
+  - Everything should be locally hosted (no external embeddings).
+
+- **Embeddings Management (Admin Feature)**:
+  - Ability to parse a local directory accessible from the backend.
+  - Support embedding source code, markdown, text files, and documents.
+  - Admins can add metadata to directories/files to enrich embeddings.
+
+- **Prompt Management System**:
+  - Admins can modify AI prompts dynamically through the UI.
+  - Prompts should be stored in a structured format instead of hardcoded in the backend.
+
+## Interactive Elements
+- **Career Timeline**: D3-like interactive (zoom, forward/backward movement).
+- **Skills Map**: Drillable from broad categories to code snippets.
+
+## Technical Considerations
+- **Frontend**: Next.js with Tailwind CSS.
+- **Backend**: Node.js with MongoDB.
+- **Hosting**: Self-hosted on a local server.
+- **Search**: Qdrant for indexing projects and source code.
+- **AI Chat**: Ollama for chatbot interactions.
+- **Performance & Privacy**: Everything runs locally; no external dependencies for embeddings or AI models.
+- **CI/CD Automation**: GitHub, Jenkins, and Docker for automated deployment.
+- **Authentication**: Cookie-based authentication instead of bearer tokens.
+
+## Development Approach
+- **Start with Frontend First**: Mock API calls before integrating the backend.
+- **Global State Management**:
+  - Search should have a `SearchContext` and `SearchProvider` for global accessibility.
+  - Chat should have a `ChatContext` and `ChatProvider` for global availability.
+- **Landing Page Layout**:
+  - AI chat should be site-wide, not just on a dedicated page.
+  - Main sections:
+    - "Time Machine" (Career Timeline)
+    - "Philosophy" (Skills & Problem-Solving Map)
+    - "Projects" (Live Demos, Searchable)
+    - "Contact Me" (Engaging Form)
+  - Clicking a section expands it, shrinking others into a sidebar.
+- **Final Features**:
+  - AI-powered guidance with optional interactivity.
+  - Running live demos from pet projects.
+
+## Next Steps
+1. **Continue with frontend development**:
+   - Search component should be fully functional and globally accessible.
+   - AI Chat should be site-wide and utilize `ChatContext`.
+2. **Integrate real backend API calls** for search and chat functionalities.
+3. **Deploy and test CI/CD automation** using Jenkins and Docker.
+4. **Implement Web Context Injection and Prompt History in AI Chat**.
+5. **Develop Embeddings Management for admins**.
+6. **Create a UI for Prompt Management System**.
 
 ================
 File: docs/2. development-plan.md
@@ -489,6 +601,111 @@ This development plan is structured by functional areas, each broken into **end-
 ✅ **Reindexing automation depends on UI implementation.**
 
 This plan provides a structured roadmap for development. 🚀
+
+================
+File: docs/2.b.development-plan.v2.md
+================
+# Development Plan for AI-Driven Portfolio
+
+## Overview
+This development plan is structured by functional areas, each broken into **end-to-end testable work units**. Each unit specifies APIs, models, UI components, backend services, and dependencies.
+
+---
+## **1. AI Chat Enhancements (Must-Have)**
+### **Work Units:**
+⏳ **Web Context Injection into AI Chat**
+- **Feature:** Extract the full content of the loaded webpage and inject it into the chat context.
+- **Frontend:** Modify `ChatContext` to include a `webContext` property.
+- **Backend:** Modify chat API to accept `webContext` as part of the request payload.
+- **E2E Test:** Validate AI responses improve based on page context.
+
+⏳ **Prompt History Integration**
+- **Feature:** Send previous user messages as part of the AI prompt.
+- **Frontend:** Modify `ChatContext` to retain the last N messages.
+- **Backend:** Modify chat API to process chat history.
+- **E2E Test:** Verify AI can recall recent messages in context.
+
+⏳ **Prompt Management System**
+- **Feature:** Admins can manage and tune AI prompts via a UI.
+- **API:** CRUD endpoints for managing stored prompts.
+- **Frontend:** Admin dashboard for prompt editing.
+- **Backend:** Store structured prompt templates in MongoDB.
+- **E2E Test:** Verify prompt modifications affect AI behavior dynamically.
+
+---
+## **2. Embeddings Management (Must-Have)**
+### **Work Units:**
+⏳ **Embedding Local Directories & Files**
+- **Feature:** Parse a directory accessible from the Node.js backend and generate embeddings.
+- **API:** `POST /api/embeddings/local`
+- **Backend:** 
+  - Read files (source code, markdown, text, documents).
+  - Extract metadata if provided.
+  - Generate embeddings and store in Qdrant.
+- **E2E Test:** Validate embeddings correctly represent parsed content.
+
+⏳ **Embedding Metadata Support**
+- **Feature:** Allow optional metadata in a configuration file for better embedding management.
+- **Backend:** Parse metadata and associate with embeddings.
+- **E2E Test:** Ensure metadata is properly stored and retrievable.
+
+⏳ **Admin UI for Managing Embeddings**
+- **Feature:** List, edit, and remove embeddings through an admin panel.
+- **Frontend:** Admin dashboard section for embeddings.
+- **Backend:** CRUD APIs for managing embeddings.
+- **E2E Test:** Ensure embeddings can be reviewed and managed via UI.
+
+---
+## **3. Search & AI Integration (Should-Have)**
+### **Work Units:**
+⏳ **Fine-Tuning AI Search**
+- **Feature:** Introduce configurable weighting for AI-powered search.
+- **API:** `/api/search/config`
+- **Backend:** Allow dynamic search tuning via admin panel.
+- **Frontend:** Admin dashboard settings for search tuning.
+- **E2E Test:** Validate different weights produce expected ranking changes.
+
+⏳ **AI-Driven Blog-Project Linking**
+- **Feature:** AI automatically suggests links between related blogs and projects.
+- **Backend:** Generate project-to-blog mappings via embeddings.
+- **E2E Test:** Validate suggestions improve based on AI-powered relationships.
+
+---
+## **4. Deployment & Performance Optimization (Nice-to-Have)**
+### **Work Units:**
+⏳ **Automated Embeddings Refresh**
+- **Feature:** Periodically re-index embeddings from local files and database content.
+- **Backend:** Implement scheduled job to refresh embeddings.
+- **E2E Test:** Ensure embeddings stay up to date automatically.
+
+⏳ **Improve WebSocket Performance in AI Chat**
+- **Feature:** Optimize chat WebSocket handling for better responsiveness.
+- **Backend:** Improve WebSocket session handling.
+- **E2E Test:** Validate AI responses are delivered without unnecessary latency.
+
+---
+## **Final Steps**
+✅ **Qdrant & Ollama are auto-started in Docker Compose.**
+✅ **Base AI chatbot functionality is working with WebSockets.**
+⏳ **Embeddings UI and Web Context Injection need implementation.**
+⏳ **Final deployment optimization & testing.**
+
+This plan provides a structured roadmap for completing the remaining development tasks. 🚀
+
+================
+File: docs/prompts/default.md
+================
+You are an AI assistant helping showcase my portfolio. You ONLY use the provided context to answer questions.
+  If a question is about my projects, focus specifically on projects in the provided context.
+  If the question is unrelated to my work, say "I'm here to discuss my portfolio. Ask me about my projects or skills!"
+  
+  ### Context:
+  ${context || "No relevant projects found in the database."}
+  
+  ### User Question:
+  ${userQuery}
+  
+  ### AI Response:
 
 ================
 File: LICENSE
@@ -1273,17 +1490,18 @@ FROM node:22-alpine AS builder
 # Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json
-COPY package.json package-lock.json ./
+# Copy necessary files
+COPY package.json package-lock.json tsconfig.json next.config.ts ./
+COPY .env.production ./ 
 
 # Install dependencies
 RUN npm install --production
 
-# Copy the entire source code from `src/`
-COPY src ./src
+# Copy the entire source code
+COPY . .
 
 # Build the Next.js app
-RUN npm run build --workspace=src
+RUN npm run build 
 
 # Use a smaller base image for production
 FROM node:22-alpine
@@ -1293,9 +1511,10 @@ WORKDIR /app
 
 # Copy only necessary files from the builder stage
 COPY --from=builder /app/package.json ./
-COPY --from=builder /app/src/.next ./.next
-COPY --from=builder /app/src/public ./public
-COPY --from=builder /app/src/node_modules ./node_modules
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/.env.production ./  
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -1305,7 +1524,7 @@ ENV PORT=3000
 EXPOSE 3000
 
 # Start the Next.js server
-CMD ["npm", "start", "--workspace=src"]
+CMD ["npm", "start"]
 
 ================
 File: portfolio.next/eslint.config.mjs
@@ -1371,10 +1590,21 @@ File: portfolio.next/next-env.d.ts
 ================
 File: portfolio.next/next.config.ts
 ================
-import type { NextConfig } from "next";
+import path from 'path';
+import { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  webpack: (config) => {
+    config.resolve = config.resolve || {}; 
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': path.resolve(__dirname, 'src'), 
+    };
+    return config;
+  },
+  basePath: process.env.NEXT_PUBLIC_BASE_PATH || '',
+  assetPrefix: process.env.NEXT_PUBLIC_BASE_PATH || '',
+  trailingSlash: false,
 };
 
 export default nextConfig;
@@ -1387,9 +1617,9 @@ File: portfolio.next/package.json
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev -H 0.0.0.0",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -H 0.0.0.0",
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watch"
@@ -1500,6 +1730,16 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
 ================
+File: portfolio.next/src/app/_not-found/page.tsx
+================
+export default function NotFound() {
+    return (<div>
+        <h1>Ooops</h1>
+        <p>Could not find anything here.</p>
+    </div>);
+}
+
+================
 File: portfolio.next/src/app/admin/analytics/page.tsx
 ================
 // portfolio.next/src/app/admin/analytics/page.tsx
@@ -1515,12 +1755,12 @@ interface TelemetryData {
   sessions: number;
   pageHits: number;
 }
+const apiUrl : string = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function AnalyticsDashboard() {
   const [data, setData] = useState<TelemetryData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, user } = useAuth();
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   useEffect(() => {
     async function fetchTelemetry() {
@@ -1531,12 +1771,14 @@ export default function AnalyticsDashboard() {
         if (!res.ok) throw new Error("Failed to fetch telemetry data");
         const telemetry = await res.json();
         setData(telemetry);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) { // ✅ Use "unknown" instead of "any"
+        if (err instanceof Error) {
+          setError(err.message);
+        }
       }
     }
     if (isAuthenticated) fetchTelemetry();
-  }, [isAuthenticated, apiUrl]);
+  }, [isAuthenticated]);
 
   if (!isAuthenticated) return <p>You are not authenticated.</p>;
   if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
@@ -1585,7 +1827,7 @@ import { useRouter, useParams } from "next/navigation";
 import { marked } from "marked";
 import { useAuth } from "@/context/AuthContext";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+const apiUrl :string = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function EditBlogEntry() {
   const router = useRouter();
@@ -1738,9 +1980,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+const apiUrl :string = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function NewBlogEntry() {
+  
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
   const [body, setBody] = useState("");
@@ -1766,8 +2009,10 @@ export default function NewBlogEntry() {
       if (!response.ok) throw new Error("Failed to create blog post");
 
       router.push("/admin/blogs");
-    } catch (err) {
-      setError((err as Error).message);
+    } catch (err: unknown) { 
+      if (err instanceof Error) {
+        setError((err as Error).message);
+      }
     }
   };
 
@@ -1833,11 +2078,8 @@ File: portfolio.next/src/app/admin/blogs/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 interface BlogEntry {
   _id: string;
@@ -1847,14 +2089,13 @@ interface BlogEntry {
   publishAt?: string;
 }
 
+const apiUrl :string = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 export default function BlogManagement() {
 
   const [blogs, setBlogs] = useState<BlogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, user } = useAuth();
-
-  const router = useRouter();
-
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -1864,8 +2105,10 @@ export default function BlogManagement() {
         if (!response.ok) throw new Error("Failed to fetch blogs");
         const data = await response.json();
         setBlogs(data);
-      } catch (err) {
-        setError((err as Error).message);
+      } catch (err: unknown) { 
+        if (err instanceof Error) {
+          setError((err as Error).message);
+        }
       }
     }
     fetchBlogs();
@@ -1977,8 +2220,10 @@ export default function CommentManagement() {
         if (!res.ok) throw new Error("Failed to fetch comments");
         const data = await res.json();
         setComments(data);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) { // ✅ Use unknown instead of any
+        if (err instanceof Error) {
+          setError(err.message);
+        }
       }
     }
     if (isAuthenticated) fetchComments();
@@ -1996,8 +2241,10 @@ export default function CommentManagement() {
       setComments(prev =>
         prev.map(c => (c._id === id ? { ...c, redacted: true } : c))
       );
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) { // ✅ Use unknown instead of any
+      if (err instanceof Error) {
+        setError(err.message);
+      }
     }
   };
 
@@ -2098,7 +2345,7 @@ export default function AdminLogin() {
       const dest = searchParams.get("returnUrl");
       console.log("should push to ", dest);
     }  
-  }, [isAuthenticated]);
+  }, [isAuthenticated, searchParams]);
 
   return (
     <div className="flex min-h-screen flex-col justify-center items-center bg-gray-100 space-y-6">
@@ -2169,15 +2416,11 @@ File: portfolio.next/src/app/admin/page.tsx
 ================
 "use client";
 
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
 export default function AdminDashboard() {
   const { isAuthenticated, isAdmin } = useAuth();
-  const router = useRouter();
 
   if (!isAuthenticated) return <p>You are not authenticated.</p>;
   if (!isAdmin) return <p>Only admins can access this page.</p>;
@@ -2508,9 +2751,9 @@ File: portfolio.next/src/app/admin/projects/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import Image from "next/image";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -2526,7 +2769,6 @@ export default function ProjectManagement() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, user } = useAuth();
-  const router = useRouter();
 
   // Fetch projects once authenticated.
   useEffect(() => {
@@ -2589,7 +2831,7 @@ export default function ProjectManagement() {
               <td className="border border-gray-300 p-2">{project.title}</td>
               <td className="border border-gray-300 p-2">{project.description}</td>
               <td className="border border-gray-300 p-2">
-                <img
+                <Image
                   src={project.image}
                   alt={project.title}
                   className="h-16 w-auto object-contain"
@@ -2651,13 +2893,12 @@ export default function ProviderConfigPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [editingConfigs, setEditingConfigs] = useState<Record<string, ProviderConfig>>({});
-  const [showNewForm, setShowNewForm] = useState(false);
-  const [newConfig, setNewConfig] = useState<ProviderConfig>({
-    provider: "",
-    clientId: "",
-    clientSecret: "",
-    callbackURL: "",
-  });
+  // const [newConfig, setNewConfig] = useState<ProviderConfig>({
+  //   provider: "",
+  //   clientId: "",
+  //   clientSecret: "",
+  //   callbackURL: "",
+  // });
 
   useEffect(() => {
     async function fetchConfigs() {
@@ -2672,16 +2913,21 @@ export default function ProviderConfigPage() {
         });
         setEditingConfigs(initialEditing);
         setLoading(false);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) { // ✅ Use unknown instead of any
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("An unexpected error occurred while fetching provider configurations.");
+        }
         setLoading(false);
       }
     }
+
     if (isAuthenticated) fetchConfigs();
   }, [apiUrl, isAuthenticated]);
 
   const handleChange = (provider: string, field: keyof ProviderConfig, value: string) => {
-    setEditingConfigs(prev => ({
+    setEditingConfigs((prev) => ({
       ...prev,
       [provider]: {
         ...prev[provider],
@@ -2704,28 +2950,29 @@ export default function ProviderConfigPage() {
         throw new Error(errData.error || "Failed to update configuration");
       }
       const updatedConfig = await res.json();
-      setConfigs(prev => prev.map(c => (c.provider === provider ? updatedConfig : c)));
+      setConfigs((prev) => prev.map((c) => (c.provider === provider ? updatedConfig : c)));
       alert(`Configuration for ${provider} updated. A restart may be required to apply changes.`);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) { // ✅ Use unknown instead of any
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unexpected error occurred while saving the configuration.");
+      }
     }
   };
-
-  // Handler for creating a new provider config.
+/*
   const handleNewChange = (field: keyof ProviderConfig, value: string) => {
-    setNewConfig(prev => ({
+    setNewConfig((prev) => ({
       ...prev,
       [field]: value,
     }));
   };
-
   const handleNewSave = async () => {
     if (!newConfig.provider) {
       setError("Provider field is required for new configuration.");
       return;
     }
     try {
-      // Using the same PUT endpoint (with upsert) to create new configuration.
       const res = await fetch(`${apiUrl}/api/provider-configs/${newConfig.provider}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -2737,19 +2984,22 @@ export default function ProviderConfigPage() {
         throw new Error(errData.error || "Failed to create new configuration");
       }
       const createdConfig = await res.json();
-      setConfigs(prev => [...prev, createdConfig]);
-      setEditingConfigs(prev => ({ ...prev, [createdConfig.provider]: createdConfig }));
+      setConfigs((prev) => [...prev, createdConfig]);
+      setEditingConfigs((prev) => ({ ...prev, [createdConfig.provider]: createdConfig }));
       setNewConfig({ provider: "", clientId: "", clientSecret: "", callbackURL: "" });
-      setShowNewForm(false);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) { // ✅ Use unknown instead of any
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unexpected error occurred while creating a new configuration.");
+      }
     }
-  };
-  
+  };*/
+
   if (loading) return <p>Loading provider configurations...</p>;
   if (!isAuthenticated) return <p>You are not authenticated.</p>;
   if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
-  
+
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-4">OAuth2/OIDC Provider Configuration</h1>
@@ -2766,7 +3016,7 @@ export default function ProviderConfigPage() {
           </tr>
         </thead>
         <tbody>
-          {configs.map(config => (
+          {configs.map((config) => (
             <tr key={config.provider}>
               <td className="border p-2">{config.provider}</td>
               <td className="border p-2">
@@ -2805,64 +3055,7 @@ export default function ProviderConfigPage() {
           ))}
         </tbody>
       </table>
-          <div>
-      {/* New Provider Form */}
-      {showNewForm ? (
-        <div className="border p-4 mb-4">
-          <h2 className="text-xl font-semibold mb-2">Add New Provider</h2>
-          <input
-            type="text"
-            placeholder="Provider (e.g., custom)"
-            value={newConfig.provider}
-            onChange={(e) => handleNewChange("provider", e.target.value)}
-            className="w-full p-2 border rounded mb-2"
-            required
-          />
-          <input
-            type="text"
-            placeholder="Client ID"
-            value={newConfig.clientId}
-            onChange={(e) => handleNewChange("clientId", e.target.value)}
-            className="w-full p-2 border rounded mb-2"
-          />
-          <input
-            type="text"
-            placeholder="Client Secret"
-            value={newConfig.clientSecret}
-            onChange={(e) => handleNewChange("clientSecret", e.target.value)}
-            className="w-full p-2 border rounded mb-2"
-          />
-          <input
-            type="text"
-            placeholder="Callback URL"
-            value={newConfig.callbackURL}
-            onChange={(e) => handleNewChange("callbackURL", e.target.value)}
-            className="w-full p-2 border rounded mb-2"
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={handleNewSave}
-              className="bg-green-500 text-white px-3 py-1 rounded"
-            >
-              Add Provider
-            </button>
-            <button
-              onClick={() => setShowNewForm(false)}
-              className="bg-gray-500 text-white px-3 py-1 rounded"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button
-          onClick={() => setShowNewForm(true)}
-          className="bg-teal-500 text-white px-4 py-2 rounded mb-4"
-        >
-          New Provider
-        </button>
-      )}
-</div>
+
       <Link href="/admin" className="text-blue-500 underline">
         Back to Dashboard
       </Link>
@@ -2873,7 +3066,6 @@ export default function ProviderConfigPage() {
 ================
 File: portfolio.next/src/app/admin/setup/page.tsx
 ================
-// portfolio.next/src/app/admin/setup/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -2896,11 +3088,20 @@ export default function AdminSetup() {
         const data = await res.json();
         setAdminExists(data.exists);
         if (data.exists) {
+          console.log("Admin already exists");
           // If an admin exists, redirect to the admin dashboard.
           router.push("/admin");
+        }else{
+          console.log("Should creste new admin");
         }
-      } catch (err: any) {
-        setError("Error checking admin status");
+      } catch (err: unknown) { // ✅ Use "unknown" instead of "any"
+        if (err instanceof Error) {
+          console.error(err.message);
+          setError(err.message);
+        } else {
+          console.error("Error checking admin status", err);
+          setError("Error checking admin status");
+        }
       }
     }
     checkAdmin();
@@ -2921,8 +3122,12 @@ export default function AdminSetup() {
         throw new Error(errData.error || "Admin creation failed");
       }
       router.push("/admin/login");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) { // ✅ Use "unknown" instead of "any"
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unknown error occurred.");
+      }
     }
   };
 
@@ -3103,14 +3308,14 @@ import { getBlog } from "@/services/blogService";
 import { marked } from "marked";
 import CommentSection from "@/components/CommentSection";
 
-interface BlogEntry {
-  _id: number;
-  title: string;
-  publishAt: string;
-  body: string;
-  excerpt?: string;
-  link: string;
-}
+// interface BlogEntry {
+//   _id: number;
+//   title: string;
+//   publishAt: string;
+//   body: string;
+//   excerpt?: string;
+//   link: string;
+// }
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -3204,6 +3409,7 @@ import ChatWrapper from "@/components/ChatWrapper";
 import Search from "@/components/Search";
 import { SearchProvider } from "@/context/SearchContext";
 import { ChatProvider } from "@/context/ChatContext";
+import { Suspense } from "react";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -3227,6 +3433,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <Suspense>
       <AuthProvider>
         <ChatProvider>
         <SearchProvider>
@@ -3240,7 +3447,7 @@ export default function RootLayout({
         </SearchProvider>
         </ChatProvider>
         </AuthProvider>
-
+        </Suspense>
       </body>
     </html>
   );
@@ -3254,6 +3461,7 @@ File: portfolio.next/src/app/page.tsx
 import { useState, useEffect } from "react";
 import { fetchBlogEntries, fetchProjects } from "@/services/apiService";
 import SectionToggle from "@/components/SectionToggle";
+import Image from "next/image";
 
 interface Project {
   _id: string;
@@ -3323,11 +3531,8 @@ export default function Home() {
               href={project.link}
               className="flex items-center p-3 bg-gray-100 rounded-sm hover:bg-gray-200 transition"
             >
-              <img
-                src={project.image}
-                alt={project.title}
-                className="max-h-12  object-cover mr-4 rounded"
-              />
+            <Image src={project.image} alt={project.title} 
+                className="max-h-12  object-cover mr-4 rounded" />
               <div>
                 <h3 className="text-lg font-semibold">{project.title}</h3>
                 <p className="text-sm text-gray-500">{project.description}</p>
@@ -3396,7 +3601,7 @@ File: portfolio.next/src/components/Chat.tsx
 ================
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useChat } from "@/context/ChatContext";
 
 export default function Chat() {
@@ -3404,13 +3609,13 @@ export default function Chat() {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false); // ✅ Expand/Minimize state
   const [input, setInput] = useState("");
-  const [ws, setWs] = useState<WebSocket | null>(null);
+  const wsRef = useRef<WebSocket | null>(null); // ✅ Use ref instead of state
   const [isStreaming, setIsStreaming] = useState(false);
   const streamingResponseRef = useRef(""); // Stores the AI's full response
   const [streamingResponse, setStreamingResponse] = useState(""); // Triggers UI updates
 
   useEffect(() => {
-    if (isOpen && !ws) {
+    if (isOpen && !wsRef.current) {
       const websocket = new WebSocket("ws://localhost:5000");
 
       websocket.onopen = () => console.log("Connected to WebSocket");
@@ -3429,28 +3634,43 @@ export default function Chat() {
         }
       };
 
-      websocket.onclose = () => console.log("WebSocket disconnected");
-      setWs(websocket);
+      websocket.onclose = () => {
+        console.log("WebSocket disconnected");
+        wsRef.current = null; // ✅ Ensure it resets on close
+      };
+
+      wsRef.current = websocket;
     }
 
-    return () => ws?.close();
-  }, [isOpen]);
+    return () => {
+      wsRef.current?.close();
+      wsRef.current = null;
+    };
+  }, [isOpen]); // ✅ Removed ws from dependencies
+
+  // ✅ Use useCallback to prevent unnecessary re-renders
+  const safeAddMessage = useCallback(
+    (message: { role: "user" | "ai"; text: string }) => {
+      addMessage(message);
+    },
+    [addMessage]
+  );
 
   // ✅ Ensure AI response is stored in chat history after streaming ends
   useEffect(() => {
     if (!isStreaming && streamingResponseRef.current) {
-      addMessage({ role: "ai", text: streamingResponseRef.current });
+      safeAddMessage({ role: "ai", text: streamingResponseRef.current });
       streamingResponseRef.current = ""; // Reset buffer
       setStreamingResponse(""); // Clear state after saving
     }
-  }, [isStreaming]);
+  }, [isStreaming, safeAddMessage]);
 
   const sendMessage = () => {
-    if (!input.trim() || !ws) return;
+    if (!input.trim() || !wsRef.current) return;
 
-    const userMessage = { role: "user" as "user", text: input };
-    addMessage(userMessage);
-    ws.send(JSON.stringify({ sessionId: "123", query: input }));
+    const userMessage = { role: "user", text: input } as const; // ✅ Fixed type assertion
+    safeAddMessage(userMessage);
+    wsRef.current.send(JSON.stringify({ sessionId: "123", query: input }));
     setInput("");
 
     // ✅ Reset streaming response before AI starts replying
@@ -3512,7 +3732,7 @@ export default function Chat() {
               placeholder="Ask something..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && sendMessage()}
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()} // ✅ Changed to onKeyDown
             />
             <button
               className="bg-gray-800 hover:bg-gray-600 transition text-white px-3 py-1 rounded text-sm"
@@ -3551,10 +3771,9 @@ export default function ChatWrapper() {
 File: portfolio.next/src/components/CommentSection.tsx
 ================
 "use client";
-import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
-
+import { usePathname } from "next/navigation";
 interface Comment {
   _id: string;
   author: string;
@@ -3574,28 +3793,26 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, user } = useAuth();
-
   const pathname = usePathname();
-  
-  async function fetchComments() {
+
+  // ✅ Wrap fetchComments with useCallback to prevent unnecessary re-renders
+  const fetchComments = useCallback(async () => {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/comments/blog/${blogId}`);
       const data = await res.json();
       if (!Array.isArray(data)) {
-        // console.error("Expected an array of comments, but got:", data);
         setComments([]);
       } else {
-        console.log("data", data);
         setComments(data);
       }
     } catch {
       setError("Failed to load comments");
     }
-  }
+  }, [blogId]); // ✅ Only re-create function when blogId changes
 
   useEffect(() => {
     fetchComments();
-  }, [blogId]);
+  }, [fetchComments]); // ✅ Now safe to include fetchComments
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -3619,7 +3836,7 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
       }
       setNewComment("");
       setReplyTo(null);
-      fetchComments();
+      fetchComments(); // ✅ Re-fetch comments after submitting
     } catch {
       setError("Failed to post comment");
     }
@@ -3630,13 +3847,19 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
       <div key={comment._id} style={{ marginLeft: level * 20 }}>
         <div className="p-2 border rounded mb-1">
           <p className="font-bold">{comment.author}</p>
-          <p>{comment.redacted ? (
-            <span className="text-gray-500 italic">[This comment has been redacted]</span>
-          ) : (
-            comment.text
-          )}</p>
+          <p>
+            {comment.redacted ? (
+              <span className="text-gray-500 italic">[This comment has been redacted]</span>
+            ) : (
+              comment.text
+            )}
+          </p>
           <p className="text-xs text-gray-500">{new Date(comment.createdAt).toLocaleString()}</p>
-          {!comment.redacted && <button onClick={() => setReplyTo(comment._id)} className="text-blue-500 text-sm">Reply</button>}
+          {!comment.redacted && (
+            <button onClick={() => setReplyTo(comment._id)} className="text-blue-500 text-sm">
+              Reply
+            </button>
+          )}
         </div>
         {comment.replies && comment.replies.length > 0 && renderComments(comment.replies, level + 1)}
       </div>
@@ -3644,7 +3867,7 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
   }
 
   return (
-    <div className="mt-8"> 
+    <div className="mt-8">
       <h2 className="text-2xl font-bold mb-4">Comments</h2>
       {error && <p className="text-red-500">{error}</p>}
       <div>{renderComments(comments)}</div>
@@ -3674,8 +3897,11 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
         </form>
       ) : (
         <p>
-          <a href={`/admin/login?returnUrl=${encodeURIComponent(window.location.href )}`} className="text-blue-500 underline">
-          Login to comment
+          <a
+            href={`/admin/login?returnUrl=${encodeURIComponent(pathname)}`}
+            className="text-blue-500 underline"
+          >
+            Login to comment
           </a>
         </p>
       )}
@@ -3703,10 +3929,10 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCog, faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
-
+import { usePathname } from "next/navigation";
 export default function Header() {
   const { isAdmin, isAuthenticated, refreshAuth } = useAuth();
-  const pathname = window.location.href;
+  const pathname = usePathname();
   const router = useRouter();
 
   async function handleLogout() {
@@ -3842,7 +4068,8 @@ File: portfolio.next/src/context/AuthContext.tsx
 ================
 // portfolio.next/src/context/AuthContext.tsx
 "use client";
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState } from "react";
+import { useRouter } from "next/navigation"; 
 
 interface AuthContextType {
   isAdmin: boolean;
@@ -3865,6 +4092,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const router = useRouter();
 
   async function refreshAuth() {
     try {
@@ -3872,17 +4100,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         credentials: "include",
       });
       const data = await res.json();
+      if ( data.setupRequired){
+        router.push("/admin/setup"); // Redirect to setup page
+        return;
+      }
       setIsAuthenticated(data.authenticated);
       setUser(data.authenticated ? data.user : null);
       setIsAdmin(data.user?.isAdmin || false);
     } catch (error) {
+      console.error(error);
       setIsAuthenticated(false);
     }
   }
 
-  useEffect(() => {
-    refreshAuth();
-  }, []);
+  // useEffect(() => {
+  //   refreshAuth();
+  // }, []);
 
   return (
     <AuthContext.Provider value={{ isAdmin, isAuthenticated, user, setIsAuthenticated, setUser, refreshAuth }}>
@@ -4666,9 +4899,9 @@ File: portfolio.node/Dockerfile
 ================
 FROM node:22
 WORKDIR /app
-COPY ./src .
+COPY . .
 RUN npm install
-CMD ["node", "server.js"]
+CMD ["node", "./src/server.js"]
 
 ================
 File: portfolio.node/jest.config.js
@@ -4720,6 +4953,7 @@ File: portfolio.node/package.json
     "jsonwebtoken": "^9.0.2",
     "marked": "^15.0.7",
     "mongoose": "^8.10.1",
+    "node-cache": "^5.1.2",
     "passport": "^0.7.0",
     "passport-facebook": "^3.0.0",
     "passport-github": "^1.1.0",
@@ -4764,6 +4998,8 @@ const userRoutes = require("./routes/userRoutes");
 const providerConfigRoutes = require("./routes/providerConfigRoutes");
 const searchRoutes = require("./routes/searchRoutes");
 const chatRoutes = require("./routes/chatRoutes");
+const embeddingRoutes = require("./routes/embeddingRoutes");
+const promptRoutes = require("./routes/promptRoutes");
 
 const { prepopulateDefaultConfigs } = require("./services/providerConfigService");
 const { initCollection } = require("./services/qdrantService");
@@ -4777,16 +5013,21 @@ async function createApp() {
   // Connect to the database
   await connectDB();
 
-  // await dropCollection();
-  await initCollection();
+  try{
 
+    // await dropCollection();
+    await initCollection();
+  }
+  catch(err){
+    console.error("Cannot initialize collections", err);
+  }
   // default configuration population
   await prepopulateDefaultConfigs();
 
   const app = express();
 
   app.use(cors({
-    origin: "http://localhost:3000",
+    origin: process.env.ALLOW_CORS || "http://localhost:3000",
     credentials: true, // Allow cookies to be sent
   }));
   app.use(express.json());
@@ -4817,6 +5058,8 @@ setupStrategies()
   app.use("/api/provider-configs", providerConfigRoutes);
   app.use("/api/search", searchRoutes);
   app.use("/api/chat", chatRoutes);
+  app.use("/api/embeddings", embeddingRoutes);
+  app.use("/api/prompts", promptRoutes);
 
   return app;
 }
@@ -5060,6 +5303,8 @@ tags:
     description: Interactive career timeline and skills mapping
   - name: Users
     description: Users management (admin)
+  - name: Prompts
+    description: Prompts configuration and fine tuning
 
 paths:
   /auth/login:
@@ -5608,6 +5853,155 @@ paths:
         "500":
           description: Server error
 
+  /embeddings/local-directory:
+    post:
+      tags: [Embeddings]
+      summary: Generate embeddings from a local directory
+      description: Parses a local directory and generates embeddings for the contained files.
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmbeddingDirectoryRequest"
+      responses:
+        "200":
+          description: Successfully generated embeddings from the directory
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmbeddingStatus"
+        "400":
+          description: Invalid request
+        "500":
+          description: Internal server error
+
+  /embeddings/{id}/metadata:
+    put:
+      tags: [Embeddings]
+      summary: Update metadata for an embedding entry
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmbeddingMetadataRequest"
+      responses:
+        "200":
+          description: Metadata updated successfully
+        "404":
+          description: Embedding not found
+
+  /embeddings/list:
+    get:
+      tags: [Embeddings]
+      summary: Retrieve a list of all embeddings with metadata
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: List of embeddings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EmbeddingEntry"
+        "500":
+          description: Internal server error
+
+  /chat/context:
+    post:
+      tags: [AI Chat]
+      summary: Inject web page context into chat
+      description: Allows the frontend to inject a web page's content into the chat session.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebContextRequest"
+      responses:
+        "200":
+          description: Web context added successfully
+
+  /prompts:
+    get:
+      tags: [Prompts]
+      summary: Retrieve all stored prompts
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: List of prompts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Prompt"
+
+    post:
+      tags: [Prompts]
+      summary: Create a new prompt
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PromptRequest"
+      responses:
+        "201":
+          description: Prompt created
+
+  /prompts/{id}:
+    put:
+      tags: [Prompts]
+      summary: Update an existing prompt
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PromptRequest"
+      responses:
+        "200":
+          description: Prompt updated
+
+    delete:
+      tags: [Prompts]
+      summary: Delete a prompt
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Prompt deleted
 
 components:
   schemas:
@@ -5706,10 +6100,12 @@ components:
       properties:
         sessionId:
           type: string
-          description: Unique identifier for the chat session
         query:
           type: string
-          description: User's chat message
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
       required:
         - sessionId
         - query
@@ -5829,6 +6225,81 @@ components:
           items:
             type: number
           description: "The generated AI embedding vector for this project."
+
+    EmbeddingDirectoryRequest:
+      type: object
+      properties:
+        directoryPath:
+          type: string
+          description: Absolute path to the directory to be processed
+        includeExtensions:
+          type: array
+          items:
+            type: string
+          example: [".js", ".md", ".txt", ".json"]
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Optional metadata for embeddings
+
+    EmbeddingMetadataRequest:
+      type: object
+      properties:
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Metadata to associate with an embedding entry
+
+    EmbeddingEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        filePath:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+
+    WebContextRequest:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          description: Unique identifier for the chat session
+        content:
+          type: string
+          description: Extracted content from the web page
+      required:
+        - sessionId
+        - content
+
+    Prompt:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          description: Friendly name for the prompt
+        template:
+          type: string
+          description: Prompt template with placeholders
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Optional metadata for the prompt
+
+    PromptRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        template:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
 
 securitySchemes:
   cookieAuth:
@@ -6018,6 +6489,18 @@ const CounterSchema = new mongoose.Schema({
 module.exports = mongoose.model("Counter", CounterSchema);
 
 ================
+File: portfolio.node/src/models/Embedding.js
+================
+const mongoose = require("mongoose");
+
+const EmbeddingSchema = new mongoose.Schema({
+    filePath: { type: String, required: true },
+    metadata: { type: Object, default: {} },
+}, { timestamps: true });
+
+module.exports = mongoose.model("Embedding", EmbeddingSchema);
+
+================
 File: portfolio.node/src/models/Project.js
 ================
 // portfolio.node/src/models/Project.js
@@ -6036,6 +6519,19 @@ const ProjectSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 module.exports = mongoose.model("Project", ProjectSchema);
+
+================
+File: portfolio.node/src/models/Prompt.js
+================
+const mongoose = require("mongoose");
+
+const PromptSchema = new mongoose.Schema({
+    name: { type: String, required: true, unique: true }, // Unique identifier for the prompt
+    template: { type: String, required: true }, // The actual text of the prompt
+    metadata: { type: Object, default: {} } // Optional metadata
+}, { timestamps: true });
+
+module.exports = mongoose.model("Prompt", PromptSchema);
 
 ================
 File: portfolio.node/src/models/ProviderConfig.js
@@ -6085,6 +6581,7 @@ File: portfolio.node/src/routes/authRoutes.js
 ================
 const express = require("express");
 const authService = require("../services/authService");
+const User = require('../models/User');
 const router = express.Router();
 
 // Register a new user using the auth service
@@ -6119,7 +6616,12 @@ router.post("/login", async (req, res) => {
 });
 
 // Check authentication using the auth service
-router.get("/check", (req, res) => {
+router.get("/check", async (req, res) => {
+
+  const admin = await User.findOne({ isAdmin: true });
+  if ( !admin){
+    return res.status(200).json({ authenticated: false, setupRequired: true });
+  }
   const token = req.cookies["auth-token"];
   if (!token) {
     return res.status(401).json({ authenticated: false, message: "No token provided" });
@@ -6243,24 +6745,21 @@ File: portfolio.node/src/routes/chatRoutes.js
 // portfolio.node/src/routes/chatRoutes.js
 const express = require("express");
 const router = express.Router();
-const { processChatMessage, getChatHistory } = require("../services/chatService");
+const { processChat, getChatHistory } = require("../services/chatService");
 
 /**
- * POST /chat
- * Handles a new chat message, retrieves relevant context, and generates an AI response.
+ * @route POST /api/chat
+ * @desc Process user query with AI model
  */
 router.post("/", async (req, res) => {
   try {
-    const { sessionId, query } = req.body;
-    if (!sessionId || !query) {
-      return res.status(400).json({ error: "sessionId and query are required." });
-    }
-
-    const response = await processChatMessage(sessionId, query);
-    return res.status(200).json(response);
+      const { sessionId, query, history, webContext } = req.body;
+      const response = await processChat(sessionId, query, history || [], webContext || "");
+      
+      res.status(200).json({ response });
   } catch (error) {
-    console.error("Error processing chat message:", error);
-    return res.status(500).json({ error: "Internal server error." });
+      console.error("❌ Chat API error:", error.message);
+      res.status(500).json({ error: error.message });
   }
 });
 
@@ -6377,6 +6876,67 @@ router.get("/all", authMiddleware, async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+module.exports = router;
+
+================
+File: portfolio.node/src/routes/embeddingRoutes.js
+================
+const express = require("express");
+const {
+    parseLocalDirectory,
+    updateEmbeddingMetadata,
+    listEmbeddings
+} = require("../services/embeddingService");  //
+const isAdmin = require("../middlewares/admin");
+
+const router = express.Router();
+
+/**
+ * @route POST /api/embeddings/local-directory
+ * @desc Parse a local directory and generate embeddings
+ * @access Admin
+ */
+router.post("/local-directory", isAdmin, async (req, res) => {
+    try {
+        const { directoryPath, includeExtensions, metadata } = req.body;
+        const result = await parseLocalDirectory(directoryPath, includeExtensions, metadata);
+        res.status(200).json(result);
+    } catch (error) {
+        console.error("❌ Error in embedding route:", error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @route PUT /api/embeddings/:id/metadata
+ * @desc Update metadata for a specific embedding
+ * @access Admin
+ */
+router.put("/:id/metadata", isAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { metadata } = req.body;
+        const result = await updateEmbeddingMetadata(id, metadata);
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @route GET /api/embeddings/list
+ * @desc Retrieve a list of all embeddings
+ * @access Admin
+ */
+router.get("/list", isAdmin, async (req, res) => {
+    try {
+        const embeddings = await listEmbeddings();
+        res.status(200).json(embeddings);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 module.exports = router;
@@ -6514,8 +7074,8 @@ File: portfolio.node/src/routes/projectRoutes.js
 ================
 const express = require("express");
 const authMiddleware = require("../middlewares/auth");
-const projectService = require("../services/projectService");
 const adminAuth = require("../middlewares/admin");
+const projectService = require("../services/projectService");
 const Project = require("../models/Project");
 
 const router = express.Router();
@@ -6600,6 +7160,93 @@ router.post("/search", async (req, res) => {
   res.json(results);
 });
 
+
+module.exports = router;
+
+================
+File: portfolio.node/src/routes/promptRoutes.js
+================
+const express = require("express");
+const {
+    getAllPrompts,
+    getPromptById,
+    createPrompt,
+    updatePrompt,
+    deletePrompt
+} = require("../services/promptService");
+
+const isAdmin = require("../middlewares/admin"); // Ensure only admins manage prompts
+const router = express.Router();
+
+/**
+ * @route GET /api/prompts
+ * @desc Retrieve all stored prompts
+ * @access Admin
+ */
+router.get("/", isAdmin, async (req, res) => {
+    try {
+        const prompts = await getAllPrompts();
+        res.status(200).json(prompts);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @route GET /api/prompts/:id
+ * @desc Retrieve a specific prompt by ID
+ * @access Admin
+ */
+router.get("/:id", isAdmin, async (req, res) => {
+    try {
+        const prompt = await getPromptById(req.params.id);
+        res.status(200).json(prompt);
+    } catch (error) {
+        res.status(404).json({ error: error.message });
+    }
+});
+
+/**
+ * @route POST /api/prompts
+ * @desc Create a new prompt
+ * @access Admin
+ */
+router.post("/", isAdmin, async (req, res) => {
+    try {
+        const prompt = await createPrompt(req.body);
+        res.status(201).json(prompt);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+/**
+ * @route PUT /api/prompts/:id
+ * @desc Update an existing prompt
+ * @access Admin
+ */
+router.put("/:id", isAdmin, async (req, res) => {
+    try {
+        const prompt = await updatePrompt(req.params.id, req.body);
+        res.status(200).json(prompt);
+    } catch (error) {
+        res.status(404).json({ error: error.message });
+    }
+});
+
+/**
+ * @route DELETE /api/prompts/:id
+ * @desc Delete a prompt
+ * @access Admin
+ */
+router.delete("/:id", isAdmin, async (req, res) => {
+    try {
+        await deletePrompt(req.params.id);
+        res.status(200).json({ message: "Prompt deleted successfully." });
+    } catch (error) {
+        res.status(404).json({ error: error.message });
+    }
+});
 
 module.exports = router;
 
@@ -6694,7 +7341,6 @@ router.post("/initialize", async (req, res) => {
 
     // Delegate the creation to the user service.
     const newUser = await userService.createUser({ username, password, isAdmin: true });
-    console.log("New User Created:", newUser.username);
     res.status(201).json({ message: "User created successfully" });
   } catch (error) {
     console.error("Error creating user:", error);
@@ -6949,44 +7595,36 @@ File: portfolio.node/src/services/chatService.js
 const ChatMessage = require("../models/ChatMessage");
 const {searchQdrant, generateEmbedding} = require("../services/qdrantService");
 const ollamaService = require("../services/ollamaService"); // AI Model Integration
+const generatePrompt = require("../utils/generatePrompt");
 
 /**
- * Stores user messages and AI responses in the chat history.
- * @param {string} sessionId - The chat session identifier.
- * @param {string} userQuery - The user's input message.
+ * Processes a user query using the AI model.
+ * @param {string} sessionId - Chat session ID.
+ * @param {string} query - User's chat message.
+ * @param {array} history - Previous chat messages.
+ * @param {string} webContext - Extracted web page content (if available).
  * @returns {Promise<{ response: string, sources: string[] }>} - AI response with sources.
  */
-async function processChatMessage(sessionId, userQuery) {
-  // Store user message
-  await ChatMessage.create({ sessionId, role: "user", text: userQuery });
+async function processChat(sessionId, query, history = [], webContext = "") {
+  try {
+      // Generate AI prompt
+      const { formattedPrompt, sources } = await generatePrompt(query, history, webContext);
 
-  // Retrieve relevant knowledge from Qdrant
-  const vectors = await generateEmbedding(userQuery);
-  const relatedDocs = await searchQdrant(vectors, "projects");
+      // Send to AI model
+      const response = await ollamaService.generateResponse(formattedPrompt);
 
-  // Structure a prompt for AI based on retrieved context
-  const context = relatedDocs.map((doc) => doc.payload.text).join("\n");
-  const structuredPrompt = `
-  You are an AI assistant helping showcase my portfolio. You ONLY use the provided context to answer questions.
-  If a question is about my projects, focus specifically on projects in the provided context.
-  If the question is unrelated to my work, say "I'm here to discuss my portfolio. Ask me about my projects or skills!"
-  
-  ### Context:
-  ${context || "No relevant projects found in the database."}
-  
-  ### User Question:
-  ${userQuery}
-  
-  ### AI Response:
-  `.trim();
-  // Get AI response
-  const aiResponse = await ollamaService.generateResponse(structuredPrompt);
+      // Store user message & AI response in chat history
+      await ChatMessage.create({ sessionId, role: "user", text: query });
+      await ChatMessage.create({ sessionId, role: "ai", text: response });
 
-  // Store AI response
-  await ChatMessage.create({ sessionId, role: "ai", text: aiResponse.response });
-
-  return { response: aiResponse.response, sources: relatedDocs.map((doc) => doc.source) };
+      return { response, sources };
+  } catch (error) {
+      console.error(`❌ Chat processing error:`, error.message);
+      return { response: "Sorry, I encountered an error.", sources: [] };
+  }
 }
+
+
 
 /**
  * Retrieves chat history for a session.
@@ -6997,7 +7635,7 @@ async function getChatHistory(sessionId) {
   return await ChatMessage.find({ sessionId }).sort({ createdAt: 1 });
 }
 
-module.exports = { processChatMessage, getChatHistory };
+module.exports = { processChat, getChatHistory };
 
 ================
 File: portfolio.node/src/services/commentService.js
@@ -7111,6 +7749,66 @@ async function getNextVectorId(name = "vectorId") {
 module.exports = { getNextVectorId };
 
 ================
+File: portfolio.node/src/services/embeddingService.js
+================
+const fs = require("fs");
+const path = require("path");
+const qdrantService = require("./qdrantService");
+const embeddingModel = require("./ollamaService"); // Uses Ollama for embeddings
+const Embedding = require("../models/Embedding");
+
+/**
+ * Parses a local directory and generates embeddings for contained files.
+ */
+async function parseLocalDirectory(directoryPath, includeExtensions = [], metadata = {}) {
+    if (!fs.existsSync(directoryPath)) {
+        throw new Error("Directory does not exist.");
+    }
+
+    const files = fs.readdirSync(directoryPath).filter(file =>
+        includeExtensions.length === 0 || includeExtensions.includes(path.extname(file))
+    );
+
+    const results = [];
+
+    for (const file of files) {
+        const filePath = path.join(directoryPath, file);
+        const content = fs.readFileSync(filePath, "utf-8");
+
+        const embedding = await embeddingModel.generateEmbedding(content);
+        const embeddingEntry = await qdrantService.storeEmbedding(filePath, content, metadata);
+
+        results.push(embeddingEntry);
+    }
+
+    return { message: "Embeddings generated", results };
+}
+
+/**
+ * Updates metadata for a given embedding entry.
+ */
+async function updateEmbeddingMetadata(id, metadata) {
+    const embedding = await Embedding.findByIdAndUpdate(id, { metadata }, { new: true });
+    if (!embedding) {
+        throw new Error("Embedding not found.");
+    }
+    return embedding;
+}
+
+/**
+ * Retrieves all stored embeddings.
+ */
+async function listEmbeddings() {
+    return await Embedding.find();
+}
+
+module.exports = {
+    parseLocalDirectory,
+    updateEmbeddingMetadata,
+    listEmbeddings,
+};
+
+================
 File: portfolio.node/src/services/ollamaService.js
 ================
 // portfolio.node/src/services/ollamaService.js
@@ -7173,6 +7871,7 @@ async function generateResponse(prompt) {
 }
 
 async function generateResponseStream(prompt) {
+
     const response = await fetch(`${OLLAMA_URL}api/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -7333,6 +8032,70 @@ module.exports = {
 };
 
 ================
+File: portfolio.node/src/services/promptService.js
+================
+const Prompt = require("../models/Prompt");
+
+/**
+ * Retrieves all stored prompts.
+ */
+async function getAllPrompts() {
+    return await Prompt.find();
+}
+
+/**
+ * Retrieves a specific prompt by ID.
+ */
+async function getPromptById(id) {
+    const prompt = await Prompt.findById(id);
+    if (!prompt) {
+        throw new Error("Prompt not found.");
+    }
+    return prompt;
+}
+
+/**
+ * Creates a new AI prompt.
+ */
+async function createPrompt({ name, template, metadata = {} }) {
+    if (await Prompt.findOne({ name })) {
+        throw new Error("A prompt with this name already exists.");
+    }
+    
+    return await Prompt.create({ name, template, metadata });
+}
+
+/**
+ * Updates an existing prompt.
+ */
+async function updatePrompt(id, { name, template, metadata }) {
+    const prompt = await Prompt.findByIdAndUpdate(id, { name, template, metadata }, { new: true });
+    if (!prompt) {
+        throw new Error("Prompt not found.");
+    }
+    return prompt;
+}
+
+/**
+ * Deletes a prompt by ID.
+ */
+async function deletePrompt(id) {
+    const prompt = await Prompt.findByIdAndDelete(id);
+    if (!prompt) {
+        throw new Error("Prompt not found.");
+    }
+    return prompt;
+}
+
+module.exports = {
+    getAllPrompts,
+    getPromptById,
+    createPrompt,
+    updatePrompt,
+    deletePrompt
+};
+
+================
 File: portfolio.node/src/services/providerConfigService.js
 ================
 // portfolio.node/src/services/providerConfigService.js
@@ -7413,135 +8176,222 @@ File: portfolio.node/src/services/qdrantService.js
 ================
 require("dotenv").config();
 const { QdrantClient } = require("@qdrant/js-client-rest");
-
+const Embedding = require("../models/Embedding");
+const NodeCache = require("node-cache");
+const searchCache = new NodeCache({ stdTTL: 300 });
+const counterService = require("../services/counterService");
 const QDRANT_URL = process.env.QDRANT_URL || "http://10.0.0.42:6333";
+const QDRANT_API_KEY = process.env.QDRANT_API_KEY || "";
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://10.0.0.42:11434";
 const COLLECTION_NAME = "projects";
 
-const qdrantClient = new QdrantClient({ url: QDRANT_URL });
-
+const qdrantClient = new QdrantClient({
+    url: QDRANT_URL,
+    apiKey: QDRANT_API_KEY,
+});
+  
 /**
  * Initializes the Qdrant collection if it does not exist.
  */
 async function initCollection() {
-  try {
-    await qdrantClient.getCollection(COLLECTION_NAME);
-    console.log(`✅ Qdrant collection "${COLLECTION_NAME}" already exists.`);
-  } catch (error) {
-    console.log(`⚠️ Qdrant collection "${COLLECTION_NAME}" not found. Creating...`);
+    try {
+        await qdrantClient.getCollection(COLLECTION_NAME);
+        console.log(`✅ Qdrant collection "${COLLECTION_NAME}" already exists.`);
+    } catch (error) {
+        console.log(`⚠️ Qdrant collection "${COLLECTION_NAME}" not found. Creating...`);
 
-    await qdrantClient.createCollection(COLLECTION_NAME, {
-      vectors: {
-        size: 4096, // OpenAI-compatible embedding size (modify as needed)
-        distance: "Cosine"
-      }
-    });
+        await qdrantClient.createCollection(COLLECTION_NAME, {
+            vectors: {
+                size: 4096, // OpenAI-compatible embedding size (modify as needed)
+                distance: "Cosine"
+            }
+        });
 
-    console.log(`✅ Qdrant collection "${COLLECTION_NAME}" created.`);
-  }
+        console.log(`✅ Qdrant collection "${COLLECTION_NAME}" created.`);
+    }
 }
 
 /**
- * Stores a project embedding in Qdrant.
- * @param {string} id - The project ID.
- * @param {string} text - The text content to embed.
- * @param {number[]} vector - The embedding vector.
+ * Stores an embedding in Qdrant and MongoDB.
+ * @param {string} filePath - Path of the file being embedded.
+ * @param {string} content - File content for embedding generation.
+ * @param {object} metadata - Additional metadata related to the embedding.
  */
-async function storeEmbedding(id, text, vector) {
+async function storeEmbedding(filePath, content, metadata = {}) {
     try {
-      // Validate vector
-      if (!Array.isArray(vector)) {
-        throw new Error(`Vector is not an array: ${typeof vector}`);
-      }
-      
-      if (vector.length !== 4096) {
-        throw new Error(`Vector length mismatch: expected 4096, got ${vector.length}`);
-      }
-      
-      // Validate that all values are numbers
-      const allNumbers = vector.every(val => typeof val === 'number' && !isNaN(val));
-      if (!allNumbers) {
-        throw new Error('Vector contains non-numeric values');
-      }
-  
-      console.log(`📡 Storing embedding: ID=${id}, Vector Length=${vector.length}`);
-      
-      // Convert id to string if it's not already
-      const pointId = typeof id === 'string' ? id : String(id);
-      
-      // For testing, use a simple numeric ID
-      const testId = Math.floor(Math.random() * 1000000);
-      await qdrantClient.upsert(COLLECTION_NAME, {
-        points: [
-          {
-            id: testId,
-            vector: vector,
-            payload: { text }
-          }
-        ]
-      });
-  
-      console.log(`✅ Stored embedding for project ${id}`);
+        const vector = await generateEmbedding(content);
+        if (!vector) {
+            throw new Error("Failed to generate embedding.");
+        }
+
+        // Validate vector
+        if (!Array.isArray(vector) || vector.length !== 4096 || vector.some(isNaN)) {
+            throw new Error(`Invalid embedding vector received.`);
+        }
+
+        // Store in MongoDB
+        const embeddingEntry = await Embedding.create({ filePath, metadata });
+
+        // Store in Qdrant
+        const id = await counterService.getNextVectorId("embedding");
+        await qdrantClient.upsert(COLLECTION_NAME, {
+            points: [
+                {
+                    id: id,
+                    vector,
+                    payload: { filePath, metadata },
+                },
+            ],
+        });
+
+        console.log(`✅ Stored embedding for file: ${filePath}`);
+        return embeddingEntry;
     } catch (error) {
-      console.error(`❌ Qdrant Error:`, error.response?.data || error.message);
-      
-      // Log more details about the vector for debugging
-      if (vector) {
-        console.error(`Vector sample (first 5 elements):`, vector.slice(0, 5));
-      }
+        console.error(`❌ Qdrant Error:`, error.message);
+        return null;
     }
-  }
+}
+
+/**
+ * Updates metadata for an embedding entry in MongoDB and Qdrant.
+ * @param {string} id - The embedding document ID.
+ * @param {object} metadata - Updated metadata.
+ */
+async function updateEmbeddingMetadata(id, metadata) {
+    try {
+        const embedding = await Embedding.findByIdAndUpdate(id, { metadata }, { new: true });
+        if (!embedding) {
+            throw new Error("Embedding not found.");
+        }
+
+        await qdrantClient.updatePayload(COLLECTION_NAME, {
+            points: [{ id }],
+            payload: { metadata },
+        });
+
+        console.log(`✅ Updated metadata for embedding ID: ${id}`);
+        return embedding;
+    } catch (error) {
+        console.error(`❌ Error updating metadata:`, error.message);
+        return null;
+    }
+}
+
+/**
+ * Retrieves all stored embeddings from MongoDB.
+ */
+async function listEmbeddings() {
+    try {
+        return await Embedding.find();
+    } catch (error) {
+        console.error("❌ Error fetching embeddings:", error.message);
+        return [];
+    }
+}
 
 /**
  * Performs a semantic search in Qdrant.
  * @param {number[]} queryVector - The query embedding.
- * @param {string} collection - The sollection to search.
+ * @param {string} collection - The collection to search.
  * @param {number} topK - Number of results to retrieve.
+ * @param {number} minScore - filter out if score is below this value.
  * @returns {Promise<object[]>} - List of matching projects.
  */
-async function searchQdrant(queryVector, collection, topK = 5) {
+async function searchQdrant(queryVector, collection = "projects", topK = 5, minScore = 0.5, useCache = false) {
     try {
-      console.log(`📡 Searching Qdrant in collection "${collection}"`);
-      
-      const response = await qdrantClient.search(collection, {
-        vector: queryVector,
-        limit: topK
-      });
-  
-      return response || [];
+
+        const cacheKey = `${collection}:${queryVector.slice(0, 5).join(",")}:${topK}:${minScore}`;
+        const cachedResults = useCache ? searchCache.get(cacheKey) : null;
+        if (cachedResults) {
+            console.log(`🔄 Returning cached search results for query.`);
+            return cachedResults;
+        }
+
+        console.log(`📡 Searching Qdrant in collection "${collection}" with topK=${topK}`);
+
+        // Perform vector search in Qdrant
+        const response = await qdrantClient.search(collection, {
+            vector: queryVector,
+            limit: topK * 2, // Retrieve extra results to allow filtering
+            with_payload: true,
+            score_threshold: minScore, // Ignore low-score results
+        });
+
+        if (!response || response.length === 0) {
+            console.log("⚠️ No relevant search results found.");
+            return [];
+        }
+
+        // Sort results by score (descending) and take only the top K results
+        const sortedResults = response
+            .filter(doc => doc.score >= minScore) // Remove low-quality matches
+            .sort((a, b) => b.score - a.score) // Sort by highest relevance
+            .slice(0, topK); // Limit to top K results
+
+        searchCache.set(cacheKey, sortedResults); // Store results in cache
+
+        console.log(`✅ Retrieved ${sortedResults.length} relevant results from Qdrant.`);
+        return sortedResults;
     } catch (error) {
-      console.error(`❌ Qdrant Search Error: ${error.message}`);
-      return [];
+        console.error(`❌ Qdrant Search Error: ${error.message}`);
+        return [];
     }
-  }
-  
+}
+
+
+/**
+ * Generates an embedding using Ollama.
+ * @param {string} text - The text content to generate an embedding for.
+ * @returns {Promise<number[]>} - The generated embedding vector.
+ */
 async function generateEmbedding(text) {
     try {
-      const response = await fetch(`${OLLAMA_URL}api/embeddings`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "mistral", prompt: text })
-      });
-  
-      const data = await response.json();
-      return data.embedding;
-    } catch (error) {
-      console.error(error);
-      return null;
-    }
-  }
+        console.log(`📡 Requesting embedding from Ollama for text: "${text.slice(0, 50)}..."`);
 
-  async function dropCollection() {
-    try {
-      await qdrantClient.deleteCollection(COLLECTION_NAME);
-      console.log(`✅ Dropped Qdrant collection "${COLLECTION_NAME}"`);
+        const response = await fetch(`${OLLAMA_URL}api/embeddings`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ model: "mistral", prompt: text }),
+        });
+
+        const data = await response.json();
+        
+        // Log the full response for debugging
+        console.log("🔍 Ollama Response:", JSON.stringify(data, null, 2));
+
+        if (!data || !data.embedding || !Array.isArray(data.embedding)) {
+            throw new Error("Embedding data is missing or invalid");
+        }
+
+        return data.embedding;
     } catch (error) {
-      console.error(`❌ Error dropping collection: ${error.message}`);
+        console.error(`❌ Error generating embedding: ${error.message}`);
+        return null;
     }
-  }
-  
-  
-module.exports = { initCollection, storeEmbedding, generateEmbedding, dropCollection, searchQdrant };
+}
+
+
+/**
+ * Deletes the entire Qdrant collection.
+ */
+async function dropCollection() {
+    try {
+        await qdrantClient.deleteCollection(COLLECTION_NAME);
+        console.log(`✅ Dropped Qdrant collection "${COLLECTION_NAME}"`);
+    } catch (error) {
+        console.error(`❌ Error dropping collection: ${error.message}`);
+    }
+}
+
+module.exports = {
+    initCollection,
+    storeEmbedding,
+    updateEmbeddingMetadata,
+    listEmbeddings,
+    generateEmbedding,
+    dropCollection,
+    searchQdrant
+};
 
 ================
 File: portfolio.node/src/services/userService.js
@@ -7557,7 +8407,7 @@ const User = require("../models/User");
  * @returns {Promise<Object>} - The newly created user.
  * @throws {Error} - If username or password is missing or if the user already exists.
  */
-async function createUser({ username, password }) {
+async function createUser({ username, password, isAdmin = false }) {
     if (!username || !password) {
       throw new Error("Username and password are required");
     }
@@ -7570,7 +8420,7 @@ async function createUser({ username, password }) {
   
     // Create the user instance.
     // The User model's pre-save hook will hash the password automatically.
-    const newUser = new User({ username, passwordHash: password });
+    const newUser = new User({ username, passwordHash: password, isAdmin });
     await newUser.save();
     return newUser;
   }
@@ -7622,72 +8472,54 @@ module.exports = {
 ================
 File: portfolio.node/src/services/wsChatService.js
 ================
-// portfolio.node/src/services/wsChatService.js
 const WebSocket = require("ws");
 const ChatMessage = require("../models/ChatMessage");
-const {generateEmbedding, searchQdrant} = require("../services/qdrantService");
+const { generatePrompt } = require("../utils/generatePrompt");
 const ollamaService = require("../services/ollamaService");
 
 const setupWebSocketServer = (server) => {
-  const wss = new WebSocket.Server({ server });
+    const wss = new WebSocket.Server({ server });
 
-  wss.on("connection", (ws) => {
-    console.log("New WebSocket connection established.");
+    wss.on("connection", (ws) => {
+        console.log("New WebSocket connection established.");
 
-    ws.on("message", async (message) => {
-      try {
-        const { sessionId, query } = JSON.parse(message);
-        if (!sessionId || !query) {
-          ws.send(JSON.stringify({ error: "sessionId and query are required." }));
-          return;
-        }
+        ws.on("message", async (message) => {
+            try {
+                const { sessionId, query, history, webContext } = JSON.parse(message);
+                if (!sessionId || !query) {
+                    ws.send(JSON.stringify({ error: "sessionId and query are required." }));
+                    return;
+                }
 
-        // Store user message in DB
-        await ChatMessage.create({ sessionId, role: "user", text: query });
+                // Generate AI prompt
+                const { formattedPrompt, sources } = await generatePrompt(query, history, webContext);
 
+                // Stream AI response
+                const responseStream = await ollamaService.generateResponseStream(formattedPrompt);
 
-        const vectors = await generateEmbedding(query);
-        const relatedDocs = await searchQdrant(vectors, "projects");
-      
-        // Structure a prompt for AI based on retrieved context
-        const context = relatedDocs.map((doc) => doc.payload.text).join("\n");
+                // Send streamed data
+                for await (const chunk of responseStream) {
+                    ws.send(JSON.stringify({ response: chunk }));
+                }
 
-        const structuredPrompt = `
-        You are an AI assistant helping showcase my portfolio. You ONLY use the provided context to answer questions.
-        If a question is about my projects, focus specifically on projects in the provided context.
-        If the question is unrelated to my work, say "I'm here to discuss my portfolio. Ask me about my projects or skills!"
-        
-        ### Context:
-        ${context || "No relevant projects found in the database."}
-        
-        ### User Question:
-        ${query}
-        
-        ### AI Response:
-        `.trim();
+                ws.send(JSON.stringify({ done: true }));
 
-        // Stream AI response
-        const responseStream = await ollamaService.generateResponseStream(structuredPrompt);
+                // Store messages in database
+                await ChatMessage.create({ sessionId, role: "user", text: query });
+                await ChatMessage.create({ sessionId, role: "ai", text: formattedPrompt });
 
-        // Send streamed data
-        for await (const chunk of responseStream) {
-          ws.send(JSON.stringify({ response: chunk }));
-        }
+            } catch (error) {
+                console.error("WebSocket error:", error);
+                ws.send(JSON.stringify({ error: "An error occurred while processing your request." }));
+            }
+        });
 
-        ws.send(JSON.stringify({ done: true }));
-
-      } catch (error) {
-        console.error("WebSocket error:", error);
-        ws.send(JSON.stringify({ error: "An error occurred while processing your request." }));
-      }
+        ws.on("close", () => {
+            console.log("WebSocket connection closed.");
+        });
     });
 
-    ws.on("close", () => {
-      console.log("WebSocket connection closed.");
-    });
-  });
-
-  return wss;
+    return wss;
 };
 
 module.exports = { setupWebSocketServer };
@@ -7735,6 +8567,92 @@ process.on('SIGTERM', () => {
     .catch((error) => console.log('Error terminating tracing', error))
     .finally(() => process.exit(0));
 });
+
+================
+File: portfolio.node/src/utils/generatePrompt.js
+================
+const Prompt = require("../models/Prompt");
+const { generateEmbedding, searchQdrant } = require("../services/qdrantService");
+
+/**
+ * Generates a structured AI prompt based on user input, retrieved context, and history.
+ * @param {string} query - The user's question.
+ * @param {array} history - Previous chat messages.
+ * @param {string} webContext - Extracted web page content.
+ * @returns {Promise<{ formattedPrompt: string, sources: string[] }>} - AI prompt and sources.
+ */
+async function generatePrompt(query, history = [], webContext = "") {
+    try {
+        // Fetch the AI prompt template dynamically
+        const promptEntry = await Prompt.findOne({ name: "default_chat" });
+        let promptTemplate = promptEntry ? promptEntry.template : getDefaultTemplate();
+
+        // Generate embeddings and search for relevant documents
+        const vectors = await generateEmbedding(query);
+        const relatedDocs = await searchQdrant(vectors, "projects", 5, 0.7);
+
+        // Format context from retrieved documents
+        let context = "";
+        let sources = [];
+        if (relatedDocs.length > 0) {
+            context = relatedDocs.map((doc) => doc.payload.text).join("\n");
+            sources = relatedDocs.map((doc) => doc.source || "Unknown source");
+        } else {
+            console.log(`⚠️ No relevant documents found for query: "${query}".`);
+            context = "No directly related documents were found, but I'll still do my best to help.";
+        }
+
+        // Format WebContext for AI, if available
+        const formattedWebContext = webContext
+            ? `If the web context is provided, this is what the user currently sees, and can be used if the prompt is related:\n${webContext}`
+            : "";
+
+        // Replace placeholders in the prompt
+        const formattedPrompt = promptTemplate
+            .replace("{{query}}", query)
+            .replace("{{history}}", formatChatHistory(history))
+            .replace("{{webContext}}", formattedWebContext)
+            .replace("{{context}}", context);
+
+        return { formattedPrompt, sources };
+    } catch (error) {
+        console.error(`❌ Error generating AI prompt:`, error.message);
+        return { formattedPrompt: "Sorry, an error occurred while generating the prompt.", sources: [] };
+    }
+}
+
+/**
+ * Formats the chat history into a structured string.
+ * @param {array} history - Array of past chat messages.
+ * @returns {string} - Formatted chat history.
+ */
+function formatChatHistory(history) {
+    if (!history || history.length === 0) return "";
+    return history.map(msg => `${msg.role === "user" ? "User" : "AI"}: ${msg.text}`).join("\n");
+}
+
+function getDefaultTemplate(){
+    return  `
+    You are an AI assistant helping showcase my portfolio. You ONLY use the provided context to answer questions.
+    If a question is about my projects, focus specifically on projects in the provided context.
+    If the question is unrelated to my work, say "I'm here to discuss my portfolio. Ask me about my projects or skills!"
+    
+    ### Context:
+    {{context}}
+
+    ### WebContext:
+    {{webContext}} 
+
+    ### Discussion History:
+    {{history}}
+
+    ### User Question:
+    {{query}}
+    
+    ### AI Response:
+    `.trim();
+}
+module.exports = { generatePrompt };
 
 ================
 File: portfolio.node/src/validators/blogValidator.js

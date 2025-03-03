@@ -5,11 +5,15 @@ const NodeCache = require("node-cache");
 const searchCache = new NodeCache({ stdTTL: 300 });
 const counterService = require("../services/counterService");
 const QDRANT_URL = process.env.QDRANT_URL || "http://10.0.0.42:6333";
+const QDRANT_API_KEY = process.env.QDRANT_API_KEY || "";
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://10.0.0.42:11434";
 const COLLECTION_NAME = "projects";
 
-const qdrantClient = new QdrantClient({ url: QDRANT_URL });
-
+const qdrantClient = new QdrantClient({
+    url: QDRANT_URL,
+    apiKey: QDRANT_API_KEY,
+});
+  
 /**
  * Initializes the Qdrant collection if it does not exist.
  */
