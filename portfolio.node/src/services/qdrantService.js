@@ -8,6 +8,7 @@ const QDRANT_URL = process.env.QDRANT_URL || "http://10.0.0.42:6333";
 const QDRANT_API_KEY = process.env.QDRANT_API_KEY || "";
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://10.0.0.42:11434";
 const COLLECTION_NAME = "projects";
+const VECTOR_SIZE = parseInt(process.env.VECTOR_SIZE, 10) || 1536; // Default to OpenAI size if not set
 
 const qdrantClient = new QdrantClient({
     url: QDRANT_URL,
@@ -26,7 +27,7 @@ async function initCollection() {
 
         await qdrantClient.createCollection(COLLECTION_NAME, {
             vectors: {
-                size: 4096, // OpenAI-compatible embedding size (modify as needed)
+                size: VECTOR_SIZE, 
                 distance: "Cosine"
             }
         });
@@ -49,7 +50,7 @@ async function storeEmbedding(filePath, content, metadata = {}) {
         }
 
         // Validate vector
-        if (!Array.isArray(vector) || vector.length !== 4096 || vector.some(isNaN)) {
+        if (!Array.isArray(vector) || vector.length !== VECTOR_SIZE || vector.some(isNaN)) {
             throw new Error(`Invalid embedding vector received.`);
         }
 
