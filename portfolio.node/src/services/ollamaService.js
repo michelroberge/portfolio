@@ -1,6 +1,7 @@
 // portfolio.node/src/services/ollamaService.js
 
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
+const PROMPT_MODEL = process.env.PROMPT_MODEL || "mistral";
 
 /**
  * Sends a structured prompt to the Ollama AI model and retrieves a response.
@@ -13,7 +14,7 @@ async function generateResponse(prompt) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "mistral", // Change this if using a different model
+        model: PROMPT_MODEL,
         prompt: prompt,
         max_tokens: 200,
         temperature: 0.7,

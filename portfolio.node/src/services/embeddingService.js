@@ -1,5 +1,5 @@
 const EMBEDDING_SERVICE = process.env.EMBEDDING_SERVICE?.toLowerCase() || "ollama"; // Default to Ollama
-const AI_MODEL = process.env.AI_MODEL || "mistral"; // Default model for Ollama
+const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || "mistral"; // Default model for Ollama
 const VECTOR_SIZE = parseInt(process.env.VECTOR_SIZE, 10) || (EMBEDDING_SERVICE === "openai" ? 1536 : 4096);
 const OLLAMA_API_URL = process.env.OLLAMA_API_URL || "http://localhost:11434";
 const OPENAI_API_URL = "https://api.openai.com/v1";
@@ -21,7 +21,7 @@ async function generateOllamaEmbeddings(text) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: AI_MODEL, // Dynamically set from .env
+        model: EMBEDDING_MODEL, // Dynamically set from .env
         prompt: text,
       }),
     });
