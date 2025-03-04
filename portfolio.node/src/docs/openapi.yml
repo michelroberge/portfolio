@@ -625,6 +625,94 @@ paths:
           description: Metadata updated successfully
         "404":
           description: Embedding not found
+  /embeddings/{id}/vector:
+    put:
+      tags: [Embeddings]
+      summary: Update an embedding vector for a document
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newContent:
+                  type: string
+                  example: "Updated content of my document."
+                metadata:
+                  type: object
+                  example: { "author": "John Doe", "category": "AI" }
+      responses:
+        "200":
+          description: Embedding updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Embedding"
+        "404":
+          description: Embedding not found
+        "500":
+          description: Server error
+  /embeddings/{id}:
+    delete:
+      tags: [Embeddings]
+      summary: Delete an embedding by ID
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Embedding deleted successfully
+        "404":
+          description: Embedding not found
+        "500":
+          description: Server error
+  /embeddings/search:
+    post:
+      tags: [Embeddings]
+      summary: Perform a similarity search in Qdrant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                queryVector:
+                  type: array
+                  items:
+                    type: number
+                  example: [0.12, 0.98, 0.33, 0.76]
+                topK:
+                  type: integer
+                  default: 5
+                minScore:
+                  type: number
+                  default: 0.5
+      responses:
+        "200":
+          description: Search results retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EmbeddingSearchResult"
+        "500":
+          description: Server error
 
   /embeddings/list:
     get:
@@ -643,6 +731,40 @@ paths:
                   $ref: "#/components/schemas/EmbeddingEntry"
         "500":
           description: Internal server error
+
+  /embeddings:
+    post:
+      tags: [Embeddings]
+      summary: Store a new embedding for a document
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filePath:
+                  type: string
+                  example: "/documents/article.txt"
+                content:
+                  type: string
+                  example: "This is the content of my document."
+                metadata:
+                  type: object
+                  example: { "author": "John Doe", "category": "Technology" }
+      responses:
+        "201":
+          description: Embedding stored successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Embedding"
+        "400":
+          description: Invalid input
+        "500":
+          description: Server error
 
   /chat/context:
     post:
@@ -984,6 +1106,33 @@ components:
         metadata:
           type: object
           additionalProperties: true
+
+    Embedding:
+      type: object
+      properties:
+        id:
+          type: integer
+        filePath:
+          type: string
+          example: "/documents/article.txt"
+        metadata:
+          type: object
+          example: { "author": "John Doe", "category": "Technology" }
+        externalId:
+          type: integer
+          example: 12345
+
+    EmbeddingSearchResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        filePath:
+          type: string
+        score:
+          type: number
+        metadata:
+          type: object
 
     WebContextRequest:
       type: object

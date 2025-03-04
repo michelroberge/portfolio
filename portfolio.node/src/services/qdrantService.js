@@ -55,10 +55,10 @@ async function storeEmbedding(filePath, content, metadata = {}) {
         }
 
         // Store in MongoDB
-        const embeddingEntry = await Embedding.create({ filePath, metadata });
+        const id = await counterService.getNextVectorId("embedding");
+        const embeddingEntry = await Embedding.create({ filePath, metadata, externalId: id });
 
         // Store in Qdrant
-        const id = await counterService.getNextVectorId("embedding");
         await qdrantClient.upsert(COLLECTION_NAME, {
             points: [
                 {
@@ -79,28 +79,82 @@ async function storeEmbedding(filePath, content, metadata = {}) {
 
 /**
  * Updates metadata for an embedding entry in MongoDB and Qdrant.
- * @param {string} id - The embedding document ID.
- * @param {object} metadata - Updated metadata.
+ * @param {object} payload - The embedding document by id or name and the metadata.
  */
-async function updateEmbeddingMetadata(id, metadata) {
+async function updateEmbeddingMetadata({ id = null, filePath = null, metadata }) {
     try {
-        const embedding = await Embedding.findByIdAndUpdate(id, { metadata }, { new: true });
-        if (!embedding) {
-            throw new Error("Embedding not found.");
+        let embeddings;
+
+        if (id) {
+            // ✅ Update a single embedding by ID
+            embeddings = await Embedding.find({ externalId: id });
+            if (embeddings.length === 0) throw new Error("Embedding not found.");
+        } else if (filePath) {
+            // ✅ Update all embeddings for a filePath
+            embeddings = await Embedding.find({ filePath });
+            if (embeddings.length === 0) throw new Error("No embeddings found for file.");
+        } else {
+            throw new Error("Either id or filePath must be provided.");
         }
 
+        // ✅ Update metadata in MongoDB
+        await Embedding.updateMany({ _id: { $in: embeddings.map(e => e._id) } }, { metadata });
+
+        // ✅ Update in Qdrant
         await qdrantClient.updatePayload(COLLECTION_NAME, {
-            points: [{ id }],
+            points: embeddings.map(e => e.externalId), // Ensure IDs are updated correctly
             payload: { metadata },
         });
 
-        console.log(`✅ Updated metadata for embedding ID: ${id}`);
-        return embedding;
+        console.log(`✅ Updated metadata for ${embeddings.length} embeddings.`);
+        return embeddings;
     } catch (error) {
         console.error(`❌ Error updating metadata:`, error.message);
         return null;
     }
 }
+
+async function updateEmbedding(filePath, newContent, metadata) {
+    try {
+        // ✅ Find existing embedding by filePath
+        const embedding = await Embedding.findOne({ filePath });
+        if (!embedding) {
+            throw new Error("Embedding not found for file.");
+        }
+
+        // ✅ Generate a new vector (since content changed)
+        const newVector = await generateEmbedding(newContent);
+        if (!newVector) {
+            throw new Error("Failed to generate new embedding.");
+        }
+
+        // ✅ Validate vector
+        if (!Array.isArray(newVector) || newVector.length !== VECTOR_SIZE || newVector.some(isNaN)) {
+            throw new Error("Invalid embedding vector.");
+        }
+
+        // ✅ Update vector + metadata in Qdrant
+        await qdrantClient.upsert(COLLECTION_NAME, {
+            points: [
+                {
+                    id: embedding.externalId, // Keep the same ID
+                    vector: newVector, // ✅ Overwrite vector
+                    payload: { filePath, metadata }, // ✅ Overwrite metadata
+                },
+            ],
+        });
+
+        // ✅ Update metadata in MongoDB
+        await Embedding.updateOne({ filePath }, { metadata });
+
+        console.log(`✅ Updated embedding & metadata for file: ${filePath}`);
+        return embedding;
+    } catch (error) {
+        console.error(`❌ Error updating embedding:`, error.message);
+        return null;
+    }
+}
+
 
 /**
  * Retrieves all stored embeddings from MongoDB.
@@ -195,6 +249,29 @@ async function generateEmbedding(text) {
     }
 }
 
+async function deleteEmbedding(filePath) {
+    try {
+        const embedding = await Embedding.findOne({ filePath });
+        if (!embedding) {
+            throw new Error("Embedding not found.");
+        }
+
+        // ✅ Remove from Qdrant
+        await qdrantClient.delete(COLLECTION_NAME, {
+            points: [embedding.externalId],
+        });
+
+        // ✅ Remove from MongoDB
+        await Embedding.deleteOne({ filePath });
+
+        console.log(`✅ Deleted embedding for file: ${filePath}`);
+        return true;
+    } catch (error) {
+        console.error(`❌ Error deleting embedding:`, error.message);
+        return false;
+    }
+}
+
 
 /**
  * Deletes the entire Qdrant collection.
@@ -212,8 +289,10 @@ module.exports = {
     initCollection,
     storeEmbedding,
     updateEmbeddingMetadata,
+    updateEmbedding,
     listEmbeddings,
     generateEmbedding,
+    deleteEmbedding,
     dropCollection,
     searchQdrant
 };
