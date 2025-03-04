@@ -7,15 +7,6 @@ import { BlogEntry, getBlog } from "@/services/blogService";
 import { marked } from "marked";
 import CommentSection from "@/components/CommentSection";
 
-// interface BlogEntry {
-//   _id: number;
-//   title: string;
-//   publishAt: string;
-//   body: string;
-//   excerpt?: string;
-//   link: string;
-// }
-
 export default function BlogPage() {
 
   const { slug } = useParams();
