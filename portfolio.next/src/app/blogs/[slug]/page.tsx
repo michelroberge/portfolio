@@ -11,6 +11,7 @@ export default function BlogPage() {
 
   const { slug } = useParams();
   const [blog, setBlog] = useState<BlogEntry|null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(()=>{
 
@@ -23,18 +24,23 @@ export default function BlogPage() {
       const blog = await getBlog(id);
   
       setBlog(blog);
+      setLoading(false);
     }
 
-    if ( slug){
+    if ( slug && loading){
       load(slug.toString());
     }
 
   }, [slug]); 
 
+  if ( loading){
+    return (
+      <p>Loading...</p>
+    )
+  }
   if (!blog) return 
-    (  <pre>
-        loading...
-      </pre>
+    (  
+      <></>
     );
 
   return (
