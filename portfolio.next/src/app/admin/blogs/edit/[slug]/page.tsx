@@ -25,7 +25,7 @@ export default function EditBlogEntry() {
 
     async function fetchBlog() {
       try {
-        const response = await fetch(`${apiUrl}/api/blogs/${id}`);
+        const response = await fetch(`${apiUrl}/api/blogs/${id}`, {credentials: "include"});
         if (!response.ok) throw new Error("Failed to fetch blog post");
         const data = await response.json();
 

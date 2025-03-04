@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const counterService = require("../services/counterService");
 
 const BlogEntrySchema = new mongoose.Schema({
   title: { type: String, required: true },
@@ -8,17 +9,19 @@ const BlogEntrySchema = new mongoose.Schema({
   isDraft: { type: Boolean, default: false },
   publishAt: { type: Date },
   vectorId : {type: Number, unique: true },
+  link : {type : String, default: null}
 }, { timestamps: true });
 
 // Generate slug and link from title.
-BlogEntrySchema.pre('save', function(next) {
+BlogEntrySchema.pre('save', async function(next) {
   const slug = this.title
     .toLowerCase()
     .replace(/[^\w\s-]/g, '') // Remove special characters.
     .replace(/\s+/g, '-')     // Replace spaces with hyphens.
     .replace(/-+/g, '-');     // Collapse multiple hyphens.
   
-  this.link = `${slug}-${this._id}`;
+  this.link = this.link || `${slug}-${this._id}`;
+  this.vectorId = this.vectorId || await counterService.getNextVectorId();
   next();
 });
 

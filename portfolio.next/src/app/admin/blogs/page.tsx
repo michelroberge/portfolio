@@ -24,7 +24,7 @@ export default function BlogManagement() {
     if (!isAuthenticated) return;
     async function fetchBlogs() {
       try {
-        const response = await fetch(`${apiUrl}/api/blogs`);
+        const response = await fetch(`${apiUrl}/api/blogs`, {credentials: "include"});
         if (!response.ok) throw new Error("Failed to fetch blogs");
         const data = await response.json();
         setBlogs(data);
