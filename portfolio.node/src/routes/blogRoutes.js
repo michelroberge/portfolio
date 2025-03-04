@@ -50,11 +50,9 @@ router.get("/", async (req, res) => {
 // Get a single blog entry by ID using the service module
 router.get("/:id", async (req, res) => {
   try {
-    console.log("id", req.params.id);
     const blog = await blogService.getBlogEntryById(req.params.id);
     if (!blog) return res.status(404).json({ error: "Entry not found" });
     
-    console.log("blog", blog);
     // For public requests, ensure the post is published.
     if (!req.cookies["auth-token"] && (blog.isDraft || (blog.publishAt && blog.publishAt > new Date()))) {
       return res.status(404).json({ error: "Entry not found" });
