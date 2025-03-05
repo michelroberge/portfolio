@@ -9,6 +9,7 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function NewProject() {
   const [title, setTitle] = useState("");
+  const [excerpt, setExcerpt] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
   const [link, setLink] = useState("");
@@ -22,7 +23,7 @@ export default function NewProject() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const projectData = { title, description, image, link, isDraft, publishAt, tags, industry };
+    const projectData = { title, excerpt, description, image, link, isDraft, publishAt, tags, industry };
     try {
       const response = await fetch(`${apiUrl}/api/projects`, {
         method: "POST",
@@ -53,6 +54,16 @@ export default function NewProject() {
           className="w-full p-2 border rounded"
           required
         />
+
+        <input
+          type="text"
+          placeholder="Excerpt"
+          value={excerpt}
+          onChange={(e) => setExcerpt(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        />
+
         <textarea
           placeholder="Project Description"
           value={description}

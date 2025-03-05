@@ -11,6 +11,7 @@ export default function EditProject() {
   const router = useRouter();
   const { id } = useParams();
   const [title, setTitle] = useState("");
+  const [excerpt, setExcerpt] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
   const [link, setLink] = useState("");
@@ -35,6 +36,7 @@ export default function EditProject() {
         setImage(data.image);
         setLink(data.link);
         setIsDraft(data.isDraft);
+        setExcerpt(data.excerpt);
         setPublishAt(data.publishAt ? new Date(data.publishAt).toISOString().split("T")[0] : null);
         setLoading(false);
       } catch (err) {
@@ -47,7 +49,7 @@ export default function EditProject() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const projectData = { title, description, image, link, isDraft, publishAt, tags, industry };
+    const projectData = { title, excerpt, description, image, link, isDraft, publishAt, tags, industry };
     try {
       const response = await fetch(`${apiUrl}/api/projects/${id}`, {
         method: "PUT",
@@ -79,6 +81,16 @@ export default function EditProject() {
           className="w-full p-2 border rounded"
           required
         />
+
+        <input
+          type="text"
+          placeholder="Excerpt"
+          value={excerpt}
+          onChange={(e) => setExcerpt(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        />
+
         <textarea
           placeholder="Project Description"
           value={description}
