@@ -225,9 +225,9 @@ async function searchQdrant(queryVector, collection = "projects", topK = 5, minS
  */
 async function generateEmbedding(text) {
     try {
-        console.log(`📡 Requesting embedding from Ollama for text: "${text.slice(0, 50)}..."`);
+        // console.log(`📡 Requesting embedding from Ollama for text: "${text.slice(0, 50)}..."`);
 
-        const response = await fetch(`${OLLAMA_URL}api/embeddings`, {
+        const response = await fetch(`${OLLAMA_URL}/api/embeddings`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ model: "mistral", prompt: text }),
@@ -236,7 +236,7 @@ async function generateEmbedding(text) {
         const data = await response.json();
         
         // Log the full response for debugging
-        console.log("🔍 Ollama Response:", JSON.stringify(data, null, 2));
+        // console.log("🔍 Ollama Response:", JSON.stringify(data, null, 2));
 
         if (!data || !data.embedding || !Array.isArray(data.embedding)) {
             throw new Error("Embedding data is missing or invalid");

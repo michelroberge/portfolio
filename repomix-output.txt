@@ -71,7 +71,7 @@ portfolio.next/public/window.svg
 portfolio.next/README.md
 portfolio.next/src/app/_not-found/page.tsx
 portfolio.next/src/app/admin/analytics/page.tsx
-portfolio.next/src/app/admin/blogs/edit/[id]/page.tsx
+portfolio.next/src/app/admin/blogs/edit/[slug]/page.tsx
 portfolio.next/src/app/admin/blogs/new/page.tsx
 portfolio.next/src/app/admin/blogs/page.tsx
 portfolio.next/src/app/admin/comments/page.tsx
@@ -113,7 +113,6 @@ portfolio.node/__tests__/jest-setup.test.js
 portfolio.node/__tests__/projectServices.test.js
 portfolio.node/__tests__/server.test.js
 portfolio.node/__tests__/userService.test.js
-portfolio.node/.env.test
 portfolio.node/Dockerfile
 portfolio.node/jest.config.js
 portfolio.node/jest.setup.js
@@ -1818,7 +1817,7 @@ export default function AnalyticsDashboard() {
 }
 
 ================
-File: portfolio.next/src/app/admin/blogs/edit/[id]/page.tsx
+File: portfolio.next/src/app/admin/blogs/edit/[slug]/page.tsx
 ================
 "use client";
 
@@ -1847,7 +1846,7 @@ export default function EditBlogEntry() {
 
     async function fetchBlog() {
       try {
-        const response = await fetch(`${apiUrl}/api/blogs/${id}`);
+        const response = await fetch(`${apiUrl}/api/blogs/${id}`, {credentials: "include"});
         if (!response.ok) throw new Error("Failed to fetch blog post");
         const data = await response.json();
 
@@ -2101,7 +2100,7 @@ export default function BlogManagement() {
     if (!isAuthenticated) return;
     async function fetchBlogs() {
       try {
-        const response = await fetch(`${apiUrl}/api/blogs`);
+        const response = await fetch(`${apiUrl}/api/blogs`, {credentials: "include"});
         if (!response.ok) throw new Error("Failed to fetch blogs");
         const data = await response.json();
         setBlogs(data);
@@ -2318,20 +2317,12 @@ export default function AdminLogin() {
   // Get returnUrl from the query string, default to /admin if not provided
   // const returnUrl = window.location.href;
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  const {isAuthenticated, setIsAuthenticated} = useAuth(); 
+  const {isAuthenticated, login} = useAuth(); 
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    const res = await fetch(`${apiUrl}/api/auth/login`, {
-      method: "POST",
-      credentials: "include", // Ensures the auth-token cookie is stored
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
-
-    if (res.ok) {
-      setIsAuthenticated(true);
+    if ( await login(username, password)){
       if ( returnUrl){
         router.push(returnUrl);
       }
@@ -2831,11 +2822,14 @@ export default function ProjectManagement() {
               <td className="border border-gray-300 p-2">{project.title}</td>
               <td className="border border-gray-300 p-2">{project.description}</td>
               <td className="border border-gray-300 p-2">
+                {project.image &&
                 <Image
                   src={project.image}
                   alt={project.title}
                   className="h-16 w-auto object-contain"
                 />
+                }
+                {!project.image && <span>No image</span>}
               </td>
               <td className="border border-gray-300 p-2">
                 <a
@@ -3302,37 +3296,50 @@ export default function UserManagement() {
 ================
 File: portfolio.next/src/app/blogs/[slug]/page.tsx
 ================
-// portfolio.next/src/app/blogs/[slug]/page.tsx
-import { notFound } from "next/navigation";
-import { getBlog } from "@/services/blogService";
+"use client";
+
+import { useEffect, useState } from "react";
+
+import { notFound, useParams } from "next/navigation";
+import { BlogEntry, getBlog } from "@/services/blogService";
 import { marked } from "marked";
 import CommentSection from "@/components/CommentSection";
 
-// interface BlogEntry {
-//   _id: number;
-//   title: string;
-//   publishAt: string;
-//   body: string;
-//   excerpt?: string;
-//   link: string;
-// }
+export default function BlogPage() {
 
-type Props = {
-  params: Promise<{ slug: string }>;
-};
+  const { slug } = useParams();
+  const [blog, setBlog] = useState<BlogEntry|null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
-export default async function BlogPage({ params }: Props) {
-  const { slug } = await params;
+  useEffect(()=>{
 
-  if (!slug) return notFound();
+    async function load(slug : string){
+      const id = slug.toString().split("-").pop();
+      console.log('slug', slug);
+      console.log('id', id);
+      if (!id) return notFound();
+  
+      const blog = await getBlog(id);
+  
+      setBlog(blog);
+      setLoading(false);
+    }
 
-  // Extract the last number after '-' in the slug as the id.
-  const id = slug.split("-").pop();
-  if (!id) return notFound();
+    if ( slug && loading){
+      load(slug.toString());
+    }
 
-  const blog = await getBlog(id);
+  }, [slug]); 
 
-  if (!blog) return notFound();
+  if ( loading){
+    return (
+      <p>Loading...</p>
+    )
+  }
+  if (!blog) return 
+    (  
+      <></>
+    );
 
   return (
     <>
@@ -3531,8 +3538,9 @@ export default function Home() {
               href={project.link}
               className="flex items-center p-3 bg-gray-100 rounded-sm hover:bg-gray-200 transition"
             >
+              {project.image && 
             <Image src={project.image} alt={project.title} 
-                className="max-h-12  object-cover mr-4 rounded" />
+                className="max-h-12  object-cover mr-4 rounded" /> }
               <div>
                 <h3 className="text-lg font-semibold">{project.title}</h3>
                 <p className="text-sm text-gray-500">{project.description}</p>
@@ -3961,20 +3969,22 @@ export default function Header() {
             <p className="text-xs">(the Northern Developer)</p>
           </div>
         </Link>
-        <div>
-          { isAuthenticated && isAdmin && (
-            <Link href={`/admin`}>
-              <FontAwesomeIcon icon={faCog} className="w-6 h-6 flex item-center text-white hover:text-gray-300 me-4" />
+        <div className="flex items-center gap-4">
+          {isAuthenticated && isAdmin && (
+            <Link href={`/admin`} className="flex items-center gap-2 text-white hover:text-gray-300">
+              <FontAwesomeIcon icon={faCog} className="w-6 h-6" />
+              <span>Admin Panel</span>
             </Link>
           )}
+
           {!isAuthenticated ? (
-            <Link href={`/admin/login?returnUrl=${encodeURIComponent(pathname)}`}>
-              <FontAwesomeIcon icon={faSignInAlt} className="w-6 h-6 flex item-center text-white hover:text-gray-300" />
+            <Link href={`/admin/login?returnUrl=${encodeURIComponent(pathname)}`} className="flex items-center gap-2 text-white hover:text-gray-300">
+              <FontAwesomeIcon icon={faSignInAlt} className="w-6 h-6" />
               <span>Login</span>
             </Link>
           ) : (
-            <button onClick={handleLogout}>
-              <FontAwesomeIcon icon={faSignOutAlt} className="w-6 h-6 flex item-center text-white hover:text-gray-300" />
+            <button onClick={handleLogout} className="flex items-center gap-2 text-white hover:text-gray-300">
+              <FontAwesomeIcon icon={faSignOutAlt} className="w-6 h-6" />
               <span>Logout</span>
             </button>
           )}
@@ -4078,7 +4088,8 @@ interface AuthContextType {
   setIsAuthenticated: (val: boolean) => void;
   setUser: (user: User | null) => void;
   refreshAuth: () => Promise<void>;
-} 
+  login: (username : string, password : string) => Promise<boolean>;
+}
 
 interface User {
   username: string;
@@ -4113,12 +4124,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // useEffect(() => {
-  //   refreshAuth();
-  // }, []);
+  async function login(username : string, password : string) : Promise<boolean>  {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+      method: "POST",
+      credentials: "include", // Ensures the auth-token cookie is stored
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+
+    if (res.ok) {
+      await refreshAuth();
+      setIsAuthenticated(true);
+      return true;
+    }
+    return false;
+  }
 
   return (
-    <AuthContext.Provider value={{ isAdmin, isAuthenticated, user, setIsAuthenticated, setUser, refreshAuth }}>
+    <AuthContext.Provider value={{ isAdmin, isAuthenticated, user, setIsAuthenticated, setUser, refreshAuth, login }}>
       {children}
     </AuthContext.Provider>
   );
@@ -4889,12 +4912,6 @@ describe("User Service", () => {
 });
 
 ================
-File: portfolio.node/.env.test
-================
-MONGO_URI=mongodb://10.0.0.151:27017/portfolio-test
-PORT=5000
-
-================
 File: portfolio.node/Dockerfile
 ================
 FROM node:22
@@ -4926,12 +4943,11 @@ File: portfolio.node/package.json
   "name": "portfolio.node",
   "version": "1.0.0",
   "description": "",
-  "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "test": "jest",
-    "test:watch": "jest --watch"
+    "dev": "cross-env NODE_ENV=development nodemon src/server.js",
+    "test": "cross-env NODE_ENV=test jest",
+    "test:watch": "cross-env NODE_ENV=test jest --watch"
   },
   "keywords": [],
   "author": "",
@@ -4967,6 +4983,7 @@ File: portfolio.node/package.json
   "devDependencies": {
     "@types/jest": "^29.5.14",
     "@types/supertest": "^6.0.2",
+    "cross-env": "^7.0.3",
     "jest": "^29.7.0",
     "mongodb-memory-server": "^10.1.4",
     "nodemon": "^3.1.9",
@@ -4980,7 +4997,10 @@ File: portfolio.node/src/app.js
 // Telemetry first
 require('./tracing');
 // The rest.
-require("dotenv").config();
+require("dotenv").config({ path: `.env.${process.env.NODE_ENV}.local` });
+
+console.log(`✅ Loaded environment: .env.${process.env.NODE_ENV}.local`);
+
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
@@ -5901,6 +5921,94 @@ paths:
           description: Metadata updated successfully
         "404":
           description: Embedding not found
+  /embeddings/{id}/vector:
+    put:
+      tags: [Embeddings]
+      summary: Update an embedding vector for a document
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newContent:
+                  type: string
+                  example: "Updated content of my document."
+                metadata:
+                  type: object
+                  example: { "author": "John Doe", "category": "AI" }
+      responses:
+        "200":
+          description: Embedding updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Embedding"
+        "404":
+          description: Embedding not found
+        "500":
+          description: Server error
+  /embeddings/{id}:
+    delete:
+      tags: [Embeddings]
+      summary: Delete an embedding by ID
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Embedding deleted successfully
+        "404":
+          description: Embedding not found
+        "500":
+          description: Server error
+  /embeddings/search:
+    post:
+      tags: [Embeddings]
+      summary: Perform a similarity search in Qdrant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                queryVector:
+                  type: array
+                  items:
+                    type: number
+                  example: [0.12, 0.98, 0.33, 0.76]
+                topK:
+                  type: integer
+                  default: 5
+                minScore:
+                  type: number
+                  default: 0.5
+      responses:
+        "200":
+          description: Search results retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EmbeddingSearchResult"
+        "500":
+          description: Server error
 
   /embeddings/list:
     get:
@@ -5919,6 +6027,40 @@ paths:
                   $ref: "#/components/schemas/EmbeddingEntry"
         "500":
           description: Internal server error
+
+  /embeddings:
+    post:
+      tags: [Embeddings]
+      summary: Store a new embedding for a document
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filePath:
+                  type: string
+                  example: "/documents/article.txt"
+                content:
+                  type: string
+                  example: "This is the content of my document."
+                metadata:
+                  type: object
+                  example: { "author": "John Doe", "category": "Technology" }
+      responses:
+        "201":
+          description: Embedding stored successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Embedding"
+        "400":
+          description: Invalid input
+        "500":
+          description: Server error
 
   /chat/context:
     post:
@@ -6261,6 +6403,33 @@ components:
           type: object
           additionalProperties: true
 
+    Embedding:
+      type: object
+      properties:
+        id:
+          type: integer
+        filePath:
+          type: string
+          example: "/documents/article.txt"
+        metadata:
+          type: object
+          example: { "author": "John Doe", "category": "Technology" }
+        externalId:
+          type: integer
+          example: 12345
+
+    EmbeddingSearchResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        filePath:
+          type: string
+        score:
+          type: number
+        metadata:
+          type: object
+
     WebContextRequest:
       type: object
       properties:
@@ -6394,6 +6563,7 @@ module.exports = (schema) => {
 File: portfolio.node/src/models/BlogEntry.js
 ================
 const mongoose = require("mongoose");
+const counterService = require("../services/counterService");
 
 const BlogEntrySchema = new mongoose.Schema({
   title: { type: String, required: true },
@@ -6403,17 +6573,19 @@ const BlogEntrySchema = new mongoose.Schema({
   isDraft: { type: Boolean, default: false },
   publishAt: { type: Date },
   vectorId : {type: Number, unique: true },
+  link : {type : String, default: null}
 }, { timestamps: true });
 
 // Generate slug and link from title.
-BlogEntrySchema.pre('save', function(next) {
+BlogEntrySchema.pre('save', async function(next) {
   const slug = this.title
     .toLowerCase()
     .replace(/[^\w\s-]/g, '') // Remove special characters.
     .replace(/\s+/g, '-')     // Replace spaces with hyphens.
     .replace(/-+/g, '-');     // Collapse multiple hyphens.
   
-  this.link = `${slug}-${this._id}`;
+  this.link = this.link || `${slug}-${this._id}`;
+  this.vectorId = this.vectorId || await counterService.getNextVectorId();
   next();
 });
 
@@ -6496,6 +6668,7 @@ const mongoose = require("mongoose");
 const EmbeddingSchema = new mongoose.Schema({
     filePath: { type: String, required: true },
     metadata: { type: Object, default: {} },
+    externalId: { type: Number, required: true}
 }, { timestamps: true });
 
 module.exports = mongoose.model("Embedding", EmbeddingSchema);
@@ -6647,23 +6820,20 @@ File: portfolio.node/src/routes/blogRoutes.js
 ================
 // portfolio.node/src/routes/blogRoutes.js
 const express = require("express");
-const authMiddleware = require("../middlewares/auth");
+const isAuth = require("../middlewares/auth");
+const isAdmin = require("../middlewares/admin");
 const blogService = require("../services/blogService");
+const authService = require("../services/authService");
 const router = express.Router();
 const validate = require("../middlewares/validate");
 const { createBlogSchema } = require("../validators/blogValidator");
 
 
 // Create a new blog entry using the service module
-router.post("/", authMiddleware, validate(createBlogSchema), async (req, res) => {
+router.post("/", isAuth, isAdmin, validate(createBlogSchema), async (req, res) => {
   try {
-    if  (!req.user?.isAdmin === true){
-      res.status(403);
-    }
-    else{
       const newEntry = await blogService.createBlogEntry(req.body);
       res.status(201).json(newEntry);
-    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -6673,6 +6843,15 @@ router.post("/", authMiddleware, validate(createBlogSchema), async (req, res) =>
 router.get("/", async (req, res) => {
   try {
     let filter = {};
+    try{
+      const token = req.cookies["auth-token"];
+      const decoded = authService.verifyToken(token);
+      req.user = decoded; // Attach user info to the request object
+    }
+    catch (err){
+      // swallow error, user  is just not authenticated.
+    }
+
     // If no auth token, assume a public request.
     if (!req.user?.isAdmin === true) {
       filter = { 
@@ -6706,13 +6885,8 @@ router.get("/:id", async (req, res) => {
 
 
 // Update a blog entry by ID using the service module
-router.put("/:id", authMiddleware, validate(createBlogSchema), async (req, res) => {
+router.put("/:id", isAuth, isAdmin, validate(createBlogSchema), async (req, res) => {
   try {
-
-    if  (!req.user?.isAdmin === true){
-      res.status(403);
-    }
-
     const updatedEntry = await blogService.updateBlogEntry(req.params.id, req.body);
     if (!updatedEntry) return res.status(404).json({ error: "Entry not found" });
     res.json(updatedEntry);
@@ -6722,13 +6896,8 @@ router.put("/:id", authMiddleware, validate(createBlogSchema), async (req, res) 
 });
 
 // Delete a blog entry by ID using the service module
-router.delete("/:id", authMiddleware, async (req, res) => {
+router.delete("/:id", isAuth, isAdmin, async (req, res) => {
   try {
-
-    if  (!req.user?.isAdmin === true){
-      res.status(403);
-    }
-
     const deletedEntry = await blogService.deleteBlogEntry(req.params.id);
     if (!deletedEntry) return res.status(404).json({ error: "Entry not found" });
     res.json({ message: "Entry deleted successfully" });
@@ -6886,7 +7055,7 @@ File: portfolio.node/src/routes/embeddingRoutes.js
 const express = require("express");
 const {
     parseLocalDirectory,
-    updateEmbeddingMetadata,
+    updateEmbedding,
     listEmbeddings
 } = require("../services/embeddingService");  //
 const isAdmin = require("../middlewares/admin");
@@ -6918,7 +7087,7 @@ router.put("/:id/metadata", isAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         const { metadata } = req.body;
-        const result = await updateEmbeddingMetadata(id, metadata);
+        const result = await updateEmbeddingMetadata({id, metadata});
         res.status(200).json(result);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -6938,6 +7107,56 @@ router.get("/list", isAdmin, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+/**
+ * @route POST /api/embeddings
+ * @desc Store a new embedding for a document
+ * @access Admin
+ */
+router.post("/", isAdmin, async (req, res) => {
+    try {
+        const { filePath, content, metadata } = req.body;
+        const result = await storeEmbedding(filePath, content, metadata);
+        res.status(201).json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @route DELETE /api/embeddings/:id
+ * @desc Delete an embedding by ID
+ * @access Admin
+ */
+router.delete("/:id", isAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const success = await deleteEmbedding(id);
+        if (success) {
+            res.status(200).json({ message: "Embedding deleted successfully." });
+        } else {
+            res.status(404).json({ error: "Embedding not found." });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @route POST /api/embeddings/search
+ * @desc Perform a similarity search in Qdrant
+ * @access Public
+ */
+router.post("/search", async (req, res) => {
+    try {
+        const { queryVector, topK, minScore } = req.body;
+        const results = await searchQdrant(queryVector, COLLECTION_NAME, topK, minScore);
+        res.status(200).json(results);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 
 module.exports = router;
 
@@ -7525,6 +7744,8 @@ File: portfolio.node/src/services/blogService.js
 ================
 // portfolio.node/src/services/blogService.js
 const BlogEntry = require("../models/BlogEntry");
+const counterService = require("../services/counterService");
+
 const { addToCache, clearCache } = require("../cache");
 
 /**
@@ -7533,10 +7754,15 @@ const { addToCache, clearCache } = require("../cache");
  * @returns {Promise<Object>} - The saved blog entry.
  */
 async function createBlogEntry(data) {
-  const newEntry = new BlogEntry(data);
-  await newEntry.save();
-  addToCache("blogs", newEntry);
-  return newEntry;
+  try{
+    const newEntry = new BlogEntry(data);
+    await newEntry.save();
+    addToCache("blogs", newEntry);
+    return newEntry;
+  }
+  catch (err){
+    console.error(err);
+  }
 }
 
 /**
@@ -7566,6 +7792,7 @@ async function getBlogEntryById(id) {
  */
 async function updateBlogEntry(id, data) {
   const updatedEntry = await BlogEntry.findByIdAndUpdate(id, data, { new: true });
+  updatedEntry.save();
   return updatedEntry;
 }
 
@@ -8251,10 +8478,10 @@ async function storeEmbedding(filePath, content, metadata = {}) {
         }
 
         // Store in MongoDB
-        const embeddingEntry = await Embedding.create({ filePath, metadata });
+        const id = await counterService.getNextVectorId("embedding");
+        const embeddingEntry = await Embedding.create({ filePath, metadata, externalId: id });
 
         // Store in Qdrant
-        const id = await counterService.getNextVectorId("embedding");
         await qdrantClient.upsert(COLLECTION_NAME, {
             points: [
                 {
@@ -8275,28 +8502,82 @@ async function storeEmbedding(filePath, content, metadata = {}) {
 
 /**
  * Updates metadata for an embedding entry in MongoDB and Qdrant.
- * @param {string} id - The embedding document ID.
- * @param {object} metadata - Updated metadata.
+ * @param {object} payload - The embedding document by id or name and the metadata.
  */
-async function updateEmbeddingMetadata(id, metadata) {
+async function updateEmbeddingMetadata({ id = null, filePath = null, metadata }) {
     try {
-        const embedding = await Embedding.findByIdAndUpdate(id, { metadata }, { new: true });
-        if (!embedding) {
-            throw new Error("Embedding not found.");
+        let embeddings;
+
+        if (id) {
+            // ✅ Update a single embedding by ID
+            embeddings = await Embedding.find({ externalId: id });
+            if (embeddings.length === 0) throw new Error("Embedding not found.");
+        } else if (filePath) {
+            // ✅ Update all embeddings for a filePath
+            embeddings = await Embedding.find({ filePath });
+            if (embeddings.length === 0) throw new Error("No embeddings found for file.");
+        } else {
+            throw new Error("Either id or filePath must be provided.");
         }
 
+        // ✅ Update metadata in MongoDB
+        await Embedding.updateMany({ _id: { $in: embeddings.map(e => e._id) } }, { metadata });
+
+        // ✅ Update in Qdrant
         await qdrantClient.updatePayload(COLLECTION_NAME, {
-            points: [{ id }],
+            points: embeddings.map(e => e.externalId), // Ensure IDs are updated correctly
             payload: { metadata },
         });
 
-        console.log(`✅ Updated metadata for embedding ID: ${id}`);
-        return embedding;
+        console.log(`✅ Updated metadata for ${embeddings.length} embeddings.`);
+        return embeddings;
     } catch (error) {
         console.error(`❌ Error updating metadata:`, error.message);
         return null;
     }
 }
+
+async function updateEmbedding(filePath, newContent, metadata) {
+    try {
+        // ✅ Find existing embedding by filePath
+        const embedding = await Embedding.findOne({ filePath });
+        if (!embedding) {
+            throw new Error("Embedding not found for file.");
+        }
+
+        // ✅ Generate a new vector (since content changed)
+        const newVector = await generateEmbedding(newContent);
+        if (!newVector) {
+            throw new Error("Failed to generate new embedding.");
+        }
+
+        // ✅ Validate vector
+        if (!Array.isArray(newVector) || newVector.length !== VECTOR_SIZE || newVector.some(isNaN)) {
+            throw new Error("Invalid embedding vector.");
+        }
+
+        // ✅ Update vector + metadata in Qdrant
+        await qdrantClient.upsert(COLLECTION_NAME, {
+            points: [
+                {
+                    id: embedding.externalId, // Keep the same ID
+                    vector: newVector, // ✅ Overwrite vector
+                    payload: { filePath, metadata }, // ✅ Overwrite metadata
+                },
+            ],
+        });
+
+        // ✅ Update metadata in MongoDB
+        await Embedding.updateOne({ filePath }, { metadata });
+
+        console.log(`✅ Updated embedding & metadata for file: ${filePath}`);
+        return embedding;
+    } catch (error) {
+        console.error(`❌ Error updating embedding:`, error.message);
+        return null;
+    }
+}
+
 
 /**
  * Retrieves all stored embeddings from MongoDB.
@@ -8391,6 +8672,29 @@ async function generateEmbedding(text) {
     }
 }
 
+async function deleteEmbedding(filePath) {
+    try {
+        const embedding = await Embedding.findOne({ filePath });
+        if (!embedding) {
+            throw new Error("Embedding not found.");
+        }
+
+        // ✅ Remove from Qdrant
+        await qdrantClient.delete(COLLECTION_NAME, {
+            points: [embedding.externalId],
+        });
+
+        // ✅ Remove from MongoDB
+        await Embedding.deleteOne({ filePath });
+
+        console.log(`✅ Deleted embedding for file: ${filePath}`);
+        return true;
+    } catch (error) {
+        console.error(`❌ Error deleting embedding:`, error.message);
+        return false;
+    }
+}
+
 
 /**
  * Deletes the entire Qdrant collection.
@@ -8408,8 +8712,10 @@ module.exports = {
     initCollection,
     storeEmbedding,
     updateEmbeddingMetadata,
+    updateEmbedding,
     listEmbeddings,
     generateEmbedding,
+    deleteEmbedding,
     dropCollection,
     searchQdrant
 };
