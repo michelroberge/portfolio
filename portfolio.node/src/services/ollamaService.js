@@ -1,6 +1,7 @@
 // portfolio.node/src/services/ollamaService.js
 
-const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
+const OLLAMA_URL = process.env.OLLAMA_URL || "http://10.0.0.42:11434";
+const PROMPT_MODEL = process.env.PROMPT_MODEL || "mistral";
 
 /**
  * Sends a structured prompt to the Ollama AI model and retrieves a response.
@@ -9,11 +10,11 @@ const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
  */
 async function generateResponse(prompt) {
   try {
-    const response = await fetch(`${OLLAMA_URL}api/generate`, {
+    const response = await fetch(`${OLLAMA_URL}/api/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "mistral", // Change this if using a different model
+        model: PROMPT_MODEL,
         prompt: prompt,
         max_tokens: 200,
         temperature: 0.7,
@@ -59,7 +60,9 @@ async function generateResponse(prompt) {
 
 async function generateResponseStream(prompt) {
 
-    const response = await fetch(`${OLLAMA_URL}api/generate`, {
+  const url = `${OLLAMA_URL}/api/generate`;
+  // console.log("calling ollama", url);
+    const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

@@ -1,5 +1,7 @@
 const Prompt = require("../models/Prompt");
 const { generateEmbedding, searchQdrant } = require("../services/qdrantService");
+const projectService = require("../services/projectService");
+const blogService = require("../services/blogService");
 
 /**
  * Generates a structured AI prompt based on user input, retrieved context, and history.
@@ -16,15 +18,25 @@ async function generatePrompt(query, history = [], webContext = "") {
 
         // Generate embeddings and search for relevant documents
         const vectors = await generateEmbedding(query);
-        const relatedDocs = await searchQdrant(vectors, "projects", 5, 0.7);
+        const relatedDocs = await searchQdrant(vectors, "projects", 5, 0.3);
 
         // Format context from retrieved documents
         let context = "";
         let sources = [];
+        let projectContext = "";
+        let blogEntries = "";
+
         if (relatedDocs.length > 0) {
             context = relatedDocs.map((doc) => doc.payload.text).join("\n");
             sources = relatedDocs.map((doc) => doc.source || "Unknown source");
         } else {
+
+            const projects = await projectService.getAllProjects();
+            const blogs = await blogService.getAllBlogEntries();
+
+            projectContext = JSON.stringify(projects);
+            blogEntries = JSON.stringify(blogs);
+
             console.log(`⚠️ No relevant documents found for query: "${query}".`);
             context = "No directly related documents were found, but I'll still do my best to help.";
         }
@@ -39,7 +51,9 @@ async function generatePrompt(query, history = [], webContext = "") {
             .replace("{{query}}", query)
             .replace("{{history}}", formatChatHistory(history))
             .replace("{{webContext}}", formattedWebContext)
-            .replace("{{context}}", context);
+            .replace("{{context}}", context)
+            .replace("{{projects}}", projectContext)
+            .replace("{{blogs}}", blogEntries);
 
         return { formattedPrompt, sources };
     } catch (error) {
@@ -60,12 +74,24 @@ function formatChatHistory(history) {
 
 function getDefaultTemplate(){
     return  `
-    You are an AI assistant helping showcase my portfolio. You ONLY use the provided context to answer questions.
-    If a question is about my projects, focus specifically on projects in the provided context.
-    If the question is unrelated to my work, say "I'm here to discuss my portfolio. Ask me about my projects or skills!"
+    # AI Role
+    AI assistant helping showcase a developer's portfolio. 
+    The user is someone accessing the developer's site who is interested in that developer knowledge, skill and/or backgroudn.
+    The AI ONLY use the provided context to answer questions.
+    If a question is about projects, focus specifically on projects in the provided context.
+    If the question is unrelated to context, you can answer unless:
+    - it is illegal
+    - dangerous
+    - is outside the concept of the portfolio showcasing a developer's background and skills.
     
     ### Context:
     {{context}}
+
+    ### Projects:
+    {{projects}}
+
+    ### Blogs:
+    {{blogs}}
 
     ### WebContext:
     {{webContext}} 

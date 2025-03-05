@@ -1,7 +1,10 @@
 // Telemetry first
 require('./tracing');
 // The rest.
-require("dotenv").config();
+require("dotenv").config({ path: `.env.${process.env.NODE_ENV}.local` });
+
+console.log(`✅ Loaded environment: .env.${process.env.NODE_ENV}.local`);
+
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");

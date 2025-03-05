@@ -16,20 +16,12 @@ export default function AdminLogin() {
   // Get returnUrl from the query string, default to /admin if not provided
   // const returnUrl = window.location.href;
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  const {isAuthenticated, setIsAuthenticated} = useAuth(); 
+  const {isAuthenticated, login} = useAuth(); 
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    const res = await fetch(`${apiUrl}/api/auth/login`, {
-      method: "POST",
-      credentials: "include", // Ensures the auth-token cookie is stored
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
-
-    if (res.ok) {
-      setIsAuthenticated(true);
+    if ( await login(username, password)){
       if ( returnUrl){
         router.push(returnUrl);
       }

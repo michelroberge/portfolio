@@ -73,8 +73,9 @@ export default function Home() {
               href={project.link}
               className="flex items-center p-3 bg-gray-100 rounded-sm hover:bg-gray-200 transition"
             >
+              {project.image && 
             <Image src={project.image} alt={project.title} 
-                className="max-h-12  object-cover mr-4 rounded" />
+                className="max-h-12  object-cover mr-4 rounded" /> }
               <div>
                 <h3 className="text-lg font-semibold">{project.title}</h3>
                 <p className="text-sm text-gray-500">{project.description}</p>

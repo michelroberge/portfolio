@@ -36,20 +36,22 @@ export default function Header() {
             <p className="text-xs">(the Northern Developer)</p>
           </div>
         </Link>
-        <div>
-          { isAuthenticated && isAdmin && (
-            <Link href={`/admin`}>
-              <FontAwesomeIcon icon={faCog} className="w-6 h-6 flex item-center text-white hover:text-gray-300 me-4" />
+        <div className="flex items-center gap-4">
+          {isAuthenticated && isAdmin && (
+            <Link href={`/admin`} className="flex items-center gap-2 text-white hover:text-gray-300">
+              <FontAwesomeIcon icon={faCog} className="w-6 h-6" />
+              <span>Admin Panel</span>
             </Link>
           )}
+
           {!isAuthenticated ? (
-            <Link href={`/admin/login?returnUrl=${encodeURIComponent(pathname)}`}>
-              <FontAwesomeIcon icon={faSignInAlt} className="w-6 h-6 flex item-center text-white hover:text-gray-300" />
+            <Link href={`/admin/login?returnUrl=${encodeURIComponent(pathname)}`} className="flex items-center gap-2 text-white hover:text-gray-300">
+              <FontAwesomeIcon icon={faSignInAlt} className="w-6 h-6" />
               <span>Login</span>
             </Link>
           ) : (
-            <button onClick={handleLogout}>
-              <FontAwesomeIcon icon={faSignOutAlt} className="w-6 h-6 flex item-center text-white hover:text-gray-300" />
+            <button onClick={handleLogout} className="flex items-center gap-2 text-white hover:text-gray-300">
+              <FontAwesomeIcon icon={faSignOutAlt} className="w-6 h-6" />
               <span>Logout</span>
             </button>
           )}

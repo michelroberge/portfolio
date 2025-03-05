@@ -10,7 +10,8 @@ interface AuthContextType {
   setIsAuthenticated: (val: boolean) => void;
   setUser: (user: User | null) => void;
   refreshAuth: () => Promise<void>;
-} 
+  login: (username : string, password : string) => Promise<boolean>;
+}
 
 interface User {
   username: string;
@@ -45,12 +46,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // useEffect(() => {
-  //   refreshAuth();
-  // }, []);
+  async function login(username : string, password : string) : Promise<boolean>  {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+      method: "POST",
+      credentials: "include", // Ensures the auth-token cookie is stored
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+
+    if (res.ok) {
+      await refreshAuth();
+      setIsAuthenticated(true);
+      return true;
+    }
+    return false;
+  }
 
   return (
-    <AuthContext.Provider value={{ isAdmin, isAuthenticated, user, setIsAuthenticated, setUser, refreshAuth }}>
+    <AuthContext.Provider value={{ isAdmin, isAuthenticated, user, setIsAuthenticated, setUser, refreshAuth, login }}>
       {children}
     </AuthContext.Provider>
   );

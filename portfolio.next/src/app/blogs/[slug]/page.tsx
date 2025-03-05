@@ -1,34 +1,47 @@
-// portfolio.next/src/app/blogs/[slug]/page.tsx
-import { notFound } from "next/navigation";
-import { getBlog } from "@/services/blogService";
+"use client";
+
+import { useEffect, useState } from "react";
+
+import { notFound, useParams } from "next/navigation";
+import { BlogEntry, getBlog } from "@/services/blogService";
 import { marked } from "marked";
 import CommentSection from "@/components/CommentSection";
 
-// interface BlogEntry {
-//   _id: number;
-//   title: string;
-//   publishAt: string;
-//   body: string;
-//   excerpt?: string;
-//   link: string;
-// }
+export default function BlogPage() {
 
-type Props = {
-  params: Promise<{ slug: string }>;
-};
+  const { slug } = useParams();
+  const [blog, setBlog] = useState<BlogEntry|null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
-export default async function BlogPage({ params }: Props) {
-  const { slug } = await params;
+  useEffect(()=>{
 
-  if (!slug) return notFound();
+    async function load(slug : string){
+      const id = slug.toString().split("-").pop();
+      console.log('slug', slug);
+      console.log('id', id);
+      if (!id) return notFound();
+  
+      const blog = await getBlog(id);
+  
+      setBlog(blog);
+      setLoading(false);
+    }
 
-  // Extract the last number after '-' in the slug as the id.
-  const id = slug.split("-").pop();
-  if (!id) return notFound();
+    if ( slug && loading){
+      load(slug.toString());
+    }
 
-  const blog = await getBlog(id);
+  }, [slug]); 
 
-  if (!blog) return notFound();
+  if ( loading){
+    return (
+      <p>Loading...</p>
+    )
+  }
+  if (!blog) return 
+    (  
+      <></>
+    );
 
   return (
     <>

@@ -59,6 +59,12 @@ export default function AdminDashboard() {
           <h2 className="text-lg font-medium text-gray-800">Manage Users</h2>
           <p className="text-sm text-gray-500">Edit, create and manage users</p>
         </Link>
+        <Link href="/admin/settings/ai-model"
+          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+        >
+          <h2 className="text-lg font-medium text-gray-800">AI Model</h2>
+          <p className="text-sm text-gray-500">Configure Artificial Intelligence Model</p>
+        </Link>
       </div>
     </div>
   );

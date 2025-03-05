@@ -1,6 +1,7 @@
 // portfolio.node/src/services/chatService.js
 const ChatMessage = require("../models/ChatMessage");
 const {searchQdrant, generateEmbedding} = require("../services/qdrantService");
+const providerConfigService = require("../services/providerConfigService");
 const ollamaService = require("../services/ollamaService"); // AI Model Integration
 const generatePrompt = require("../utils/generatePrompt");
 
@@ -17,8 +18,16 @@ async function processChat(sessionId, query, history = [], webContext = "") {
       // Generate AI prompt
       const { formattedPrompt, sources } = await generatePrompt(query, history, webContext);
 
-      // Send to AI model
-      const response = await ollamaService.generateResponse(formattedPrompt);
+      const config = await providerConfigService.getAIConfig();
+      let response;
+      
+      if (config.provider === "ollama") {
+        response = await ollamaService.generateResponse(formattedPrompt);
+      } else if (config.provider === "openai") {
+        response = await requestOpenAIResponse(formattedPrompt, history, config.clientId, config.clientSecret);
+      } else {
+        throw new Error("Invalid AI provider configured");
+      }
 
       // Store user message & AI response in chat history
       await ChatMessage.create({ sessionId, role: "user", text: query });
@@ -42,4 +51,22 @@ async function getChatHistory(sessionId) {
   return await ChatMessage.find({ sessionId }).sort({ createdAt: 1 });
 }
 
+async function requestOpenAIResponse(query, history, clientId, clientSecret) {
+  
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${clientSecret}`,
+      "OpenAI-Organization": clientId,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4",
+      messages: history.concat([{ role: "user", content: query }]),
+      temperature: 0.7,
+    }),
+  });
+
+  return response.data.choices[0].message.content;
+}
 module.exports = { processChat, getChatHistory };

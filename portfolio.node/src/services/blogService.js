@@ -1,5 +1,7 @@
 // portfolio.node/src/services/blogService.js
 const BlogEntry = require("../models/BlogEntry");
+const counterService = require("../services/counterService");
+
 const { addToCache, clearCache } = require("../cache");
 
 /**
@@ -8,10 +10,15 @@ const { addToCache, clearCache } = require("../cache");
  * @returns {Promise<Object>} - The saved blog entry.
  */
 async function createBlogEntry(data) {
-  const newEntry = new BlogEntry(data);
-  await newEntry.save();
-  addToCache("blogs", newEntry);
-  return newEntry;
+  try{
+    const newEntry = new BlogEntry(data);
+    await newEntry.save();
+    addToCache("blogs", newEntry);
+    return newEntry;
+  }
+  catch (err){
+    console.error(err);
+  }
 }
 
 /**
@@ -41,6 +48,7 @@ async function getBlogEntryById(id) {
  */
 async function updateBlogEntry(id, data) {
   const updatedEntry = await BlogEntry.findByIdAndUpdate(id, data, { new: true });
+  updatedEntry.save();
   return updatedEntry;
 }
 

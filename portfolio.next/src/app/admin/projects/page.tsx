@@ -81,11 +81,14 @@ export default function ProjectManagement() {
               <td className="border border-gray-300 p-2">{project.title}</td>
               <td className="border border-gray-300 p-2">{project.description}</td>
               <td className="border border-gray-300 p-2">
+                {project.image &&
                 <Image
                   src={project.image}
                   alt={project.title}
                   className="h-16 w-auto object-contain"
                 />
+                }
+                {!project.image && <span>No image</span>}
               </td>
               <td className="border border-gray-300 p-2">
                 <a
