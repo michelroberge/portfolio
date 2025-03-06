@@ -8,6 +8,7 @@ import { BlogEntry } from "@/models/BlogEntry";
   export async function getBlog(id: string): Promise<BlogEntry | null> {
     try {
       const url = `${process.env.NEXT_PUBLIC_API_URL}/api/blogs/${id}`;
+      console.log('url', url);
       const response = await fetch(url);
       if (!response.ok) return null;
       const data: BlogEntry = await response.json();
@@ -21,3 +22,51 @@ import { BlogEntry } from "@/models/BlogEntry";
     }
   }
   
+  export async function getBlogs(): Promise<BlogEntry[]> {
+    try {
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/blogs`;
+      const res = await fetch(url, {
+        method: "GET",
+        credentials: "include",
+      });
+  
+      if (!res.ok) throw new Error("Failed to fetch blogs");
+  
+      return await res.json();
+    } catch (error) {
+      console.error(error);
+      throw new Error("Error fetching blogs");
+    }
+  }
+  
+  export async function archiveBlog(id: string) {
+    try {
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/blogs/${id}`;
+      const res = await fetch(`${url}/api/blogs/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+  
+      if (!res.ok) throw new Error("Failed to archive blog post");
+    } catch (error) {
+      console.error(error);
+      throw new Error("Error archiving blog");
+    }
+  }
+
+  export async function updateBlog(id: string, blogData: Partial<BlogEntry>) {
+    try {
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/blogs/${id}`;
+      const res = await fetch(url, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(blogData),
+      });
+  
+      if (!res.ok) throw new Error("Failed to update blog post");
+    } catch (error) {
+      console.error(error);
+      throw new Error("Error updating blog");
+    }
+  }

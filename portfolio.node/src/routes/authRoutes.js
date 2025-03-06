@@ -39,16 +39,21 @@ router.get("/check", async (req, res) => {
 
   const admin = await User.findOne({ isAdmin: true });
   if ( !admin){
+    console.debug("authentication failed", "no admin user");
     return res.status(200).json({ authenticated: false, setupRequired: true });
   }
-  const token = req.cookies["auth-token"];
+  let token = req.cookies["auth-token"] || req.headers.authorization?.split(" ")[1];
+
   if (!token) {
+    console.debug("authentication failed", "no token");
     return res.status(401).json({ authenticated: false, message: "No token provided" });
   }
   try {
     const decoded = authService.verifyToken(token);
+    console.debug("authentication successful", decoded.username);
     res.json({ authenticated: true, user: decoded });
   } catch (error) {
+    console.error("authentication failed", error);
     res.status(401).json({ authenticated: false, message: error.message });
   }
 });
