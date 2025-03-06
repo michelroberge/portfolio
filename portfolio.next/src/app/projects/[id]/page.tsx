@@ -1,53 +1,16 @@
-"use client";
+import { notFound } from "next/navigation";
+import { getProject } from "@/services/projectService";
+import { Project } from "@/models/Project";
+import ProjectView from "@/components/ProjectView";
 
-import { useEffect, useState } from "react";
-import { notFound, useParams } from "next/navigation";
-import { Project, getProject } from "@/services/projectService";
-import { marked } from "marked";
+export default async function ProjectPage({ params }: { params: Promise<{ id: string } >}) {
+  const {id} = await params;
 
-export default function ProjectPage() {
+  if (!id) return notFound();
 
-  const { id } = useParams();
-  const [project, setProject] = useState<Project|null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const project: Project | null = await getProject(id); // Fetch on the server
 
-  useEffect(()=>{
+  if (!project) return notFound();
 
-    async function load(id : string){
-      if (!id) return notFound();
-  
-      const project = await getProject(id);
-  
-      setProject(project);
-      setLoading(false);
-    }
-
-    if ( id && loading){
-      load(id.toString());
-    }
-
-  }, [id]); 
-
-  if ( loading){
-    return (
-      <p>Loading...</p>
-    )
-  }
-  if (!project) return 
-    (  
-      <></>
-    );
-
-  return (
-    <>
-      <main className="container mx-auto px-6 py-10 flex flex-col flex-1">
-        <h1 className="text-3xl font-bold">{project.title}</h1>
-
-        <div className="mt-4 prose lg:prose-lg xl:prose-xl max-w-none"
-             dangerouslySetInnerHTML={{ __html: marked.parse(project.description) }} />
-
-      </main>
-    </>
-  );
-  
+  return <ProjectView project={project} />;
 }

@@ -1,13 +1,5 @@
 // portfolio.next/src/services/blogService.ts
-export interface BlogEntry {
-    _id: number;
-    title: string;
-    publishAt: string;
-    body: string;
-    excerpt?: string;
-    link: string;
-  }
-  
+import { BlogEntry } from "@/models/BlogEntry";
   /**
    * Fetches a single blog entry by its ID.
    * @param id - The blog entry identifier.
@@ -19,7 +11,10 @@ export interface BlogEntry {
       const response = await fetch(url);
       if (!response.ok) return null;
       const data: BlogEntry = await response.json();
-      return data;
+      return {
+        ...data,
+        _id: String(data._id), // Ensure `_id` is always a string
+      } as BlogEntry;
     } catch (error) {
       console.error("Error fetching blog:", error);
       return null;

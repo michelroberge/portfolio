@@ -1,11 +1,5 @@
 // portfolio.next/src/services/projectService.ts
-export interface Project {
-    _id: number;
-    title: string;
-    description: string;
-    excerpt?: string;
-    link: string;
-  }
+import { Project } from "@/models/Project";
   
   /**
    * Fetches a single project entry by its ID.
