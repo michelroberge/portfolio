@@ -25,6 +25,7 @@ const chatRoutes = require("./routes/chatRoutes");
 const embeddingRoutes = require("./routes/embeddingRoutes");
 const promptRoutes = require("./routes/promptRoutes");
 const fileRoutes = require("./routes/fileRoutes");
+const careerTimelineRoutes = require("./routes/careerTimelineRoutes");
 
 const { prepopulateDefaultConfigs } = require("./services/providerConfigService");
 const { initCollection } = require("./services/qdrantService");
@@ -87,6 +88,7 @@ setupStrategies()
   app.use("/api/embeddings", embeddingRoutes);
   app.use("/api/prompts", promptRoutes);
   app.use("/api/files", fileRoutes);
+  app.use("/api/career", careerTimelineRoutes);  
 
   return app;
 }
