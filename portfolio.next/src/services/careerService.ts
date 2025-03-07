@@ -1,3 +1,4 @@
+import { ParsedJob } from "@/models/ParsedJob";
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export async function fetchCareerTimeline() {
@@ -41,4 +42,26 @@ export async function linkEntries(id: string, linkedIds: string[]) {
     body: JSON.stringify({ linkedEntries: linkedIds }),
   });
   if (!res.ok) throw new Error("Failed to link entries");
+}
+
+export async function parseLinkedInHTMLBackend(rawHTML: string) {
+  const res = await fetch(`${apiUrl}/api/career/parse-linkedin`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rawHTML }),
+  });
+  if (!res.ok) throw new Error("Failed to parse LinkedIn data.");
+  return await res.json();
+}
+
+export async function saveParsedJobs(parsedJobs: any[]) {
+  const res = await fetch(`${apiUrl}/api/career/timeline/bulk`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(parsedJobs),
+  });
+  if (!res.ok) throw new Error("Failed to save parsed jobs.");
+  return await res.json();
 }

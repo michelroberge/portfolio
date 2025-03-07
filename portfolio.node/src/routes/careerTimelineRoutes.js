@@ -3,6 +3,7 @@ const CareerTimeline = require("../models/CareerTimeline");
 const router = express.Router();
 const isAuth = require("../middlewares/auth");
 const isAdmin = require("../middlewares/admin");
+const cheerio = require("cheerio");
 
 // GET all career timeline entries
 router.get("/timeline", async (req, res) => {
@@ -55,6 +56,99 @@ router.delete("/timeline/:id", isAuth, isAdmin, async (req, res) => {
     res.json({ message: "Entry deleted successfully." });
   } catch (error) {
     res.status(500).json({ error: "Server error while deleting entry." });
+  }
+});
+
+// API to parse LinkedIn HTML
+router.post("/parse-linkedin", async (req, res) => {
+  try {
+    const { rawHTML } = req.body;
+    if (!rawHTML) return res.status(400).json({ error: "No HTML provided" });
+
+    const $ = cheerio.load(rawHTML);
+    const jobs = [];
+
+    // Iterate over each job entry
+    $(".artdeco-list__item").each((_, element) => {
+      const company = $(element).find("a.optional-action-target-wrapper span[aria-hidden='true']").first().text().trim();
+      const companyLink = $(element).find("a.optional-action-target-wrapper").attr("href");
+      const companyLogo = $(element).find("img.ivm-view-attr__img--centered").attr("src");
+
+      // Extract job title
+      $(element).find("div.t-bold span[aria-hidden='true']").each((_, jobElement) => {
+        const title = $(jobElement).text().trim();
+
+        // Extract date range
+        const dateRange = $(element).find("span.pvs-entity__caption-wrapper").first().text().trim();
+        let startDate = "", endDate = "Present";
+        if (dateRange.includes(" - ")) {
+          const dates = dateRange.split(" - ");
+          startDate = dates[0]?.trim();
+          endDate = dates[1]?.trim() || "Present";
+        }
+
+        // Extract location
+        const location = $(element).find("span.t-14.t-normal.t-black--light").last().text().trim();
+
+        // Extract job description
+        const description = $(element).find("div.WcTepSkGpUVWbbheKPCszGxDQzmhiNFQ span[aria-hidden='true']").text().trim();
+
+        // Ensure valid job entry
+        if (title ) {
+          jobs.push({
+            title,
+            company,
+            companyLink: companyLink ? `https://www.linkedin.com${companyLink}` : null,
+            companyLogo,
+            startDate,
+            endDate,
+            location,
+            description,
+          });
+        }
+      });
+    });
+
+    res.json(jobs);
+  } catch (error) {
+    console.error("Error parsing LinkedIn data:", error);
+    res.status(500).json({ error: "Failed to parse LinkedIn data." });
+  }
+});
+
+function parseDate(dateStr) {
+  if (!dateStr || dateStr.toLowerCase().includes("present")) {
+    return null; // Store null for current jobs
+  }
+  
+  // Extract only the first part of the date (e.g., "Jan 2018" from "Jan 2018 · 4 yrs 7 mos")
+  const cleanDate = dateStr.split("·")[0].trim();
+
+  // Convert to a valid Date object
+  const parsedDate = new Date(cleanDate);
+  return isNaN(parsedDate) ? null : parsedDate;
+}
+
+// Bulk insert parsed jobs into the database
+router.post("/timeline/bulk", isAuth, isAdmin, async (req, res) => {
+  try {
+    console.log('req.body', req.body);
+    
+    const entries = req.body.map((entry) => ({
+      title: entry.title,
+      company: entry.company,
+      startDate: parseDate(entry.startDate),
+      endDate: parseDate(entry.endDate),
+      location: entry.location,
+      description: entry.description,
+      importedFromLinkedIn: true,
+    }));
+
+    await CareerTimeline.insertMany(entries);
+    res.json({ success: true, message: "Career entries imported successfully." });
+  } catch (error) {
+    console.error("Bulk import error:", error);
+    res.status(500).json({ error: "Failed to import LinkedIn data." });
   }
 });
 
