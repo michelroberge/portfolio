@@ -49,8 +49,10 @@ Directory Structure
 docker-compose.yml
 docs/1. UserRequirements.md
 docs/1.b.UserRequirements.v2.md
+docs/1.c.UserRequirements.v3.md
 docs/2. development-plan.md
 docs/2.b.development-plan.v2.md
+docs/2.c.development-plan.v3.md
 docs/prompts/default.md
 LICENSE
 portfolio.next/__tests__/apiServices.test.ts
@@ -60,7 +62,7 @@ portfolio.next/eslint.config.mjs
 portfolio.next/jest.config.js
 portfolio.next/middleware.ts
 portfolio.next/next-env.d.ts
-portfolio.next/next.config.ts
+portfolio.next/next.config.js
 portfolio.next/package.json
 portfolio.next/postcss.config.mjs
 portfolio.next/public/file.svg
@@ -71,7 +73,7 @@ portfolio.next/public/window.svg
 portfolio.next/README.md
 portfolio.next/src/app/_not-found/page.tsx
 portfolio.next/src/app/admin/analytics/page.tsx
-portfolio.next/src/app/admin/blogs/edit/[slug]/page.tsx
+portfolio.next/src/app/admin/blogs/edit/[id]/page.tsx
 portfolio.next/src/app/admin/blogs/new/page.tsx
 portfolio.next/src/app/admin/blogs/page.tsx
 portfolio.next/src/app/admin/comments/page.tsx
@@ -80,6 +82,7 @@ portfolio.next/src/app/admin/page.tsx
 portfolio.next/src/app/admin/projects/edit/[id]/page.tsx
 portfolio.next/src/app/admin/projects/new/page.tsx
 portfolio.next/src/app/admin/projects/page.tsx
+portfolio.next/src/app/admin/settings/ai-model/page.tsx
 portfolio.next/src/app/admin/settings/provider-config/page.tsx
 portfolio.next/src/app/admin/setup/page.tsx
 portfolio.next/src/app/admin/temp-layout.tsx
@@ -89,18 +92,32 @@ portfolio.next/src/app/globals.css
 portfolio.next/src/app/layout.tsx
 portfolio.next/src/app/page.tsx
 portfolio.next/src/app/privacy-policy/page.tsx
+portfolio.next/src/app/projects/[id]/page.tsx
+portfolio.next/src/components/admin/AIModelSettings.tsx
+portfolio.next/src/components/admin/BlogManagement.tsx
+portfolio.next/src/components/admin/EditBlogEntry.tsx
+portfolio.next/src/components/BlogView.tsx
 portfolio.next/src/components/Chat.tsx
 portfolio.next/src/components/ChatWrapper.tsx
 portfolio.next/src/components/CommentSection.tsx
 portfolio.next/src/components/Footer.tsx
 portfolio.next/src/components/Header.tsx
+portfolio.next/src/components/Home.tsx
+portfolio.next/src/components/ProjectView.tsx
 portfolio.next/src/components/Search.tsx
 portfolio.next/src/components/SectionToggle.tsx
 portfolio.next/src/context/AuthContext.tsx
 portfolio.next/src/context/ChatContext.tsx
 portfolio.next/src/context/SearchContext.tsx
+portfolio.next/src/hooks/useWebSocketChat.tsx
+portfolio.next/src/models/BlogEntry.ts
+portfolio.next/src/models/Project.ts
+portfolio.next/src/services/aiService.ts
 portfolio.next/src/services/apiService.ts
+portfolio.next/src/services/authService.ts
 portfolio.next/src/services/blogService.ts
+portfolio.next/src/services/homePageService.ts
+portfolio.next/src/services/projectService.ts
 portfolio.next/tailwind.config.ts
 portfolio.next/tsconfig.json
 portfolio.next/tsconfig.test.json
@@ -503,6 +520,68 @@ File: docs/1.b.UserRequirements.v2.md
 6. **Create a UI for Prompt Management System**.
 
 ================
+File: docs/1.c.UserRequirements.v3.md
+================
+# User Requirements Document
+
+## 1. Project Overview
+The portfolio platform is a self-hosted, AI-enhanced personal website designed to showcase the developer's experience, projects, and insights. It includes AI-powered interactions, a structured career timeline, a blog, and an interactive project showcase.
+
+## 2. Goals & Scope
+**Key Features:**
+- AI-powered chatbot that answers questions based on blog entries, projects, and timeline data.
+- Full CRUD support for blogs, projects, and career timeline entries.
+- AI embeddings for enhanced search capabilities.
+- Search combining full-text indexing and semantic embeddings.
+- Admin dashboard for managing all content.
+- UI for configuring the AI model and embeddings system.
+- UI for application configuration (Title, Subtitle, Motto).
+- Support for multi-language content translation via AI.
+
+## 3. User Roles & Access Control
+- **Admin:** Full access to CRUD operations for blogs, projects, timeline events, and AI configurations.
+- **User:** Read-only access to blogs, projects, and AI chat.
+- **Unauthenticated Users:** Can interact with the AI chatbot and view public content.
+- No role-based access beyond "Admin" and "User."
+- **No MFA support in this iteration.**
+- **No OAuth-based access control for AI APIs** – AI chatbot is publicly accessible.
+
+## 4. AI Chatbot & Search Functionalities
+- AI chatbot interacts **without persisting chat history outside a session**.
+- Admin-configurable choice between **Ollama and OpenAI API** at the site level (toggle during setup).
+- **No user-submitted training data.** AI training updates automatically when blog entries, projects, or timeline events are added.
+- **Hybrid search support:** Combines full-text and embeddings-based search.
+
+## 5. Career Timeline & Skills Mapping
+- **Interactive career timeline UI** for admins to enter career events.
+- Events can be **linked together** (e.g., "Started at ABC" and "Stopped at ABC").
+- Users can **zoom, filter, and explore** technologies used during different career phases.
+- **Graph-based skills map** that visually connects skills, projects, and experiences.
+
+## 6. Embeddings Management & AI Model Setup
+- **Admin UI to manage embeddings.**
+- **Admin UI to configure the AI model (Ollama or OpenAI).**
+- **Embeddings generation and management** handled internally (e.g., automatic updates on content changes).
+
+## 7. Multilingual Support
+- AI-assisted initial content translation.
+- Admin-configurable settings for enabling/disabling language options.
+- Users can switch content languages if translated versions exist.
+
+## 8. Admin Dashboard
+- Initial version includes CRUD for blog posts, projects, career timeline, and embeddings management.
+- Future enhancement: Analytics for most viewed projects, blog engagement, and AI chatbot interactions.
+
+## 9. Non-Prioritized Features (for Future Consideration)
+- Gamification and engagement elements have been removed for now.
+- No immediate plans for monetization.
+- No MFA support for admin users.
+
+---
+
+This document provides a **detailed foundation** for development planning and prioritization. The next step is breaking these requirements into **feature-based milestones** and defining a roadmap for implementation.
+
+================
 File: docs/2. development-plan.md
 ================
 # Development Plan for AI-Driven Portfolio
@@ -690,6 +769,126 @@ This development plan is structured by functional areas, each broken into **end-
 ⏳ **Final deployment optimization & testing.**
 
 This plan provides a structured roadmap for completing the remaining development tasks. 🚀
+
+================
+File: docs/2.c.development-plan.v3.md
+================
+# Development Plan for Portfolio Enhancement
+
+**Generated on 2025-03-05**
+
+This development plan outlines the **end-to-end** (E2E) implementation strategy based on the **updated user requirements** and **existing repository structure**.
+
+---
+
+## **1. Authentication & Access Control**
+### **1.1 User Authentication (✅ Done)**
+- **Implemented:** Cookie-based authentication using session tokens.
+- **Admin Login:** `/auth/login`, `/auth/logout`, `/auth/check`
+- **Admin-Only Access Control:** Middleware (`authMiddleware.js`) restricts non-admins.
+
+### **1.2 Admin Dashboard (✅ Done)**
+- **Implemented:** Admin UI for managing blogs, projects, users, and comments.
+
+### **1.3 Multi-Tenant AI API Support (⏳ Pending)**
+- **New:** Admin-configurable AI model selection (Ollama or OpenAI API).
+- **Tasks:**
+  - Add AI configuration UI in `/admin/settings/ai-model`.
+  - Modify `chatService.js` to conditionally switch between Ollama & OpenAI.
+  - Store AI configuration in MongoDB (`ProviderConfig.js`).
+  - **E2E Test:** Ensure API model switching works correctly.
+
+---
+
+## **2. AI Chatbot & Search**
+### **2.1 AI Chat (⏳ Pending)**
+- ✅ **Implemented:** AI chat session with WebSockets.
+- ✅ **Implemented:** Chat history retention within the session.
+- **New:** AI should answer based on **blogs, projects, and timeline**.
+  - Modify `chatService.js` to integrate Qdrant embeddings.
+  - Update `Chat.tsx` to inject page context (`/chat/context`).
+  - **E2E Test:** Validate AI references correct blog/project info.
+
+### **2.2 Hybrid Search (⏳ Pending)**
+- ✅ **Implemented:** AI-powered search (`/search/semantic`).
+- **New:** Implement **full codebase search**.
+  - Improve `/search/codebase` to **index source code from local directories**.
+  - Update search UI to **combine full-text and AI-powered search results**.
+  - **E2E Test:** Validate relevance of code search results.
+
+---
+
+## **3. Career Timeline & Skills Map**
+### **3.1 Career Timeline (⏳ Pending)**
+- **New:** Add **career timeline UI** for admins.
+  - Create `/admin/career` page with interactive forms.
+  - Implement career timeline API (`/career/timeline`).
+  - **E2E Test:** Verify CRUD operations and linking.
+
+### **3.2 Import from LinkedIn (⏳ Pending)**
+- **New:** Integration to pull profesionnal data as career events to pre-fill career timeline.
+  - Implement a LinkedIn integration under `/career/from-linkedin`.
+  - Create UI to configure the integration 
+    - set the API key
+    - preview and select items
+    - generate projects, events, and skills
+
+### **3.3 Skills Map (⏳ Pending)**
+- **New:** AI-driven **graph-based** visualization of skills and projects.
+  - Implement a **D3.js-based skills graph** under `/career/skills-map`.
+  - Create **skill-project embeddings** using Qdrant.
+  - **E2E Test:** Verify project-skill relations.
+
+---
+
+## **4. Content Management**
+### **4.1 Blogs (✅ Done)**
+- ✅ CRUD operations for blog posts (`/blogs`).
+- ✅ Markdown support (no WYSIWYG).
+- ✅ Draft & scheduled publishing.
+
+### **4.2 Projects (⏳ Pending Enhancements)**
+- ✅ CRUD operations for projects (`/projects`).
+- **New:** Add **AI-powered tagging** for projects.
+  - Generate **project embeddings** (`/projects/generate-embeddings`).
+  - Display suggested tags based on embeddings.
+  - **E2E Test:** Ensure accurate project categorization.
+
+### **4.3 Embeddings Management (⏳ Pending)**
+- **New:** Admin should be able to **manually trigger embedding updates**.
+  - Implement `/embeddings/refresh`.
+  - Add UI in `/admin/embeddings`.
+  - **E2E Test:** Ensure embeddings update correctly.
+
+---
+
+## **5. Multi-Language Support (⏳ Pending)**
+- **New:** AI-assisted translation for blog content.
+  - Add **language switcher** to `/blogs/[slug]`.
+  - Extend `Blog.js` model to store multiple language versions.
+  - Use OpenAI API for translations.
+  - **E2E Test:** Verify translations.
+
+---
+
+## **6. Deployment & Hosting**
+### **6.1 Dockerized Deployment (✅ Done)**
+- ✅ **Implemented:** Docker-compose setup for `portfolio.next` and `portfolio.node`.
+- **Enhancement:** Optimize container startup for **Qdrant & Ollama**.
+  - Add `healthcheck` for AI services.
+  - **E2E Test:** Ensure proper startup sequence.
+
+---
+
+## **Final Steps**
+- ✅ **Confirm all existing APIs match OpenAPI Spec** (`openapi.yml`).
+- ✅ **Ensure all features are accessible via Admin UI**.
+- ✅ **Prepare deployment & test environments**.
+
+---
+
+### **Deliverable**
+A full **end-to-end functional portfolio** with AI-powered features, career timeline, and hybrid search.
 
 ================
 File: docs/prompts/default.md
@@ -1587,26 +1786,36 @@ File: portfolio.next/next-env.d.ts
 // see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
 
 ================
-File: portfolio.next/next.config.ts
+File: portfolio.next/next.config.js
 ================
-import path from 'path';
-import { NextConfig } from 'next';
+/** @type {import('next').NextConfig} */
+const path = require('path');
 
-const nextConfig: NextConfig = {
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
+const nextConfig = {
+  basePath,
+  assetPrefix: basePath,
+  trailingSlash: false,
+
   webpack: (config) => {
-    config.resolve = config.resolve || {}; 
+    config.resolve = config.resolve || {};
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@': path.resolve(__dirname, 'src'), 
+      '@': path.resolve(__dirname, 'src'),
     };
     return config;
   },
-  basePath: process.env.NEXT_PUBLIC_BASE_PATH || '',
-  assetPrefix: process.env.NEXT_PUBLIC_BASE_PATH || '',
-  trailingSlash: false,
+
+  // Enforce basePath usage for images, fonts, and static files
+  images: {
+    loader: 'default',
+    path: `${basePath}/_next/image/`,
+    domains: ["azure.microsoft.com", "logos-world.net", "miro.medium.com"],
+  },
 };
 
-export default nextConfig;
+module.exports = nextConfig; // ✅ Use module.exports instead of export default
 
 ================
 File: portfolio.next/package.json
@@ -1817,157 +2026,25 @@ export default function AnalyticsDashboard() {
 }
 
 ================
-File: portfolio.next/src/app/admin/blogs/edit/[slug]/page.tsx
+File: portfolio.next/src/app/admin/blogs/edit/[id]/page.tsx
 ================
-"use client";
+import { redirect } from "next/navigation";
+import { getAuthUser } from "@/services/authService";
+import { getBlog } from "@/services/blogService";
+import EditBlogEntry from "@/components/admin/EditBlogEntry";
 
-import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { marked } from "marked";
-import { useAuth } from "@/context/AuthContext";
-
-const apiUrl :string = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
-export default function EditBlogEntry() {
-  const router = useRouter();
-  const { id } = useParams();
-  const [title, setTitle] = useState("");
-  const [excerpt, setExcerpt] = useState("");
-  const [body, setBody] = useState("");
-  const [isDraft, setIsDraft] = useState(false);
-  const [publishAt, setPublishAt] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit"); // Tab state
-  const { isAuthenticated, user } = useAuth();
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
-    async function fetchBlog() {
-      try {
-        const response = await fetch(`${apiUrl}/api/blogs/${id}`, {credentials: "include"});
-        if (!response.ok) throw new Error("Failed to fetch blog post");
-        const data = await response.json();
-
-        setTitle(data.title);
-        setExcerpt(data.excerpt);
-        setBody(data.body);
-        setIsDraft(data.isDraft);
-        setPublishAt(data.publishAt ? new Date(data.publishAt).toISOString().split("T")[0] : null);
-        setLoading(false);
-      } catch (err) {
-        setError((err as Error).message);
-        setLoading(false);
-      }
-    }
-
-    fetchBlog();
-  }, [isAuthenticated, id]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const blogData = { title, excerpt, body, isDraft, publishAt };
-
-    try {
-      const response = await fetch(`${apiUrl}/api/blogs/${id}`, {
-        method: "PUT",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(blogData),
-      });
-
-      if (!response.ok) throw new Error("Failed to update blog post");
-      router.push("/admin/blogs");
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  };
-
-  if (loading) return <p>Loading...</p>;
-  if (!isAuthenticated) return <p>You are not authenticated.</p>;
-  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
+export default async function EditBlogPage({ params }: { params: { id: string } }) {
+  const user = await getAuthUser();
   
-  return (
-    <>
-      <h1 className="text-2xl font-bold mb-4">Edit Blog Entry</h1>
-      {error && <p className="text-red-500">{error}</p>}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="text"
-          placeholder="Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full p-2 border rounded"
-          required
-        />
-        <input
-          type="text"
-          placeholder="Excerpt"
-          value={excerpt}
-          onChange={(e) => setExcerpt(e.target.value)}
-          className="w-full p-2 border rounded"
-          required
-        />
+  if (!user || !user.isAdmin) {
+    const baseAddress = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    redirect(`${baseAddress}/admin/login?returnUrl=%2Fadmin%2Fblogs%2Fedit%2F${params.id}`); // ✅ Redirect unauthorized users
+  }
 
-        {/* Tab Selector */}
-        <div className="flex border-b mb-2">
-          <button
-            type="button"
-            className={`p-2 ${activeTab === "edit" ? "border-b-2 border-blue-500 font-bold" : "text-gray-500"}`}
-            onClick={() => setActiveTab("edit")}
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            className={`p-2 ${activeTab === "preview" ? "border-b-2 border-blue-500 font-bold" : "text-gray-500"}`}
-            onClick={() => setActiveTab("preview")}
-          >
-            Preview
-          </button>
-        </div>
+  const blog = await getBlog(params.id);
+  if (!blog) redirect("/admin/blogs"); // ✅ Redirect if blog doesn't exist
 
-        {/* Markdown Editor / Preview */}
-        {activeTab === "edit" ? (
-          <textarea
-            placeholder="Body (Markdown supported)"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            className="w-full p-2 border rounded h-40"
-            required
-          />
-        ) : (
-          <div
-            className="w-full p-2 border rounded h-40 bg-gray-100 overflow-auto prose max-w-none"
-            dangerouslySetInnerHTML={{ __html: marked.parse(body) }}
-          />
-        )}
-
-        <label className="block">
-          <input
-            type="checkbox"
-            checked={isDraft}
-            onChange={(e) => setIsDraft(e.target.checked)}
-            className="mr-2"
-          />
-          Save as Draft
-        </label>
-        <label className="block">
-          Publish Date:
-          <input
-            type="date"
-            value={publishAt || ""}
-            onChange={(e) => setPublishAt(e.target.value)}
-            className="w-full p-2 border rounded"
-          />
-        </label>
-        <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
-          Save Changes
-        </button>
-      </form>
-    </>
-  );
+  return <EditBlogEntry initialBlog={blog} />;
 }
 
 ================
@@ -2074,115 +2151,22 @@ export default function NewBlogEntry() {
 ================
 File: portfolio.next/src/app/admin/blogs/page.tsx
 ================
-"use client";
+import { redirect } from "next/navigation";
+import { getAuthUser } from "@/services/authService";
+import { getBlogs } from "@/services/blogService";
+import BlogManagement from "@/components/admin/BlogManagement";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useAuth } from "@/context/AuthContext";
+export default async function AdminBlogPage() {
+  const user = await getAuthUser();
 
-interface BlogEntry {
-  _id: string;
-  title: string;
-  excerpt: string;
-  isDraft: boolean;
-  publishAt?: string;
-}
+  if (!user || !user.isAdmin) {
+    const baseAddress = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    redirect(`${baseAddress}/admin/login?returnUrl=%2Fadmin%2Fblogs`); // ✅ Redirect instead of `notFound()`
+  }
 
-const apiUrl :string = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  const blogs = await getBlogs(); // Fetch blogs on the server
 
-export default function BlogManagement() {
-
-  const [blogs, setBlogs] = useState<BlogEntry[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated, user } = useAuth();
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    async function fetchBlogs() {
-      try {
-        const response = await fetch(`${apiUrl}/api/blogs`, {credentials: "include"});
-        if (!response.ok) throw new Error("Failed to fetch blogs");
-        const data = await response.json();
-        setBlogs(data);
-      } catch (err: unknown) { 
-        if (err instanceof Error) {
-          setError((err as Error).message);
-        }
-      }
-    }
-    fetchBlogs();
-  }, [isAuthenticated]);
-
-  if (!isAuthenticated) return <p>You are not authenticated.</p>;
-  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
-
-  const handleArchive = async (id: string) => {
-    if (!confirm("Are you sure you want to archive this blog post?")) return;
-
-    try {
-      const response = await fetch(`${apiUrl}/api/blogs/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to archive the blog post");
-
-      setBlogs((prevBlogs) => prevBlogs.filter((blog) => blog._id !== id));
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  };
-
-  return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">Manage Blog Posts</h1>
-
-      <div className="flex justify-end mb-4">
-        <Link
-          href="/admin/blogs/new"
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-        >
-          + Add New Blog
-        </Link>
-      </div>
-
-      {error && <p className="text-red-500">{error}</p>}
-
-      <table className="w-full border-collapse border border-gray-300">
-        <thead>
-          <tr className="bg-gray-200">
-            <th className="border border-gray-300 p-2 text-left">Title</th>
-            <th className="border border-gray-300 p-2 text-left">Status</th>
-            <th className="border border-gray-300 p-2 text-left">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {blogs.map((blog) => (
-            <tr key={blog._id} className="border border-gray-300">
-              <td className="border border-gray-300 p-2">{blog.title}</td>
-              <td className="border border-gray-300 p-2">
-                {blog.isDraft ? "Draft" : "Published"}
-                {blog.publishAt ? ` (Scheduled: ${new Date(blog.publishAt).toLocaleDateString()})` : ""}
-              </td>
-              <td className="border border-gray-300 p-2">
-                <Link
-                  href={`/admin/blogs/edit/${blog._id}`}
-                  className="text-blue-500 hover:underline mr-4"
-                >
-                  Edit
-                </Link>
-                <button
-                  onClick={() => handleArchive(blog._id)}
-                  className="text-red-500 hover:underline"
-                >
-                  Archive
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+  return <BlogManagement initialBlogs={blogs || []} />;
 }
 
 ================
@@ -2466,6 +2450,12 @@ export default function AdminDashboard() {
           <h2 className="text-lg font-medium text-gray-800">Manage Users</h2>
           <p className="text-sm text-gray-500">Edit, create and manage users</p>
         </Link>
+        <Link href="/admin/settings/ai-model"
+          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+        >
+          <h2 className="text-lg font-medium text-gray-800">AI Model</h2>
+          <p className="text-sm text-gray-500">Configure Artificial Intelligence Model</p>
+        </Link>
       </div>
     </div>
   );
@@ -2487,6 +2477,7 @@ export default function EditProject() {
   const router = useRouter();
   const { id } = useParams();
   const [title, setTitle] = useState("");
+  const [excerpt, setExcerpt] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
   const [link, setLink] = useState("");
@@ -2511,6 +2502,7 @@ export default function EditProject() {
         setImage(data.image);
         setLink(data.link);
         setIsDraft(data.isDraft);
+        setExcerpt(data.excerpt);
         setPublishAt(data.publishAt ? new Date(data.publishAt).toISOString().split("T")[0] : null);
         setLoading(false);
       } catch (err) {
@@ -2523,7 +2515,7 @@ export default function EditProject() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const projectData = { title, description, image, link, isDraft, publishAt, tags, industry };
+    const projectData = { title, excerpt, description, image, link, isDraft, publishAt, tags, industry };
     try {
       const response = await fetch(`${apiUrl}/api/projects/${id}`, {
         method: "PUT",
@@ -2555,6 +2547,16 @@ export default function EditProject() {
           className="w-full p-2 border rounded"
           required
         />
+
+        <input
+          type="text"
+          placeholder="Excerpt"
+          value={excerpt}
+          onChange={(e) => setExcerpt(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        />
+
         <textarea
           placeholder="Project Description"
           value={description}
@@ -2630,6 +2632,7 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function NewProject() {
   const [title, setTitle] = useState("");
+  const [excerpt, setExcerpt] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
   const [link, setLink] = useState("");
@@ -2643,7 +2646,7 @@ export default function NewProject() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const projectData = { title, description, image, link, isDraft, publishAt, tags, industry };
+    const projectData = { title, excerpt, description, image, link, isDraft, publishAt, tags, industry };
     try {
       const response = await fetch(`${apiUrl}/api/projects`, {
         method: "POST",
@@ -2674,6 +2677,16 @@ export default function NewProject() {
           className="w-full p-2 border rounded"
           required
         />
+
+        <input
+          type="text"
+          placeholder="Excerpt"
+          value={excerpt}
+          onChange={(e) => setExcerpt(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        />
+
         <textarea
           placeholder="Project Description"
           value={description}
@@ -2751,7 +2764,7 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 interface Project {
   _id: string;
   title: string;
-  description: string;
+  excerpt: string;
   image: string;
   link: string;
 }
@@ -2810,7 +2823,7 @@ export default function ProjectManagement() {
         <thead>
           <tr className="bg-gray-200">
             <th className="border border-gray-300 p-2 text-left">Title</th>
-            <th className="border border-gray-300 p-2 text-left">Description</th>
+            <th className="border border-gray-300 p-2 text-left">Excerpt</th>
             <th className="border border-gray-300 p-2 text-left">Image</th>
             <th className="border border-gray-300 p-2 text-left">Link</th>
             <th className="border border-gray-300 p-2 text-left">Actions</th>
@@ -2820,12 +2833,14 @@ export default function ProjectManagement() {
           {projects.map((project) => (
             <tr key={project._id} className="border border-gray-300">
               <td className="border border-gray-300 p-2">{project.title}</td>
-              <td className="border border-gray-300 p-2">{project.description}</td>
+              <td className="border border-gray-300 p-2">{project.excerpt}</td>
               <td className="border border-gray-300 p-2">
                 {project.image &&
                 <Image
                   src={project.image}
                   alt={project.title}
+                  width={48}
+                  height={48}
                   className="h-16 w-auto object-contain"
                 />
                 }
@@ -2861,6 +2876,26 @@ export default function ProjectManagement() {
       </table>
     </>
   );
+}
+
+================
+File: portfolio.next/src/app/admin/settings/ai-model/page.tsx
+================
+import { redirect } from "next/navigation";
+import { getAIConfig } from "@/services/aiService";
+import AIModelSettings from "@/components/admin/AIModelSettings";
+import { getAuthUser } from "@/services/authService";
+
+export default async function AIModelSettingsPage() {
+  const user = await getAuthUser();
+  if (!user || !user.isAdmin) {
+    const baseAddress = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    redirect(`${baseAddress}/admin/login?returnUrl=%2Fadmin%2Fsettings%2Fai-model`);
+  }
+  else{
+    const aiConfig = await getAIConfig();
+    return <AIModelSettings initialConfig={aiConfig} />;
+  }
 }
 
 ================
@@ -3296,78 +3331,27 @@ export default function UserManagement() {
 ================
 File: portfolio.next/src/app/blogs/[slug]/page.tsx
 ================
-"use client";
+import { notFound } from "next/navigation";
+import { getBlog } from "@/services/blogService";
+import { BlogEntry } from "@/models/BlogEntry";
+import BlogView from "@/components/BlogView";
 
-import { useEffect, useState } from "react";
-
-import { notFound, useParams } from "next/navigation";
-import { BlogEntry, getBlog } from "@/services/blogService";
-import { marked } from "marked";
-import CommentSection from "@/components/CommentSection";
-
-export default function BlogPage() {
-
-  const { slug } = useParams();
-  const [blog, setBlog] = useState<BlogEntry|null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-
-  useEffect(()=>{
-
-    async function load(slug : string){
-      const id = slug.toString().split("-").pop();
-      console.log('slug', slug);
-      console.log('id', id);
-      if (!id) return notFound();
+const BlogPage = async ({params,}: {params: Promise<{ slug: string }>}) => {
   
-      const blog = await getBlog(id);
-  
-      setBlog(blog);
-      setLoading(false);
-    }
+  const { slug } = await params;
 
-    if ( slug && loading){
-      load(slug.toString());
-    }
+  if (!slug) return notFound();
 
-  }, [slug]); 
+  const id = slug.toString().split("-").pop(); // Extract the last part as the ID
+  if (!id) return notFound();
 
-  if ( loading){
-    return (
-      <p>Loading...</p>
-    )
-  }
-  if (!blog) return 
-    (  
-      <></>
-    );
+  const blog: BlogEntry | null = await getBlog(id);
+  if (!blog) return notFound();
 
-  return (
-    <>
-      <main className="container mx-auto px-6 py-10 flex flex-col flex-1">
-        <h1 className="text-3xl font-bold">{blog.title}</h1>
-        <p className="text-gray-500">
-            {new Date(blog.publishAt).toLocaleString(undefined, {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-            })}
-          </p>
-  
-        {/* Wrap the Markdown content inside a "prose" div */}
-        <div className="mt-4 prose lg:prose-lg xl:prose-xl max-w-none"
-             dangerouslySetInnerHTML={{ __html: marked.parse(blog.body) }} />
+  return <BlogView blog={blog} />;
+};
 
-        <CommentSection blogId={String(blog._id)} />
-
-      </main>
-    </>
-  );
-  
-}
+export default BlogPage;
 
 ================
 File: portfolio.next/src/app/globals.css
@@ -3463,96 +3447,13 @@ export default function RootLayout({
 ================
 File: portfolio.next/src/app/page.tsx
 ================
-"use client";
+import { getHomePageData } from "@/services/homePageService";
+import Home from "@/components/Home"; // Move UI logic to a client component
 
-import { useState, useEffect } from "react";
-import { fetchBlogEntries, fetchProjects } from "@/services/apiService";
-import SectionToggle from "@/components/SectionToggle";
-import Image from "next/image";
+export default async function Page() {
+  const { blogs, projects } = await getHomePageData(); // Fetch on the server
 
-interface Project {
-  _id: string;
-  title: string;
-  description: string;
-  image: string;
-  link: string;
-}
-
-interface BlogEntry {
-  _id: string;
-  title: string;
-  date: string;
-  excerpt: string;
-  link: string;
-}
-
-export default function Home() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [blogEntries, setBlogEntries] = useState<BlogEntry[]>([]);
-  const [activeSection, setActiveSection] = useState<"blogs" | "projects">("blogs");
-
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const blogs = await fetchBlogEntries();
-        setBlogEntries(blogs);
-        const projectsData = await fetchProjects();
-        setProjects(projectsData);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    }
-    loadData();
-  }, []);
-
-  return (
-    <div className="flex flex-col min-h-screen">
-          {/* Toggle appears only on small screens */}
-      <SectionToggle activeSection={activeSection} setActiveSection={setActiveSection} />
-      <main className="mx-auto w-full px-6 py-10 flex flex-col lg:flex-row lg:gap-8 flex-1 max-w-screen-2xl">
-      {/* Blogs Section: on small screens, display only if activeSection === "blogs"; always visible on md+ */}
-        <section className={`${activeSection === "blogs" ? "block" : "hidden"} md:block lg:flex-1`}>
-          <h2 className="text-2xl font-semibold mb-6">Latest Posts</h2>
-          <div className="space-y-4">
-            {blogEntries.map((entry) => (
-              <a
-                key={`blog_${entry._id}`}
-                href={`blogs/${entry.link}`}
-                className="block bg-gray-100 p-4 rounded-sm hover:bg-gray-200 transition"
-              >
-                <h3 className="text-lg font-semibold">{entry.title}</h3>
-                <p className="text-sm text-gray-500">{new Date(entry.date).toLocaleString()}</p>
-                <p className="text-gray-600">{entry.excerpt}</p>
-              </a>
-            ))}
-          </div>
-        </section>
-        {/* Projects Section: on small screens, display only if activeSection === "projects"; always visible on md+ */}
-        <aside className={`${activeSection === "projects" ? "block" : "hidden"} md:block lg:w-1/3 bg-white rounded-sm shadow-md p-4 h-fit`}>
-          <h2 className="text-xl font-semibold mb-4">Projects</h2>
-          <div className="space-y-3">
-
-          {projects.map((project) => (
-            <a
-              key={`project_${project._id}`}
-              href={project.link}
-              className="flex items-center p-3 bg-gray-100 rounded-sm hover:bg-gray-200 transition"
-            >
-              {project.image && 
-            <Image src={project.image} alt={project.title} 
-                className="max-h-12  object-cover mr-4 rounded" /> }
-              <div>
-                <h3 className="text-lg font-semibold">{project.title}</h3>
-                <p className="text-sm text-gray-500">{project.description}</p>
-              </div>
-            </a>
-          ))}
-
-          </div>
-        </aside>
-      </main>
-    </div>
-  );
+  return <Home blogs={blogs} projects={projects} />;
 }
 
 ================
@@ -3605,84 +3506,354 @@ export default function PrivacyPolicy() {
 }
 
 ================
+File: portfolio.next/src/app/projects/[id]/page.tsx
+================
+import { notFound } from "next/navigation";
+import { getProject } from "@/services/projectService";
+import { Project } from "@/models/Project";
+import ProjectView from "@/components/ProjectView";
+
+export default async function ProjectPage({ params }: { params: Promise<{ id: string } >}) {
+  const {id} = await params;
+
+  if (!id) return notFound();
+
+  const project: Project | null = await getProject(id); // Fetch on the server
+
+  if (!project) return notFound();
+
+  return <ProjectView project={project} />;
+}
+
+================
+File: portfolio.next/src/components/admin/AIModelSettings.tsx
+================
+"use client";
+
+import { useState } from "react";
+import { updateAIConfig } from "@/services/aiService";
+
+interface AIConfig {
+  provider: "ollama" | "openai";
+  clientId?: string;
+  clientSecret?: string;
+}
+
+export default function AIModelSettings({ initialConfig }: { initialConfig: AIConfig }) {
+  const [aiConfig, setAIConfig] = useState<AIConfig>(initialConfig);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSave = async () => {
+    try {
+      await updateAIConfig(aiConfig);
+      alert("AI Model Updated Successfully");
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-4">AI Model Settings</h1>
+      {error && <p className="text-red-500">{error}</p>}
+
+      <label className="block mb-4">
+        Select AI Provider:
+        <select
+          value={aiConfig.provider}
+          onChange={(e) => setAIConfig({ ...aiConfig, provider: e.target.value as "ollama" | "openai" })}
+          className="w-full p-2 border rounded mt-2"
+        >
+          <option value="ollama">Ollama</option>
+          <option value="openai">OpenAI</option>
+        </select>
+      </label>
+
+      {aiConfig.provider === "openai" && (
+        <>
+          <label className="block mb-4">
+            OpenAI Client ID:
+            <input
+              type="text"
+              value={aiConfig.clientId || ""}
+              onChange={(e) => setAIConfig({ ...aiConfig, clientId: e.target.value })}
+              className="w-full p-2 border rounded mt-2"
+            />
+          </label>
+          <label className="block mb-4">
+            OpenAI Client Secret:
+            <input
+              type="password"
+              value={aiConfig.clientSecret || ""}
+              onChange={(e) => setAIConfig({ ...aiConfig, clientSecret: e.target.value })}
+              className="w-full p-2 border rounded mt-2"
+            />
+          </label>
+        </>
+      )}
+
+      <button onClick={handleSave} className="bg-blue-500 text-white px-4 py-2 rounded">
+        Save Settings
+      </button>
+    </div>
+  );
+}
+
+================
+File: portfolio.next/src/components/admin/BlogManagement.tsx
+================
+"use client";
+import { useState } from "react";
+import Link from "next/link";
+import { archiveBlog } from "@/services/blogService";
+import { BlogEntry } from "@/models/BlogEntry";
+
+export default function BlogManagement({ initialBlogs }: { initialBlogs: BlogEntry[] }) {
+  const [blogs, setBlogs] = useState<BlogEntry[]>(initialBlogs);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleArchive = async (id: string) => {
+    if (!confirm("Are you sure you want to archive this blog post?")) return;
+
+    try {
+      await archiveBlog(id);
+      setBlogs((prevBlogs) => prevBlogs.filter((blog) => blog._id !== id)); // ✅ Remove blog from UI
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-6">Manage Blog Posts</h1>
+
+      <div className="flex justify-end mb-4">
+        <Link
+          href="/admin/blogs/new"
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+        >
+          + Add New Blog
+        </Link>
+      </div>
+
+      {error && <p className="text-red-500">{error}</p>}
+
+      <table className="w-full border-collapse border border-gray-300">
+        <thead>
+          <tr className="bg-gray-200">
+            <th className="border border-gray-300 p-2 text-left">Title</th>
+            <th className="border border-gray-300 p-2 text-left">Status</th>
+            <th className="border border-gray-300 p-2 text-left">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {blogs.map((blog) => (
+            <tr key={blog._id} className="border border-gray-300">
+              <td className="border border-gray-300 p-2">{blog.title}</td>
+              <td className="border border-gray-300 p-2">
+                {blog.isDraft ? "Draft" : "Published"}
+                {blog.publishAt ? ` (Scheduled: ${new Date(blog.publishAt).toLocaleDateString()})` : ""}
+              </td>
+              <td className="border border-gray-300 p-2">
+                <Link
+                  href={`/admin/blogs/edit/${blog._id}`}
+                  className="text-blue-500 hover:underline mr-4"
+                >
+                  Edit
+                </Link>
+                <button
+                  onClick={() => handleArchive(blog._id)}
+                  className="text-red-500 hover:underline"
+                >
+                  Archive
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+================
+File: portfolio.next/src/components/admin/EditBlogEntry.tsx
+================
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { updateBlog } from "@/services/blogService";
+import { marked } from "marked";
+import { BlogEntry } from "@/models/BlogEntry";
+
+export default function EditBlogEntry({ initialBlog }: { initialBlog: BlogEntry }) {
+  const router = useRouter();
+  const [title, setTitle] = useState(initialBlog.title);
+  const [excerpt, setExcerpt] = useState(initialBlog.excerpt);
+  const [body, setBody] = useState(initialBlog.body);
+  const [isDraft, setIsDraft] = useState(initialBlog.isDraft);
+  const [publishAt, setPublishAt] = useState<string | null>(
+    initialBlog.publishAt ? new Date(initialBlog.publishAt).toISOString().split("T")[0] : null
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const blogData = { title, excerpt, body, isDraft, publishAt };
+
+    try {
+      await updateBlog(initialBlog._id, blogData);
+      router.push("/admin/blogs"); // ✅ Redirect to blog list after update
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  return (
+    <>
+      <h1 className="text-2xl font-bold mb-4">Edit Blog Entry</h1>
+      {error && <p className="text-red-500">{error}</p>}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input
+          type="text"
+          placeholder="Title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        />
+        <input
+          type="text"
+          placeholder="Excerpt"
+          value={excerpt}
+          onChange={(e) => setExcerpt(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        />
+
+        {/* Tab Selector */}
+        <div className="flex border-b mb-2">
+          <button
+            type="button"
+            className={`p-2 ${activeTab === "edit" ? "border-b-2 border-blue-500 font-bold" : "text-gray-500"}`}
+            onClick={() => setActiveTab("edit")}
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            className={`p-2 ${activeTab === "preview" ? "border-b-2 border-blue-500 font-bold" : "text-gray-500"}`}
+            onClick={() => setActiveTab("preview")}
+          >
+            Preview
+          </button>
+        </div>
+
+        {/* Markdown Editor / Preview */}
+        {activeTab === "edit" ? (
+          <textarea
+            placeholder="Body (Markdown supported)"
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            className="w-full p-2 border rounded h-40"
+            required
+          />
+        ) : (
+          <div
+            className="w-full p-2 border rounded h-40 bg-gray-100 overflow-auto prose max-w-none"
+            dangerouslySetInnerHTML={{ __html: marked.parse(body) }}
+          />
+        )}
+
+        <label className="block">
+          <input
+            type="checkbox"
+            checked={isDraft}
+            onChange={(e) => setIsDraft(e.target.checked)}
+            className="mr-2"
+          />
+          Save as Draft
+        </label>
+        <label className="block">
+          Publish Date:
+          <input
+            type="date"
+            value={publishAt || ""}
+            onChange={(e) => setPublishAt(e.target.value)}
+            className="w-full p-2 border rounded"
+          />
+        </label>
+        <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
+          Save Changes
+        </button>
+      </form>
+    </>
+  );
+}
+
+================
+File: portfolio.next/src/components/BlogView.tsx
+================
+"use client";
+
+import { marked } from "marked";
+import CommentSection from "@/components/CommentSection";
+import { BlogEntry } from "@/models/BlogEntry";
+
+export default function BlogView({ blog }: { blog: BlogEntry }) {
+  return (
+    <main className="container mx-auto px-6 py-10 flex flex-col flex-1">
+      <h1 className="text-3xl font-bold">{blog.title}</h1>
+      <p className="text-gray-500">
+        {new Date(blog.publishAt).toLocaleString(undefined, {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        })}
+      </p>
+
+      {/* Markdown rendering */}
+      <div
+        className="mt-4 prose lg:prose-lg xl:prose-xl max-w-none"
+        dangerouslySetInnerHTML={{ __html: marked.parse(blog.body) }}
+      />
+
+      {/* Interactive comment section */}
+      <CommentSection blogId={String(blog._id)} />
+    </main>
+  );
+}
+
+================
 File: portfolio.next/src/components/Chat.tsx
 ================
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState } from "react";
 import { useChat } from "@/context/ChatContext";
+import { useWebSocketChat } from "@/hooks/useWebSocketChat";
 
 export default function Chat() {
   const { messages, addMessage } = useChat();
   const [isOpen, setIsOpen] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false); // ✅ Expand/Minimize state
+  const [isExpanded, setIsExpanded] = useState(false);
   const [input, setInput] = useState("");
-  const wsRef = useRef<WebSocket | null>(null); // ✅ Use ref instead of state
-  const [isStreaming, setIsStreaming] = useState(false);
-  const streamingResponseRef = useRef(""); // Stores the AI's full response
-  const [streamingResponse, setStreamingResponse] = useState(""); // Triggers UI updates
 
-  useEffect(() => {
-    if (isOpen && !wsRef.current) {
-      const websocket = new WebSocket("ws://localhost:5000");
-
-      websocket.onopen = () => console.log("Connected to WebSocket");
-
-      websocket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-
-        if (data.response) {
-          setIsStreaming(true);
-          streamingResponseRef.current += data.response; // ✅ Append to ref
-          setStreamingResponse(streamingResponseRef.current); // ✅ Trigger UI update
-        }
-
-        if (data.done) {
-          setIsStreaming(false);
-        }
-      };
-
-      websocket.onclose = () => {
-        console.log("WebSocket disconnected");
-        wsRef.current = null; // ✅ Ensure it resets on close
-      };
-
-      wsRef.current = websocket;
-    }
-
-    return () => {
-      wsRef.current?.close();
-      wsRef.current = null;
-    };
-  }, [isOpen]); // ✅ Removed ws from dependencies
-
-  // ✅ Use useCallback to prevent unnecessary re-renders
-  const safeAddMessage = useCallback(
-    (message: { role: "user" | "ai"; text: string }) => {
-      addMessage(message);
-    },
-    [addMessage]
-  );
-
-  // ✅ Ensure AI response is stored in chat history after streaming ends
-  useEffect(() => {
-    if (!isStreaming && streamingResponseRef.current) {
-      safeAddMessage({ role: "ai", text: streamingResponseRef.current });
-      streamingResponseRef.current = ""; // Reset buffer
-      setStreamingResponse(""); // Clear state after saving
-    }
-  }, [isStreaming, safeAddMessage]);
+  const { wsRef, isStreaming, streamingResponse, setStreamingResponse, setIsStreaming } = useWebSocketChat(isOpen);
 
   const sendMessage = () => {
     if (!input.trim() || !wsRef.current) return;
 
-    const userMessage = { role: "user", text: input } as const; // ✅ Fixed type assertion
-    safeAddMessage(userMessage);
+    addMessage({ role: "user", text: input });
     wsRef.current.send(JSON.stringify({ sessionId: "123", query: input }));
     setInput("");
 
-    // ✅ Reset streaming response before AI starts replying
-    streamingResponseRef.current = "";
     setStreamingResponse("");
     setIsStreaming(true);
   };
@@ -3690,49 +3861,31 @@ export default function Chat() {
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end">
       {isOpen && (
-        <div
-          className={`shadow-lg border border-gray-300 bg-white rounded-lg overflow-hidden transition-all duration-300
-            ${isExpanded ? "h-[90vh] w-[90vw] md:w-[50vw]" : "h-96 w-[50vw] md:w-80"}`}
+        <div className={`shadow-lg border border-gray-300 bg-white rounded-lg overflow-hidden transition-all duration-300
+          ${isExpanded ? "h-[90vh] w-[90vw] md:w-[50vw]" : "h-96 w-[50vw] md:w-80"}`}
         >
-          {/* ✅ Chat Header with Expand/Minimize Buttons */}
           <div className="p-3 bg-gray-800 text-white flex justify-between items-center">
             <span>Chat</span>
             <div>
-              <button
-                className="text-lg mx-2"
-                onClick={() => setIsExpanded(!isExpanded)}
-                title={isExpanded ? "Minimize" : "Maximize"}
-              >
+              <button className="text-lg mx-2" onClick={() => setIsExpanded(!isExpanded)} title={isExpanded ? "Minimize" : "Maximize"}>
                 {isExpanded ? "🗕" : "⛶"}
               </button>
-              <button className="text-lg" onClick={() => setIsOpen(false)} title="Close">
-                ✖
-              </button>
+              <button className="text-lg" onClick={() => setIsOpen(false)} title="Close">✖</button>
             </div>
           </div>
 
-          {/* Chat Messages */}
           <div className="p-4 flex flex-col space-y-2 max-h-[80%] overflow-auto">
             {messages.map((msg, i) => (
-              <div
-                key={i}
-                className={`p-2 rounded-lg text-sm ${
-                  msg.role === "user" ? "bg-blue-500 text-white self-end" : "bg-gray-200 text-black self-start"
-                }`}
-              >
+              <div key={i} className={`p-2 rounded-lg text-sm ${msg.role === "user" ? "bg-blue-500 text-white self-end" : "bg-gray-200 text-black self-start"}`}>
                 {msg.text}
               </div>
             ))}
 
-            {/* ✅ Show Streaming AI Response (Live Updating) */}
             {isStreaming && (
-              <div className="p-2 rounded-lg text-sm bg-gray-200 text-black self-start">
-                {streamingResponse}
-              </div>
+              <div className="p-2 rounded-lg text-sm bg-gray-200 text-black self-start">{streamingResponse}</div>
             )}
           </div>
 
-          {/* Input Bar */}
           <div className="flex items-center space-x-2 border-t pt-2 p-2">
             <input
               type="text"
@@ -3740,23 +3893,14 @@ export default function Chat() {
               placeholder="Ask something..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()} // ✅ Changed to onKeyDown
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
             />
-            <button
-              className="bg-gray-800 hover:bg-gray-600 transition text-white px-3 py-1 rounded text-sm"
-              onClick={sendMessage}
-            >
-              Send
-            </button>
+            <button className="bg-gray-800 hover:bg-gray-600 transition text-white px-3 py-1 rounded text-sm" onClick={sendMessage}>Send</button>
           </div>
         </div>
       )}
-      
-      {/* Floating Chat Button */}
-      <button
-        className="bg-gray-800 hover:bg-gray-600 transition text-white p-3 rounded-full shadow-lg"
-        onClick={() => setIsOpen(!isOpen)}
-      >
+
+      <button className="bg-gray-800 hover:bg-gray-600 transition text-white p-3 rounded-full shadow-lg" onClick={() => setIsOpen(!isOpen)}>
         {isOpen ? "✖" : "💬"}
       </button>
     </div>
@@ -3991,6 +4135,92 @@ export default function Header() {
         </div>
       </div>
     </header>
+  );
+}
+
+================
+File: portfolio.next/src/components/Home.tsx
+================
+"use client";
+
+import { useState } from "react";
+import SectionToggle from "@/components/SectionToggle";
+import Image from "next/image";
+
+interface Project {
+  _id: string;
+  title: string;
+  excerpt: string;
+  image: string;
+  link: string;
+}
+
+interface BlogEntry {
+  _id: string;
+  title: string;
+  date: string;
+  excerpt: string;
+  link: string;
+}
+
+export default function Home({ blogs, projects }: { blogs: BlogEntry[]; projects: Project[] }) {
+  const [activeSection, setActiveSection] = useState<"blogs" | "projects">("blogs");
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <SectionToggle activeSection={activeSection} setActiveSection={setActiveSection} />
+      <main className="mx-auto w-full px-6 py-10 flex flex-col lg:flex-row lg:gap-8 flex-1 max-w-screen-2xl">
+        {/* Blogs Section */}
+        <section className={`${activeSection === "blogs" ? "block" : "hidden"} md:block lg:flex-1`}>
+          <h2 className="text-2xl font-semibold mb-6">Latest Posts</h2>
+          <div className="space-y-4">
+            {blogs.map((entry) => (
+              <a key={`blog_${entry._id}`} href={`blogs/${entry.link}`} className="block bg-gray-100 p-4 rounded-sm hover:bg-gray-200 transition">
+                <h3 className="text-lg font-semibold">{entry.title}</h3>
+                <p className="text-sm text-gray-500">{new Date(entry.date).toLocaleString()}</p>
+                <p className="text-gray-600">{entry.excerpt}</p>
+              </a>
+            ))}
+          </div>
+        </section>
+        {/* Projects Section */}
+        <aside className={`${activeSection === "projects" ? "block" : "hidden"} md:block lg:w-1/3 bg-white rounded-sm shadow-md p-4 h-fit`}>
+          <h2 className="text-xl font-semibold mb-4">Projects</h2>
+          <div className="space-y-3">
+            {projects.map((project) => (
+              <a key={`project_${project._id}`} href={project.link} className="flex items-center p-3 bg-gray-100 rounded-sm hover:bg-gray-200 transition">
+                {project.image && <Image src={project.image} alt={project.title} className="max-h-12 object-cover mr-4 rounded" width={64} height={64} />}
+                <div>
+                  <h3 className="text-lg font-semibold">{project.title}</h3>
+                  <p className="text-sm text-gray-500">{project.excerpt}</p>
+                </div>
+              </a>
+            ))}
+          </div>
+        </aside>
+      </main>
+    </div>
+  );
+}
+
+================
+File: portfolio.next/src/components/ProjectView.tsx
+================
+"use client";
+
+import { Project } from "@/models/Project";
+import { marked } from "marked";
+
+export default function ProjectView({ project }: { project: Project }) {
+  return (
+    <main className="container mx-auto px-6 py-10 flex flex-col flex-1">
+      <h1 className="text-3xl font-bold">{project.title}</h1>
+
+      <div
+        className="mt-4 prose lg:prose-lg xl:prose-xl max-w-none"
+        dangerouslySetInnerHTML={{ __html: marked.parse(project.description) }}
+      />
+    </main>
   );
 }
 
@@ -4259,6 +4489,140 @@ export function useSearch() {
 }
 
 ================
+File: portfolio.next/src/hooks/useWebSocketChat.tsx
+================
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useChat } from "@/context/ChatContext";
+
+export function useWebSocketChat(isOpen: boolean) {
+  const { addMessage } = useChat();
+  const wsRef = useRef<WebSocket | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const streamingResponseRef = useRef("");
+  const [streamingResponse, setStreamingResponse] = useState("");
+
+  const wsUrl = useMemo(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    return apiUrl.replace(/^http/, "ws");
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && !wsRef.current) {
+      const websocket = new WebSocket(wsUrl);
+
+      websocket.onopen = () => console.log("Connected to WebSocket");
+
+      websocket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.response) {
+          setIsStreaming(true);
+          streamingResponseRef.current += data.response;
+          setStreamingResponse(streamingResponseRef.current);
+        }
+
+        if (data.done) {
+          setIsStreaming(false);
+        }
+      };
+
+      websocket.onclose = () => {
+        console.log("WebSocket disconnected");
+        wsRef.current = null;
+      };
+
+      wsRef.current = websocket;
+    }
+
+    return () => {
+      wsRef.current?.close();
+      wsRef.current = null;
+    };
+  }, [isOpen, wsUrl]);
+
+  const safeAddMessage = useCallback(
+    (message: { role: "user" | "ai"; text: string }) => {
+      addMessage(message);
+    },
+    [addMessage]
+  );
+
+  useEffect(() => {
+    if (!isStreaming && streamingResponseRef.current) {
+      safeAddMessage({ role: "ai", text: streamingResponseRef.current });
+      streamingResponseRef.current = "";
+      setStreamingResponse("");
+    }
+  }, [isStreaming, safeAddMessage]);
+
+  return { wsRef, isStreaming, streamingResponse, setStreamingResponse, setIsStreaming };
+}
+
+================
+File: portfolio.next/src/models/BlogEntry.ts
+================
+export interface BlogEntry {
+    _id: string ; 
+    title: string;
+    publishAt: string;
+    body: string;
+    excerpt?: string;
+    link: string;
+    isDraft: boolean;
+  }
+
+================
+File: portfolio.next/src/models/Project.ts
+================
+export interface Project {
+    _id: number;
+    title: string;
+    description: string;
+    excerpt?: string;
+    link: string;
+  }
+
+================
+File: portfolio.next/src/services/aiService.ts
+================
+export interface AIConfig {
+    provider: "ollama" | "openai";
+    clientId?: string;
+    clientSecret?: string;
+  }
+  
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  
+  export async function getAIConfig(): Promise<AIConfig> {
+    try {
+      const res = await fetch(`${apiUrl}/api/provider-configs/ai`, { credentials: "include" });
+      if (!res.ok) {
+        // throw new Error("Failed to fetch AI configuration");
+        return { provider: "ollama" };
+      }
+      return await res.json();
+    } catch (error) {
+      console.error(error);
+      throw new Error("Error fetching AI configuration");
+    }
+  }
+  
+  export async function updateAIConfig(config: AIConfig) {
+    try {
+      const res = await fetch(`${apiUrl}/api/provider-configs/ai`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(config),
+      });
+      if (!res.ok) throw new Error("Failed to update AI configuration");
+    } catch (error) {
+      console.error(error);
+      throw new Error("Error updating AI configuration");
+    }
+  }
+
+================
 File: portfolio.next/src/services/apiService.ts
 ================
 // portfolio.next/src/services/apiService.ts
@@ -4288,18 +4652,58 @@ export async function fetchBlogEntries() {
   }
 
 ================
+File: portfolio.next/src/services/authService.ts
+================
+import { cookies } from "next/headers";
+
+export interface AuthUser {
+  id: string;
+  isAdmin: boolean;
+  message: string | null;
+}
+
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+export async function getAuthUser(): Promise<AuthUser | null> {
+  try {
+    const cookieStore = await cookies(); // ✅ Manually access cookies on the server
+    const token = cookieStore.get("auth-token")?.value;
+
+    if (!token) {
+      console.log("No token found in cookies");
+      return {id : "0", isAdmin: false, message: "no cookie found"};
+    }
+
+    const res = await fetch(`${apiUrl}/api/auth/check`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` }, // ✅ Send token manually
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      console.log("Authentication failed");
+      return {id : "0", isAdmin: false, message: apiUrl};
+    }
+
+    const data = await res.json();
+    if (!data.authenticated || !data.user) return null;
+
+    return {
+      id: data.user.id,
+      isAdmin: data.user.isAdmin,
+      message: "should be good"
+    };
+  } catch (error) {
+    console.error("Error fetching auth status:", error);
+    return null;
+  }
+}
+
+================
 File: portfolio.next/src/services/blogService.ts
 ================
 // portfolio.next/src/services/blogService.ts
-export interface BlogEntry {
-    _id: number;
-    title: string;
-    publishAt: string;
-    body: string;
-    excerpt?: string;
-    link: string;
-  }
-  
+import { BlogEntry } from "@/models/BlogEntry";
   /**
    * Fetches a single blog entry by its ID.
    * @param id - The blog entry identifier.
@@ -4308,12 +4712,121 @@ export interface BlogEntry {
   export async function getBlog(id: string): Promise<BlogEntry | null> {
     try {
       const url = `${process.env.NEXT_PUBLIC_API_URL}/api/blogs/${id}`;
+      console.log('url', url);
       const response = await fetch(url);
       if (!response.ok) return null;
       const data: BlogEntry = await response.json();
-      return data;
+      return {
+        ...data,
+        _id: String(data._id), // Ensure `_id` is always a string
+      } as BlogEntry;
     } catch (error) {
       console.error("Error fetching blog:", error);
+      return null;
+    }
+  }
+  
+  export async function getBlogs(): Promise<BlogEntry[]> {
+    try {
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/blogs`;
+      const res = await fetch(url, {
+        method: "GET",
+        credentials: "include",
+      });
+  
+      if (!res.ok) throw new Error("Failed to fetch blogs");
+  
+      return await res.json();
+    } catch (error) {
+      console.error(error);
+      throw new Error("Error fetching blogs");
+    }
+  }
+  
+  export async function archiveBlog(id: string) {
+    try {
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/blogs/${id}`;
+      const res = await fetch(`${url}/api/blogs/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+  
+      if (!res.ok) throw new Error("Failed to archive blog post");
+    } catch (error) {
+      console.error(error);
+      throw new Error("Error archiving blog");
+    }
+  }
+
+  export async function updateBlog(id: string, blogData: Partial<BlogEntry>) {
+    try {
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/blogs/${id}`;
+      const res = await fetch(url, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(blogData),
+      });
+  
+      if (!res.ok) throw new Error("Failed to update blog post");
+    } catch (error) {
+      console.error(error);
+      throw new Error("Error updating blog");
+    }
+  }
+
+================
+File: portfolio.next/src/services/homePageService.ts
+================
+// services/homePageService.ts
+import { fetchBlogEntries, fetchProjects } from "./apiService";
+
+export interface Project {
+  _id: string;
+  title: string;
+  excerpt: string;
+  image: string;
+  link: string;
+}
+
+export interface BlogEntry {
+  _id: string;
+  title: string;
+  date: string;
+  excerpt: string;
+  link: string;
+}
+
+export async function getHomePageData(): Promise<{ blogs: BlogEntry[]; projects: Project[] }> {
+  try {
+    const [blogs, projects] = await Promise.all([fetchBlogEntries(), fetchProjects()]);
+    return { blogs, projects };
+  } catch (error) {
+    console.error("Error fetching homepage data:", error);
+    return { blogs: [], projects: [] }; // Fallback to avoid breaking the page
+  }
+}
+
+================
+File: portfolio.next/src/services/projectService.ts
+================
+// portfolio.next/src/services/projectService.ts
+import { Project } from "@/models/Project";
+  
+  /**
+   * Fetches a single project entry by its ID.
+   * @param id - The project  identifier.
+   * @returns A Project object if successful, or null otherwise.
+   */
+  export async function getProject(id: string): Promise<Project | null> {
+    try {
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/projects/${id}`;
+      const response = await fetch(url);
+      if (!response.ok) return null;
+      const data: Project = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error fetching project:", error);
       return null;
     }
   }
@@ -4368,7 +4881,7 @@ File: portfolio.next/tsconfig.json
     },
     "types": ["jest", "node"]
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "jest.config.js"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "jest.config.js", "next.config.js"],
   "exclude": ["node_modules"]
 }
 
@@ -5050,8 +5563,8 @@ async function createApp() {
     origin: process.env.ALLOW_CORS || "http://localhost:3000",
     credentials: true, // Allow cookies to be sent
   }));
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
   app.use(cookieParser());
 
   app.use(metricsMiddleware);
@@ -6681,6 +7194,7 @@ const mongoose = require("mongoose");
 
 const ProjectSchema = new mongoose.Schema({
   title: { type: String, required: true },
+  excerpt: { type: String, required: true, default: "" },
   description: { type: String, required: true },
   image: { type: String },
   link: { type: String },
@@ -6714,6 +7228,8 @@ const mongoose = require("mongoose");
 
 const ProviderConfigSchema = new mongoose.Schema({
   provider: { type: String, required: true, unique: true },
+  embeddingModel : { type: String, required: true, default: "mistral"},
+  chatModel: { type: String, required: true, default: "mistral"},
   clientId: { type: String, required: true },
   clientSecret: { type: String, required: true },
   callbackURL: { type: String, required: true },
@@ -6793,16 +7309,21 @@ router.get("/check", async (req, res) => {
 
   const admin = await User.findOne({ isAdmin: true });
   if ( !admin){
+    console.debug("authentication failed", "no admin user");
     return res.status(200).json({ authenticated: false, setupRequired: true });
   }
-  const token = req.cookies["auth-token"];
+  let token = req.cookies["auth-token"] || req.headers.authorization?.split(" ")[1];
+
   if (!token) {
+    console.debug("authentication failed", "no token");
     return res.status(401).json({ authenticated: false, message: "No token provided" });
   }
   try {
     const decoded = authService.verifyToken(token);
+    console.debug("authentication successful", decoded.username);
     res.json({ authenticated: true, user: decoded });
   } catch (error) {
+    console.error("authentication failed", error);
     res.status(401).json({ authenticated: false, message: error.message });
   }
 });
@@ -7479,19 +8000,19 @@ const providerConfigService = require("../services/providerConfigService");
 const router = express.Router();
 
 // GET /api/provider-configs: Retrieve all provider configurations.
-router.get("/", authMiddleware, async (req, res) => {
-  try {
+// router.get("/", authMiddleware, async (req, res) => {
+//   try {
 
-    if  (!req.user?.isAdmin === true){
-      res.status(403);
-    }
+//     if  (!req.user?.isAdmin === true){
+//       res.status(403);
+//     }
 
-    const configs = await providerConfigService.getAllConfigs();
-    res.json(configs);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+//     const configs = await providerConfigService.getAllConfigs();
+//     res.json(configs);
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// });
 
 // PUT /api/provider-configs/:provider: Update configuration for a specific provider.
 router.put("/:provider", authMiddleware, async (req, res) => {
@@ -7507,6 +8028,48 @@ router.put("/:provider", authMiddleware, async (req, res) => {
     res.json(updatedConfig);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/provider-configs: Retrieve all provider configurations.
+router.get("/", authMiddleware, async (req, res) => {
+  try {
+    if (!req.user?.isAdmin) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    const configs = await providerConfigService.getAllConfigs();
+    res.json(configs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/provider-configs/ai: Retrieve AI model configuration.
+router.get("/ai", authMiddleware, async (req, res) => {
+  try {
+    const config = await providerConfigService.getAIConfig();
+    res.json(config);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch AI configuration" });
+  }
+});
+
+// PUT /api/provider-configs/ai: Update AI model configuration.
+router.put("/ai", authMiddleware, async (req, res) => {
+  try {
+    if (!req.user?.isAdmin) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const { provider, clientId, clientSecret } = req.body;
+    if (!["ollama", "openai"].includes(provider)) {
+      return res.status(400).json({ error: "Invalid provider" });
+    }
+
+    const updatedConfig = await providerConfigService.updateConfig(provider, { clientId, clientSecret });
+    res.json(updatedConfig);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update AI configuration" });
   }
 });
 
@@ -7821,6 +8384,7 @@ File: portfolio.node/src/services/chatService.js
 // portfolio.node/src/services/chatService.js
 const ChatMessage = require("../models/ChatMessage");
 const {searchQdrant, generateEmbedding} = require("../services/qdrantService");
+const providerConfigService = require("../services/providerConfigService");
 const ollamaService = require("../services/ollamaService"); // AI Model Integration
 const generatePrompt = require("../utils/generatePrompt");
 
@@ -7837,8 +8401,16 @@ async function processChat(sessionId, query, history = [], webContext = "") {
       // Generate AI prompt
       const { formattedPrompt, sources } = await generatePrompt(query, history, webContext);
 
-      // Send to AI model
-      const response = await ollamaService.generateResponse(formattedPrompt);
+      const config = await providerConfigService.getAIConfig();
+      let response;
+      
+      if (config.provider === "ollama") {
+        response = await ollamaService.generateResponse(formattedPrompt);
+      } else if (config.provider === "openai") {
+        response = await requestOpenAIResponse(formattedPrompt, history, config.clientId, config.clientSecret);
+      } else {
+        throw new Error("Invalid AI provider configured");
+      }
 
       // Store user message & AI response in chat history
       await ChatMessage.create({ sessionId, role: "user", text: query });
@@ -7862,6 +8434,24 @@ async function getChatHistory(sessionId) {
   return await ChatMessage.find({ sessionId }).sort({ createdAt: 1 });
 }
 
+async function requestOpenAIResponse(query, history, clientId, clientSecret) {
+  
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${clientSecret}`,
+      "OpenAI-Organization": clientId,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4",
+      messages: history.concat([{ role: "user", content: query }]),
+      temperature: 0.7,
+    }),
+  });
+
+  return response.data.choices[0].message.content;
+}
 module.exports = { processChat, getChatHistory };
 
 ================
@@ -8059,7 +8649,7 @@ File: portfolio.node/src/services/ollamaService.js
 ================
 // portfolio.node/src/services/ollamaService.js
 
-const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
+const OLLAMA_URL = process.env.OLLAMA_URL || "http://10.0.0.42:11434";
 const PROMPT_MODEL = process.env.PROMPT_MODEL || "mistral";
 
 /**
@@ -8069,7 +8659,7 @@ const PROMPT_MODEL = process.env.PROMPT_MODEL || "mistral";
  */
 async function generateResponse(prompt) {
   try {
-    const response = await fetch(`${OLLAMA_URL}api/generate`, {
+    const response = await fetch(`${OLLAMA_URL}/api/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -8119,7 +8709,9 @@ async function generateResponse(prompt) {
 
 async function generateResponseStream(prompt) {
 
-    const response = await fetch(`${OLLAMA_URL}api/generate`, {
+  const url = `${OLLAMA_URL}/api/generate`;
+  // console.log("calling ollama", url);
+    const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -8411,7 +9003,17 @@ async function prepopulateDefaultConfigs() {
     }
   }
 
+  async function getAIConfig() {
+    let config = await ProviderConfig.findOne();
+    if (!config) {
+      config = new ProviderConfig({ provider: "ollama" });
+      await config.save();
+    }
+    return config;
+  }
+  
 module.exports = {
+  getAIConfig,
   getAllConfigs,
   getConfigByProvider,
   updateConfig,
@@ -8648,9 +9250,9 @@ async function searchQdrant(queryVector, collection = "projects", topK = 5, minS
  */
 async function generateEmbedding(text) {
     try {
-        console.log(`📡 Requesting embedding from Ollama for text: "${text.slice(0, 50)}..."`);
+        // console.log(`📡 Requesting embedding from Ollama for text: "${text.slice(0, 50)}..."`);
 
-        const response = await fetch(`${OLLAMA_URL}api/embeddings`, {
+        const response = await fetch(`${OLLAMA_URL}/api/embeddings`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ model: "mistral", prompt: text }),
@@ -8659,7 +9261,7 @@ async function generateEmbedding(text) {
         const data = await response.json();
         
         // Log the full response for debugging
-        console.log("🔍 Ollama Response:", JSON.stringify(data, null, 2));
+        // console.log("🔍 Ollama Response:", JSON.stringify(data, null, 2));
 
         if (!data || !data.embedding || !Array.isArray(data.embedding)) {
             throw new Error("Embedding data is missing or invalid");
@@ -8900,6 +9502,8 @@ File: portfolio.node/src/utils/generatePrompt.js
 ================
 const Prompt = require("../models/Prompt");
 const { generateEmbedding, searchQdrant } = require("../services/qdrantService");
+const projectService = require("../services/projectService");
+const blogService = require("../services/blogService");
 
 /**
  * Generates a structured AI prompt based on user input, retrieved context, and history.
@@ -8916,15 +9520,25 @@ async function generatePrompt(query, history = [], webContext = "") {
 
         // Generate embeddings and search for relevant documents
         const vectors = await generateEmbedding(query);
-        const relatedDocs = await searchQdrant(vectors, "projects", 5, 0.7);
+        const relatedDocs = await searchQdrant(vectors, "projects", 5, 0.3);
 
         // Format context from retrieved documents
         let context = "";
         let sources = [];
+        let projectContext = "";
+        let blogEntries = "";
+
         if (relatedDocs.length > 0) {
             context = relatedDocs.map((doc) => doc.payload.text).join("\n");
             sources = relatedDocs.map((doc) => doc.source || "Unknown source");
         } else {
+
+            const projects = await projectService.getAllProjects();
+            const blogs = await blogService.getAllBlogEntries();
+
+            projectContext = JSON.stringify(projects);
+            blogEntries = JSON.stringify(blogs);
+
             console.log(`⚠️ No relevant documents found for query: "${query}".`);
             context = "No directly related documents were found, but I'll still do my best to help.";
         }
@@ -8939,7 +9553,9 @@ async function generatePrompt(query, history = [], webContext = "") {
             .replace("{{query}}", query)
             .replace("{{history}}", formatChatHistory(history))
             .replace("{{webContext}}", formattedWebContext)
-            .replace("{{context}}", context);
+            .replace("{{context}}", context)
+            .replace("{{projects}}", projectContext)
+            .replace("{{blogs}}", blogEntries);
 
         return { formattedPrompt, sources };
     } catch (error) {
@@ -8960,12 +9576,24 @@ function formatChatHistory(history) {
 
 function getDefaultTemplate(){
     return  `
-    You are an AI assistant helping showcase my portfolio. You ONLY use the provided context to answer questions.
-    If a question is about my projects, focus specifically on projects in the provided context.
-    If the question is unrelated to my work, say "I'm here to discuss my portfolio. Ask me about my projects or skills!"
+    # AI Role
+    AI assistant helping showcase a developer's portfolio. 
+    The user is someone accessing the developer's site who is interested in that developer knowledge, skill and/or backgroudn.
+    The AI ONLY use the provided context to answer questions.
+    If a question is about projects, focus specifically on projects in the provided context.
+    If the question is unrelated to context, you can answer unless:
+    - it is illegal
+    - dangerous
+    - is outside the concept of the portfolio showcasing a developer's background and skills.
     
     ### Context:
     {{context}}
+
+    ### Projects:
+    {{projects}}
+
+    ### Blogs:
+    {{blogs}}
 
     ### WebContext:
     {{webContext}} 

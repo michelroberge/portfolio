@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { updateBlog } from "@/services/blogService";
 import { marked } from "marked";
 import { BlogEntry } from "@/models/BlogEntry";
+import UploadSpecificFile from "@/components/admin/UploadContextualFile";
+import FileList from "./FileList";
 
 export default function EditBlogEntry({ initialBlog }: { initialBlog: BlogEntry }) {
   const router = useRouter();
@@ -13,7 +15,7 @@ export default function EditBlogEntry({ initialBlog }: { initialBlog: BlogEntry 
   const [body, setBody] = useState(initialBlog.body);
   const [isDraft, setIsDraft] = useState(initialBlog.isDraft);
   const [publishAt, setPublishAt] = useState<string | null>(
-    initialBlog.publishAt ? new Date(initialBlog.publishAt).toISOString().split("T")[0] : null
+    initialBlog.publishAt ? new Date(initialBlog.publishAt).toISOString().split("T")[0] : "null"
   );
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
@@ -104,6 +106,8 @@ export default function EditBlogEntry({ initialBlog }: { initialBlog: BlogEntry 
             className="w-full p-2 border rounded"
           />
         </label>
+        <UploadSpecificFile entityId={initialBlog._id} context="blog" />
+        <FileList entityId={initialBlog._id} context="blog" />
         <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
           Save Changes
         </button>

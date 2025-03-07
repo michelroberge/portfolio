@@ -4,12 +4,14 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-
+import UploadSpecificFile from "@/components/admin/UploadContextualFile";
+import FileList from "@/components/admin/FileList";
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function EditProject() {
   const router = useRouter();
-  const { id } = useParams();
+  const params = useParams();
+  const [ projectId, setProjectId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
   const [description, setDescription] = useState("");
@@ -24,13 +26,15 @@ export default function EditProject() {
 
   const { isAuthenticated, user } = useAuth();
 
-  useEffect(() => {
+  useEffect(() => {    
     if (!isAuthenticated) return;
     async function fetchProject() {
+      const {id} = await params;
+      setProjectId(id?.toString() || "");
       try {
         const response = await fetch(`${apiUrl}/api/projects/${id}`);
         if (!response.ok) throw new Error("Failed to fetch project");
-        const data = await response.json();
+        const data = await response.json();        
         setTitle(data.title);
         setDescription(data.description);
         setImage(data.image);
@@ -45,13 +49,13 @@ export default function EditProject() {
       }
     }
     fetchProject();
-  }, [isAuthenticated, id]);
+  }, [isAuthenticated]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const projectData = { title, excerpt, description, image, link, isDraft, publishAt, tags, industry };
     try {
-      const response = await fetch(`${apiUrl}/api/projects/${id}`, {
+      const response = await fetch(`${apiUrl}/api/projects/${projectId}`, {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -144,6 +148,11 @@ export default function EditProject() {
           <option>Finance</option>
           <option>Education</option>
         </select>
+
+        { projectId && <UploadSpecificFile entityId={projectId} context="project" />}
+        { projectId && <FileList entityId={projectId} context="project" />}
+        
+
         <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
           Save Changes
         </button>

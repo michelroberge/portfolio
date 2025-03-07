@@ -24,6 +24,7 @@ const searchRoutes = require("./routes/searchRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const embeddingRoutes = require("./routes/embeddingRoutes");
 const promptRoutes = require("./routes/promptRoutes");
+const fileRoutes = require("./routes/fileRoutes");
 
 const { prepopulateDefaultConfigs } = require("./services/providerConfigService");
 const { initCollection } = require("./services/qdrantService");
@@ -54,6 +55,7 @@ async function createApp() {
     origin: process.env.ALLOW_CORS || "http://localhost:3000",
     credentials: true, // Allow cookies to be sent
   }));
+  
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
   app.use(cookieParser());
@@ -84,6 +86,7 @@ setupStrategies()
   app.use("/api/chat", chatRoutes);
   app.use("/api/embeddings", embeddingRoutes);
   app.use("/api/prompts", promptRoutes);
+  app.use("/api/files", fileRoutes);
 
   return app;
 }
