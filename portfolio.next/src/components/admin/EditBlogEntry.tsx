@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import { updateBlog } from "@/services/blogService";
 import { marked } from "marked";
 import { BlogEntry } from "@/models/BlogEntry";
-import UploadSpecificFile from "@/components/admin/UploadContextualFile";
-import FileList from "./FileList";
 import FileWrapper from "./FileWrapper";
 
 export default function EditBlogEntry({ initialBlog }: { initialBlog: BlogEntry }) {

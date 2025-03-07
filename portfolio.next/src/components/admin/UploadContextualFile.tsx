@@ -30,6 +30,7 @@ export default function UploadSpecificFile({
       await uploadFile(file, entityId, context, isPublic);
       refreshFiles(); // ✅ Trigger file list refresh
     } catch (err) {
+      console.error(err);
       setError("Upload failed. Try again.");
     } finally {
       setLoading(false);

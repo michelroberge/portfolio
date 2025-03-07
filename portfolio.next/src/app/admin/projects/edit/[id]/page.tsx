@@ -4,15 +4,13 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import UploadSpecificFile from "@/components/admin/UploadContextualFile";
-import FileList from "@/components/admin/FileList";
 import FileWrapper from "@/components/admin/FileWrapper";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function EditProject() {
   const router = useRouter();
-  const params = useParams();
+  const params = useParams() as { id?: string };  
   const [ projectId, setProjectId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
@@ -29,10 +27,11 @@ export default function EditProject() {
   const { isAuthenticated, user } = useAuth();
 
   useEffect(() => {    
+
     if (!isAuthenticated) return;
-    async function fetchProject() {
-      const {id} = await params;
-      setProjectId(id?.toString() || "");
+    
+    async function fetchProject(id : string) {
+      setProjectId(id);
       try {
         const response = await fetch(`${apiUrl}/api/projects/${id}`);
         if (!response.ok) throw new Error("Failed to fetch project");
@@ -50,8 +49,15 @@ export default function EditProject() {
         setLoading(false);
       }
     }
-    fetchProject();
-  }, [isAuthenticated]);
+
+    const id = params.id;
+    if ( id){
+        fetchProject(id);
+    }else{
+      console.warn("attempted to access projects without an id");
+    }
+
+  }, [isAuthenticated, params.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -21,6 +21,7 @@ export default function FileList({ entityId, context, refreshFiles }: {
         const data = await fetchFiles(entityId, context);
         setFiles(data);
       } catch (err) {
+        console.error(err);
         setError("Failed to load files.");
       } finally {
         setLoading(false);
@@ -36,6 +37,7 @@ export default function FileList({ entityId, context, refreshFiles }: {
       await deleteFile(fileId);
       refreshFiles(); // ✅ Trigger a fresh fetch instead of manual filtering
     } catch (err) {
+      console.error(err);
       alert("Failed to delete file.");
     }
   }

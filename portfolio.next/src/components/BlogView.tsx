@@ -9,7 +9,7 @@ export default function BlogView({ blog }: { blog: BlogEntry }) {
     <main className="container mx-auto px-6 py-10 flex flex-col flex-1">
       <h1 className="text-3xl font-bold">{blog.title}</h1>
       <p className="text-gray-500">
-        {new Date(blog.publishAt).toLocaleString(undefined, {
+        {blog.publishAt && new Date(blog.publishAt).toLocaleString(undefined, {
           weekday: "long",
           year: "numeric",
           month: "long",
