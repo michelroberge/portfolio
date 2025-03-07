@@ -27,6 +27,7 @@ async function createBlogEntry(data) {
  */
 async function getAllBlogEntries(filter = {}) {
   const blogs = await BlogEntry.find(filter).sort({ createdAt: -1 });
+  console.log("blogs", blogs);
   return blogs;
 }
 

@@ -4,13 +4,16 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import FileWrapper from "@/components/admin/FileWrapper";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function EditProject() {
   const router = useRouter();
-  const { id } = useParams();
+  const params = useParams() as { id?: string };  
+  const [ projectId, setProjectId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
+  const [excerpt, setExcerpt] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
   const [link, setLink] = useState("");
@@ -19,22 +22,26 @@ export default function EditProject() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [tags, setTags] = useState<string[]>([]);
-  const [industry, setIndustry] = useState("General");
 
   const { isAuthenticated, user } = useAuth();
 
-  useEffect(() => {
+  useEffect(() => {    
+
     if (!isAuthenticated) return;
-    async function fetchProject() {
+    
+    async function fetchProject(id : string) {
+      setProjectId(id);
       try {
         const response = await fetch(`${apiUrl}/api/projects/${id}`);
         if (!response.ok) throw new Error("Failed to fetch project");
-        const data = await response.json();
+        const data = await response.json();        
         setTitle(data.title);
         setDescription(data.description);
         setImage(data.image);
         setLink(data.link);
         setIsDraft(data.isDraft);
+        setExcerpt(data.excerpt);
+        setTags(data.tags);
         setPublishAt(data.publishAt ? new Date(data.publishAt).toISOString().split("T")[0] : null);
         setLoading(false);
       } catch (err) {
@@ -42,14 +49,21 @@ export default function EditProject() {
         setLoading(false);
       }
     }
-    fetchProject();
-  }, [isAuthenticated, id]);
+
+    const id = params.id;
+    if ( id){
+        fetchProject(id);
+    }else{
+      console.warn("attempted to access projects without an id");
+    }
+
+  }, [isAuthenticated, params.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const projectData = { title, description, image, link, isDraft, publishAt, tags, industry };
+    const projectData = { title, excerpt, description, image, link, isDraft, publishAt, tags };
     try {
-      const response = await fetch(`${apiUrl}/api/projects/${id}`, {
+      const response = await fetch(`${apiUrl}/api/projects/${projectId}`, {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -79,6 +93,16 @@ export default function EditProject() {
           className="w-full p-2 border rounded"
           required
         />
+
+        <input
+          type="text"
+          placeholder="Excerpt"
+          value={excerpt}
+          onChange={(e) => setExcerpt(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        />
+
         <textarea
           placeholder="Project Description"
           value={description}
@@ -126,12 +150,8 @@ export default function EditProject() {
           className="w-full p-2 border rounded"
         />
 
-        <select value={industry} onChange={(e) => setIndustry(e.target.value)} className="w-full p-2 border rounded">
-          <option>General</option>
-          <option>Healthcare</option>
-          <option>Finance</option>
-          <option>Education</option>
-        </select>
+        { projectId && <FileWrapper entityId={projectId} context="project" /> }
+
         <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
           Save Changes
         </button>

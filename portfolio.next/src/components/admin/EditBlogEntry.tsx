@@ -1,72 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { updateBlog } from "@/services/blogService";
 import { marked } from "marked";
-import { useAuth } from "@/context/AuthContext";
+import { BlogEntry } from "@/models/BlogEntry";
+import FileWrapper from "./FileWrapper";
 
-const apiUrl :string = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
-export default function EditBlogEntry() {
+export default function EditBlogEntry({ initialBlog }: { initialBlog: BlogEntry }) {
   const router = useRouter();
-  const { id } = useParams();
-  const [title, setTitle] = useState("");
-  const [excerpt, setExcerpt] = useState("");
-  const [body, setBody] = useState("");
-  const [isDraft, setIsDraft] = useState(false);
-  const [publishAt, setPublishAt] = useState<string | null>(null);
+  const [title, setTitle] = useState(initialBlog.title);
+  const [excerpt, setExcerpt] = useState(initialBlog.excerpt);
+  const [body, setBody] = useState(initialBlog.body);
+  const [isDraft, setIsDraft] = useState(initialBlog.isDraft);
+  const [tags, setTags] = useState<string[]>(initialBlog.tags);
+  const [publishAt, setPublishAt] = useState<string | null>(
+    initialBlog.publishAt ? new Date(initialBlog.publishAt).toISOString().split("T")[0] : "null"
+  );
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit"); // Tab state
-  const { isAuthenticated, user } = useAuth();
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
-    async function fetchBlog() {
-      try {
-        const response = await fetch(`${apiUrl}/api/blogs/${id}`, {credentials: "include"});
-        if (!response.ok) throw new Error("Failed to fetch blog post");
-        const data = await response.json();
-
-        setTitle(data.title);
-        setExcerpt(data.excerpt);
-        setBody(data.body);
-        setIsDraft(data.isDraft);
-        setPublishAt(data.publishAt ? new Date(data.publishAt).toISOString().split("T")[0] : null);
-        setLoading(false);
-      } catch (err) {
-        setError((err as Error).message);
-        setLoading(false);
-      }
-    }
-
-    fetchBlog();
-  }, [isAuthenticated, id]);
+  const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const blogData = { title, excerpt, body, isDraft, publishAt };
+    const blogData = { title, excerpt, body, isDraft, publishAt, tags };
 
     try {
-      const response = await fetch(`${apiUrl}/api/blogs/${id}`, {
-        method: "PUT",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(blogData),
-      });
-
-      if (!response.ok) throw new Error("Failed to update blog post");
-      router.push("/admin/blogs");
+      await updateBlog(initialBlog._id, blogData);
+      router.push("/admin/blogs"); // ✅ Redirect to blog list after update
     } catch (err) {
       setError((err as Error).message);
     }
   };
 
-  if (loading) return <p>Loading...</p>;
-  if (!isAuthenticated) return <p>You are not authenticated.</p>;
-  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
-  
   return (
     <>
       <h1 className="text-2xl font-bold mb-4">Edit Blog Entry</h1>
@@ -141,6 +106,17 @@ export default function EditBlogEntry() {
             className="w-full p-2 border rounded"
           />
         </label>
+
+        <input
+          type="text"
+          placeholder="Tags (comma-separated)"
+          value={tags.join(", ")}
+          onChange={(e) => setTags(e.target.value.split(",").map((t) => t.trim()))}
+          className="w-full p-2 border rounded"
+        />
+
+
+        { initialBlog._id && <FileWrapper entityId={initialBlog._id} context="blog" /> }
         <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
           Save Changes
         </button>

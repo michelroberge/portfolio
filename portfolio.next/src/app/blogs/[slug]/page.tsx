@@ -1,72 +1,21 @@
-"use client";
+import { notFound } from "next/navigation";
+import { getBlog } from "@/services/blogService";
+import { BlogEntry } from "@/models/BlogEntry";
+import BlogView from "@/components/BlogView";
 
-import { useEffect, useState } from "react";
-
-import { notFound, useParams } from "next/navigation";
-import { BlogEntry, getBlog } from "@/services/blogService";
-import { marked } from "marked";
-import CommentSection from "@/components/CommentSection";
-
-export default function BlogPage() {
-
-  const { slug } = useParams();
-  const [blog, setBlog] = useState<BlogEntry|null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-
-  useEffect(()=>{
-
-    async function load(slug : string){
-      const id = slug.toString().split("-").pop();
-      console.log('slug', slug);
-      console.log('id', id);
-      if (!id) return notFound();
+const BlogPage = async ({params,}: {params: Promise<{ slug: string }>}) => {
   
-      const blog = await getBlog(id);
-  
-      setBlog(blog);
-      setLoading(false);
-    }
+  const { slug } = await params;
 
-    if ( slug && loading){
-      load(slug.toString());
-    }
+  if (!slug) return notFound();
 
-  }, [slug]); 
+  const id = slug.toString().split("-").pop(); // Extract the last part as the ID
+  if (!id) return notFound();
 
-  if ( loading){
-    return (
-      <p>Loading...</p>
-    )
-  }
-  if (!blog) return 
-    (  
-      <></>
-    );
+  const blog: BlogEntry | null = await getBlog(id);
+  if (!blog) return notFound();
 
-  return (
-    <>
-      <main className="container mx-auto px-6 py-10 flex flex-col flex-1">
-        <h1 className="text-3xl font-bold">{blog.title}</h1>
-        <p className="text-gray-500">
-            {new Date(blog.publishAt).toLocaleString(undefined, {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-            })}
-          </p>
-  
-        {/* Wrap the Markdown content inside a "prose" div */}
-        <div className="mt-4 prose lg:prose-lg xl:prose-xl max-w-none"
-             dangerouslySetInnerHTML={{ __html: marked.parse(blog.body) }} />
+  return <BlogView blog={blog} />;
+};
 
-        <CommentSection blogId={String(blog._id)} />
-
-      </main>
-    </>
-  );
-  
-}
+export default BlogPage;

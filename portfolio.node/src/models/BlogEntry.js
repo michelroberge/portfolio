@@ -9,7 +9,9 @@ const BlogEntrySchema = new mongoose.Schema({
   isDraft: { type: Boolean, default: false },
   publishAt: { type: Date },
   vectorId : {type: Number, unique: true },
-  link : {type : String, default: null}
+  link : {type : String, default: null},
+  tags: {type: Array, default: []}
+
 }, { timestamps: true });
 
 // Generate slug and link from title.

@@ -10,7 +10,7 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 interface Project {
   _id: string;
   title: string;
-  description: string;
+  excerpt: string;
   image: string;
   link: string;
 }
@@ -69,7 +69,7 @@ export default function ProjectManagement() {
         <thead>
           <tr className="bg-gray-200">
             <th className="border border-gray-300 p-2 text-left">Title</th>
-            <th className="border border-gray-300 p-2 text-left">Description</th>
+            <th className="border border-gray-300 p-2 text-left">Excerpt</th>
             <th className="border border-gray-300 p-2 text-left">Image</th>
             <th className="border border-gray-300 p-2 text-left">Link</th>
             <th className="border border-gray-300 p-2 text-left">Actions</th>
@@ -79,12 +79,14 @@ export default function ProjectManagement() {
           {projects.map((project) => (
             <tr key={project._id} className="border border-gray-300">
               <td className="border border-gray-300 p-2">{project.title}</td>
-              <td className="border border-gray-300 p-2">{project.description}</td>
+              <td className="border border-gray-300 p-2">{project.excerpt}</td>
               <td className="border border-gray-300 p-2">
                 {project.image &&
                 <Image
                   src={project.image}
                   alt={project.title}
+                  width={48}
+                  height={48}
                   className="h-16 w-auto object-contain"
                 />
                 }
