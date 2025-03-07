@@ -132,8 +132,6 @@ function parseDate(dateStr) {
 // Bulk insert parsed jobs into the database
 router.post("/timeline/bulk", isAuth, isAdmin, async (req, res) => {
   try {
-    console.log('req.body', req.body);
-    
     const entries = req.body.map((entry) => ({
       title: entry.title,
       company: entry.company,
@@ -151,5 +149,7 @@ router.post("/timeline/bulk", isAuth, isAdmin, async (req, res) => {
     res.status(500).json({ error: "Failed to import LinkedIn data." });
   }
 });
+
+
 
 module.exports = router;

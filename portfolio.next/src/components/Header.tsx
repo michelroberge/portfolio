@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCog, faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+import { faAlignLeft, faCog, faContactCard, faParagraph, faPerson, faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 import { usePathname } from "next/navigation";
 export default function Header() {
   const { isAdmin, isAuthenticated, refreshAuth } = useAuth();
@@ -37,6 +37,18 @@ export default function Header() {
           </div>
         </Link>
         <div className="flex items-center gap-4">
+
+        <Link href="/about" className="flex items-center gap-2 text-white hover:text-gray-300">
+              <FontAwesomeIcon icon={faContactCard} className="w-6 h-6" />
+              <span>About me</span>
+            </Link>
+
+        <Link href="/career" className="flex items-center gap-2 text-white hover:text-gray-300">
+              <FontAwesomeIcon icon={faAlignLeft} className="w-6 h-6" />
+              <span>Experience</span>
+            </Link>
+
+
           {isAuthenticated && isAdmin && (
             <Link href={`/admin`} className="flex items-center gap-2 text-white hover:text-gray-300">
               <FontAwesomeIcon icon={faCog} className="w-6 h-6" />
