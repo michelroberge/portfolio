@@ -5,11 +5,15 @@ import { fetchFiles, deleteFile } from "@/services/fileService";
 import { FileInfo } from "@/models/FileInfo";
 import { useAuth } from "@/context/AuthContext";
 
-export default function FileList({ entityId, context }: { entityId: string; context: string }) {
+export default function FileList({ entityId, context, refreshFiles }: { 
+  entityId: string; 
+  context: string;
+  refreshFiles: () => void; // ✅ Function to refresh file list
+}) {
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth(); // Get user context
+  const { user } = useAuth();
 
   useEffect(() => {
     async function loadFiles() {
@@ -30,7 +34,7 @@ export default function FileList({ entityId, context }: { entityId: string; cont
 
     try {
       await deleteFile(fileId);
-      setFiles(files.filter((file) => file._id !== fileId)); // Remove from UI
+      refreshFiles(); // ✅ Trigger a fresh fetch instead of manual filtering
     } catch (err) {
       alert("Failed to delete file.");
     }

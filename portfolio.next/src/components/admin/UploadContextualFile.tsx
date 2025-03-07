@@ -1,8 +1,17 @@
-"use client"
+"use client";
+
 import { useState } from "react";
 import { uploadFile } from "@/services/fileService";
 
-export default function UploadSpecificFile({ entityId, context }: { entityId: string; context: string }) {
+export default function UploadSpecificFile({
+  entityId,
+  context,
+  refreshFiles, // ✅ Accept refreshFiles as a prop
+}: {
+  entityId: string;
+  context: string;
+  refreshFiles: () => void; // ✅ Function to refresh file list
+}) {
   const [file, setFile] = useState<File | null>(null);
   const [isPublic, setIsPublic] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,6 +28,7 @@ export default function UploadSpecificFile({ entityId, context }: { entityId: st
 
     try {
       await uploadFile(file, entityId, context, isPublic);
+      refreshFiles(); // ✅ Trigger file list refresh
     } catch (err) {
       setError("Upload failed. Try again.");
     } finally {

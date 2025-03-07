@@ -7,6 +7,7 @@ import { marked } from "marked";
 import { BlogEntry } from "@/models/BlogEntry";
 import UploadSpecificFile from "@/components/admin/UploadContextualFile";
 import FileList from "./FileList";
+import FileWrapper from "./FileWrapper";
 
 export default function EditBlogEntry({ initialBlog }: { initialBlog: BlogEntry }) {
   const router = useRouter();
@@ -106,8 +107,7 @@ export default function EditBlogEntry({ initialBlog }: { initialBlog: BlogEntry 
             className="w-full p-2 border rounded"
           />
         </label>
-        <UploadSpecificFile entityId={initialBlog._id} context="blog" />
-        <FileList entityId={initialBlog._id} context="blog" />
+        { initialBlog._id && <FileWrapper entityId={initialBlog._id} context="blog" /> }
         <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
           Save Changes
         </button>

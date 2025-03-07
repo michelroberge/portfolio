@@ -6,6 +6,8 @@ import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import UploadSpecificFile from "@/components/admin/UploadContextualFile";
 import FileList from "@/components/admin/FileList";
+import FileWrapper from "@/components/admin/FileWrapper";
+
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function EditProject() {
@@ -149,9 +151,7 @@ export default function EditProject() {
           <option>Education</option>
         </select>
 
-        { projectId && <UploadSpecificFile entityId={projectId} context="project" />}
-        { projectId && <FileList entityId={projectId} context="project" />}
-        
+        { projectId && <FileWrapper entityId={projectId} context="project" /> }
 
         <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
           Save Changes
