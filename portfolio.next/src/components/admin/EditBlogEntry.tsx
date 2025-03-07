@@ -13,6 +13,7 @@ export default function EditBlogEntry({ initialBlog }: { initialBlog: BlogEntry 
   const [excerpt, setExcerpt] = useState(initialBlog.excerpt);
   const [body, setBody] = useState(initialBlog.body);
   const [isDraft, setIsDraft] = useState(initialBlog.isDraft);
+  const [tags, setTags] = useState<string[]>(initialBlog.tags);
   const [publishAt, setPublishAt] = useState<string | null>(
     initialBlog.publishAt ? new Date(initialBlog.publishAt).toISOString().split("T")[0] : "null"
   );
@@ -21,7 +22,7 @@ export default function EditBlogEntry({ initialBlog }: { initialBlog: BlogEntry 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const blogData = { title, excerpt, body, isDraft, publishAt };
+    const blogData = { title, excerpt, body, isDraft, publishAt, tags };
 
     try {
       await updateBlog(initialBlog._id, blogData);
@@ -105,6 +106,16 @@ export default function EditBlogEntry({ initialBlog }: { initialBlog: BlogEntry 
             className="w-full p-2 border rounded"
           />
         </label>
+
+        <input
+          type="text"
+          placeholder="Tags (comma-separated)"
+          value={tags.join(", ")}
+          onChange={(e) => setTags(e.target.value.split(",").map((t) => t.trim()))}
+          className="w-full p-2 border rounded"
+        />
+
+
         { initialBlog._id && <FileWrapper entityId={initialBlog._id} context="blog" /> }
         <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
           Save Changes

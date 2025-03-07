@@ -6,4 +6,5 @@ export interface BlogEntry {
     excerpt?: string;
     link: string;
     isDraft: boolean;
+    tags: Array<string>;
   }

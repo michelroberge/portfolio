@@ -65,6 +65,12 @@ export default function AdminDashboard() {
           <h2 className="text-lg font-medium text-gray-800">AI Model</h2>
           <p className="text-sm text-gray-500">Configure Artificial Intelligence Model</p>
         </Link>
+        <Link href="/admin/files"
+          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+        >
+          <h2 className="text-lg font-medium text-gray-800">Global Files</h2>
+          <p className="text-sm text-gray-500">Manage the global files to include in context</p>
+        </Link>
       </div>
     </div>
   );

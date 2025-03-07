@@ -14,7 +14,8 @@ import { BlogEntry } from "@/models/BlogEntry";
       const data: BlogEntry = await response.json();
       return {
         ...data,
-        _id: String(data._id), // Ensure `_id` is always a string
+        _id: String(data._id), 
+        tags: data.tags
       } as BlogEntry;
     } catch (error) {
       console.error("Error fetching blog:", error);

@@ -22,7 +22,6 @@ export default function EditProject() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [tags, setTags] = useState<string[]>([]);
-  const [industry, setIndustry] = useState("General");
 
   const { isAuthenticated, user } = useAuth();
 
@@ -42,6 +41,7 @@ export default function EditProject() {
         setLink(data.link);
         setIsDraft(data.isDraft);
         setExcerpt(data.excerpt);
+        setTags(data.tags);
         setPublishAt(data.publishAt ? new Date(data.publishAt).toISOString().split("T")[0] : null);
         setLoading(false);
       } catch (err) {
@@ -61,7 +61,7 @@ export default function EditProject() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const projectData = { title, excerpt, description, image, link, isDraft, publishAt, tags, industry };
+    const projectData = { title, excerpt, description, image, link, isDraft, publishAt, tags };
     try {
       const response = await fetch(`${apiUrl}/api/projects/${projectId}`, {
         method: "PUT",
@@ -149,13 +149,6 @@ export default function EditProject() {
           onChange={(e) => setTags(e.target.value.split(",").map((t) => t.trim()))}
           className="w-full p-2 border rounded"
         />
-
-        <select value={industry} onChange={(e) => setIndustry(e.target.value)} className="w-full p-2 border rounded">
-          <option>General</option>
-          <option>Healthcare</option>
-          <option>Finance</option>
-          <option>Education</option>
-        </select>
 
         { projectId && <FileWrapper entityId={projectId} context="project" /> }
 

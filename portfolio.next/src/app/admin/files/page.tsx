@@ -10,7 +10,8 @@ export default async function FileManagement() {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-4">File Management</h1>
+      <h1 className="text-3xl font-bold mb-4">Global Files Management</h1>
+      <p>These files will be systematically included in the embedding contexts, unless they are media files (images, music, videos, etc.)</p>
       <FileWrapper context="general" entityId="0" />
     </div>
   );

@@ -4,4 +4,5 @@ export interface Project {
     description: string;
     excerpt?: string;
     link: string;
+    tags?: string[];
   }
