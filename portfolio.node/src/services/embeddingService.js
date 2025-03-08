@@ -1,8 +1,8 @@
 const qdrantService = require("./qdrantService");
-const blogService = require("./blogService");
-const projectService = require("./projectService");
+const {getAllBlogEntries} = require("./blogService");
+const {getAllProjects} = require("./projectService");
 const {getAllPages} = require("./pageService");
-const fileService = require("./fileService");
+const {getAllFiles, extractFileText} = require("./fileService");
 
 const EMBEDDING_SERVICE = process.env.EMBEDDING_SERVICE?.toLowerCase() || "ollama"; // Default to Ollama
 const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || "mistral"; // Default model for Ollama
@@ -98,9 +98,13 @@ async function initializeEmbeddings() {
 
   // Step 3: Generate embeddings for different entities
   await generateEmbeddingsForEntities("pages", getAllPages, formatPageForEmbedding);
-  await generateEmbeddingsForEntities("blogs", blogService.getAllBlogEntries, formatBlogForEmbedding);
-  await generateEmbeddingsForEntities("projects", projectService.getAllProjects, formatProjectForEmbedding);
-  await generateEmbeddingsForEntities("files", fileService.getAllFiles, formatFileForEmbedding);
+  await generateEmbeddingsForEntities("blogs", getAllBlogEntries, formatBlogForEmbedding);
+  if ( getAllProjects){
+    await generateEmbeddingsForEntities("projects", getAllProjects, formatProjectForEmbedding);
+  }else{
+    console.log(`getAllProjects does not link...`);
+  }
+  await generateEmbeddingsForEntities("files", getAllFiles, formatFileForEmbedding);
 
   console.log("Embeddings initialization complete.");
 }
@@ -108,7 +112,7 @@ async function initializeEmbeddings() {
 async function defaultFormatter(entity){
   let content = entity.content || entity.description || entity.excerpt || "";
   if (collectionName === "files") {
-    content = await fileService.extractFileText(entity);
+    content = await extractFileText(entity);
   }
   else{
     content = entity.body || entity.content || entity.description || entity.excerpt || "";
@@ -117,6 +121,7 @@ async function defaultFormatter(entity){
 }
 async function generateEmbeddingsForEntities(collectionName, fetchFunction, formatFunction) {
   const entities = await fetchFunction();
+  console.log(`generating ${entities.length} '${collectionName}' embeddings`);
   for (const entity of entities) {
     const metadata = {
       id: entity._id,
@@ -165,7 +170,7 @@ function formatPageForEmbedding(page) {
 }
 
 async function formatFileForEmbedding(file) {
-  return await fileService.extractFileText(file);
+  return await extractFileText(file);
 }
 
 

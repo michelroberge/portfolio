@@ -26,9 +26,12 @@ async function createProject(data) {
  * Retrieves all projects.
  * @returns {Promise<Array>} - Array of projects.
  */
+
 async function getAllProjects(filter = {}) {
-  return Project.find(filter);
+  const projects = await Project.find(filter).sort({ createdAt: -1 });
+  return projects;
 }
+
 
 /**
  * Retrieves a project by its ID.

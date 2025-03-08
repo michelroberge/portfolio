@@ -63,7 +63,7 @@ async function storeEmbedding(collectionName, filePath, vectors, metadata = {}) 
             ],
         });
 
-        console.log(`✅ Stored embedding for file: ${filePath}`);
+        console.log(`✅ Stored '${collectionName}' embedding ${id}`);
         return embeddingEntry;
     } catch (error) {
         console.error(error);
