@@ -45,7 +45,7 @@ async function generateResponse(prompt) {
               fullResponse += parsed.response; // Append each part of the response
             }
           } catch (err) {
-            console.warn("Skipping invalid JSON chunk:", line);
+            console.warn("Skipping invalid JSON chunk");
           }
         }
       });
@@ -98,7 +98,7 @@ async function generateResponseStream(prompt) {
                   controller.enqueue(parsed.response); // Send each chunk immediately
                 }
               } catch (err) {
-                console.warn("Skipping invalid JSON chunk:", line);
+                console.warn("Skipping invalid JSON chunk (possibly end?)");
               }
             }
           });

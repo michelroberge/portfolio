@@ -6,9 +6,8 @@ const searchCache = new NodeCache({ stdTTL: 300 });
 const counterService = require("../services/counterService");
 const QDRANT_URL = process.env.QDRANT_URL || "http://10.0.0.42:6333";
 const QDRANT_API_KEY = process.env.QDRANT_API_KEY || "";
-const OLLAMA_URL = process.env.OLLAMA_URL || "http://10.0.0.42:11434";
 const COLLECTION_NAME = "projects";
-const VECTOR_SIZE = parseInt(process.env.VECTOR_SIZE, 10) || 1536; // Default to OpenAI size if not set
+const VECTOR_SIZE = parseInt(process.env.VECTOR_SIZE, 10) || 4096; // Default to OpenAI size if not set
 
 const qdrantClient = new QdrantClient({
     url: QDRANT_URL,
@@ -18,21 +17,21 @@ const qdrantClient = new QdrantClient({
 /**
  * Initializes the Qdrant collection if it does not exist.
  */
-async function initCollection() {
+async function initCollection(collection) {
     try {
-        await qdrantClient.getCollection(COLLECTION_NAME);
-        console.log(`✅ Qdrant collection "${COLLECTION_NAME}" already exists.`);
+        await qdrantClient.getCollection(collection);
+        console.log(`✅ Qdrant collection "${collection}" already exists.`);
     } catch (error) {
-        console.log(`⚠️ Qdrant collection "${COLLECTION_NAME}" not found. Creating...`);
+        console.log(`⚠️ Qdrant collection "${collection}" not found. Creating...`);
 
-        await qdrantClient.createCollection(COLLECTION_NAME, {
+        await qdrantClient.createCollection(collection, {
             vectors: {
                 size: VECTOR_SIZE, 
                 distance: "Cosine"
             }
         });
 
-        console.log(`✅ Qdrant collection "${COLLECTION_NAME}" created.`);
+        console.log(`✅ Qdrant collection "${collection}" created.`);
     }
 }
 
@@ -42,28 +41,23 @@ async function initCollection() {
  * @param {string} content - File content for embedding generation.
  * @param {object} metadata - Additional metadata related to the embedding.
  */
-async function storeEmbedding(filePath, content, metadata = {}) {
+async function storeEmbedding(collectionName, filePath, vectors, metadata = {}) {
     try {
-        const vector = await generateEmbedding(content);
-        if (!vector) {
-            throw new Error("Failed to generate embedding.");
-        }
-
         // Validate vector
-        if (!Array.isArray(vector) || vector.length !== VECTOR_SIZE || vector.some(isNaN)) {
+        if (!Array.isArray(vectors) || vectors.length !== VECTOR_SIZE) {
             throw new Error(`Invalid embedding vector received.`);
         }
 
         // Store in MongoDB
-        const id = await counterService.getNextVectorId("embedding");
+        const id = await counterService.getNextVectorId(`${collectionName}VectorId`);
         const embeddingEntry = await Embedding.create({ filePath, metadata, externalId: id });
 
         // Store in Qdrant
-        await qdrantClient.upsert(COLLECTION_NAME, {
+        await qdrantClient.upsert(collectionName, {
             points: [
                 {
                     id: id,
-                    vector,
+                    vectors,
                     payload: { filePath, metadata },
                 },
             ],
@@ -72,7 +66,8 @@ async function storeEmbedding(filePath, content, metadata = {}) {
         console.log(`✅ Stored embedding for file: ${filePath}`);
         return embeddingEntry;
     } catch (error) {
-        console.error(`❌ Qdrant Error:`, error.message);
+        console.error(error);
+        // console.error(`❌ Qdrant Error:`, error.message);
         return null;
     }
 }
@@ -114,7 +109,7 @@ async function updateEmbeddingMetadata({ id = null, filePath = null, metadata })
     }
 }
 
-async function updateEmbedding(filePath, newContent, metadata) {
+async function updateEmbedding(filePath, newVectors, metadata) {
     try {
         // ✅ Find existing embedding by filePath
         const embedding = await Embedding.findOne({ filePath });
@@ -122,14 +117,8 @@ async function updateEmbedding(filePath, newContent, metadata) {
             throw new Error("Embedding not found for file.");
         }
 
-        // ✅ Generate a new vector (since content changed)
-        const newVector = await generateEmbedding(newContent);
-        if (!newVector) {
-            throw new Error("Failed to generate new embedding.");
-        }
-
         // ✅ Validate vector
-        if (!Array.isArray(newVector) || newVector.length !== VECTOR_SIZE || newVector.some(isNaN)) {
+        if (!Array.isArray(newVectors) || newVectors.length !== VECTOR_SIZE || newVectors.some(isNaN)) {
             throw new Error("Invalid embedding vector.");
         }
 
@@ -138,7 +127,7 @@ async function updateEmbedding(filePath, newContent, metadata) {
             points: [
                 {
                     id: embedding.externalId, // Keep the same ID
-                    vector: newVector, // ✅ Overwrite vector
+                    vector: newVectors, // ✅ Overwrite vector
                     payload: { filePath, metadata }, // ✅ Overwrite metadata
                 },
             ],
@@ -168,6 +157,32 @@ async function listEmbeddings() {
     }
 }
 
+/**
+ * Search across all collections and return the most relevant results.
+ * @param {number[]} queryVector - The embedding vector to search with.
+ * @param {number} limit - Maximum number of results to return.
+ * @param {number} threshold - Minimum similarity score to consider.
+ */
+async function searchAcrossCollections(queryVector, limit = 10, threshold = 0.3) {
+    const collections = ["pages", "blogs", "projects", "files"];
+    let allResults = [];
+  
+    for (const collection of collections) {
+      try {
+        const results = await searchQdrant(queryVector, collection, limit, threshold)
+        allResults = allResults.concat(results);
+      } catch (error) {
+        console.warn(`Error searching ${collection}:`, error.message);
+      }
+    }
+  
+    // Sort results by highest similarity score
+    allResults.sort((a, b) => b.score - a.score);
+  
+    // Limit final results
+    return allResults.slice(0, limit);
+  }
+  
 /**
  * Performs a semantic search in Qdrant.
  * @param {number[]} queryVector - The query embedding.
@@ -217,38 +232,6 @@ async function searchQdrant(queryVector, collection = "projects", topK = 5, minS
     }
 }
 
-
-/**
- * Generates an embedding using Ollama.
- * @param {string} text - The text content to generate an embedding for.
- * @returns {Promise<number[]>} - The generated embedding vector.
- */
-async function generateEmbedding(text) {
-    try {
-        // console.log(`📡 Requesting embedding from Ollama for text: "${text.slice(0, 50)}..."`);
-
-        const response = await fetch(`${OLLAMA_URL}/api/embeddings`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ model: "mistral", prompt: text }),
-        });
-
-        const data = await response.json();
-        
-        // Log the full response for debugging
-        // console.log("🔍 Ollama Response:", JSON.stringify(data, null, 2));
-
-        if (!data || !data.embedding || !Array.isArray(data.embedding)) {
-            throw new Error("Embedding data is missing or invalid");
-        }
-
-        return data.embedding;
-    } catch (error) {
-        console.error(`❌ Error generating embedding: ${error.message}`);
-        return null;
-    }
-}
-
 async function deleteEmbedding(filePath) {
     try {
         const embedding = await Embedding.findOne({ filePath });
@@ -276,10 +259,10 @@ async function deleteEmbedding(filePath) {
 /**
  * Deletes the entire Qdrant collection.
  */
-async function dropCollection() {
+async function dropCollection(collection) {
     try {
-        await qdrantClient.deleteCollection(COLLECTION_NAME);
-        console.log(`✅ Dropped Qdrant collection "${COLLECTION_NAME}"`);
+        await qdrantClient.deleteCollection(collection);
+        console.log(`✅ Dropped Qdrant collection "${collection}"`);
     } catch (error) {
         console.error(`❌ Error dropping collection: ${error.message}`);
     }
@@ -291,8 +274,7 @@ module.exports = {
     updateEmbeddingMetadata,
     updateEmbedding,
     listEmbeddings,
-    generateEmbedding,
     deleteEmbedding,
     dropCollection,
-    searchQdrant
+    searchAcrossCollections
 };

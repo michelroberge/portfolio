@@ -1,7 +1,8 @@
 const Prompt = require("../models/Prompt");
-const { generateEmbedding, searchQdrant } = require("../services/qdrantService");
+const { searchAcrossCollections } = require("../services/qdrantService");
 const projectService = require("../services/projectService");
 const blogService = require("../services/blogService");
+const { generateEmbeddings } = require("../services/embeddingService");
 
 /**
  * Generates a structured AI prompt based on user input, retrieved context, and history.
@@ -17,8 +18,8 @@ async function generatePrompt(query, history = [], webContext = "") {
         let promptTemplate = promptEntry ? promptEntry.template : getDefaultTemplate();
 
         // Generate embeddings and search for relevant documents
-        const vectors = await generateEmbedding(query);
-        const relatedDocs = await searchQdrant(vectors, "projects", 5, 0.3);
+        const vectors = await generateEmbeddings(query);
+        const relatedDocs = await searchAcrossCollections(vectors, 10, 0.5);
 
         // Format context from retrieved documents
         let context = "";

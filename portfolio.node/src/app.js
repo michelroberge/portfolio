@@ -27,6 +27,7 @@ const promptRoutes = require("./routes/promptRoutes");
 const fileRoutes = require("./routes/fileRoutes");
 const careerTimelineRoutes = require("./routes/careerTimelineRoutes");
 const pageRoutes = require("./routes/pageRoutes");
+const aiRoutes = require("./routes/aiRoutes");
 
 const { prepopulateDefaultConfigs } = require("./services/providerConfigService");
 const { initCollection } = require("./services/qdrantService");
@@ -91,6 +92,7 @@ setupStrategies()
   app.use("/api/files", fileRoutes);
   app.use("/api/career", careerTimelineRoutes);  
   app.use("/api/pages", pageRoutes);  
+  app.use("/api/ai", aiRoutes);  
 
   return app;
 }

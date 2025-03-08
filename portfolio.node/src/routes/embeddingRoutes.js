@@ -2,6 +2,7 @@ const express = require("express");
 const {
     parseLocalDirectory,
     updateEmbedding,
+    initializeEmbeddings,
     listEmbeddings
 } = require("../services/embeddingService");  //
 const isAdmin = require("../middlewares/admin");
@@ -103,5 +104,14 @@ router.post("/search", async (req, res) => {
     }
 });
 
-
+router.post("/initialize", async (req, res) => {
+    try {
+      await initializeEmbeddings();
+      res.json({ message: "Embeddings initialized successfully." });
+    } catch (error) {
+      console.error("Error initializing embeddings:", error);
+      res.status(500).json({ error: "Failed to initialize embeddings" });
+    }
+  });
+  
 module.exports = router;

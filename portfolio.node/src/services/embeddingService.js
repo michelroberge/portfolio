@@ -1,7 +1,13 @@
+const qdrantService = require("./qdrantService");
+const blogService = require("./blogService");
+const projectService = require("./projectService");
+const {getAllPages} = require("./pageService");
+const fileService = require("./fileService");
+
 const EMBEDDING_SERVICE = process.env.EMBEDDING_SERVICE?.toLowerCase() || "ollama"; // Default to Ollama
 const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || "mistral"; // Default model for Ollama
 const VECTOR_SIZE = parseInt(process.env.VECTOR_SIZE, 10) || (EMBEDDING_SERVICE === "openai" ? 1536 : 4096);
-const OLLAMA_API_URL = process.env.OLLAMA_API_URL || "http://localhost:11434";
+const OLLAMA_API_URL = process.env.OLLAMA_API_URL || "http://10.0.0.42:11434";
 const OPENAI_API_URL = "https://api.openai.com/v1";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY; // Ensure API key is set for OpenAI
 
@@ -17,6 +23,13 @@ async function generateEmbeddings(text) {
 
 async function generateOllamaEmbeddings(text) {
   try {
+
+    // console.log(`ollama endpoint`, `${OLLAMA_API_URL}/api/embeddings`);
+    // console.log(`ollama payload`, 
+    //   {model: EMBEDDING_MODEL, // Dynamically set from .env
+    //   prompt: text,
+    // });
+    
     const response = await fetch(`${OLLAMA_API_URL}/api/embeddings`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -70,6 +83,94 @@ async function generateOpenAIEmbeddings(text) {
   }
 }
 
+async function initializeEmbeddings() {
+  console.log("Initializing embeddings...");
+
+  // Step 1: Remove all collections in Qdrant
+
+  // Step 2: Recreate collections
+  const collections = ["pages", "blogs", "projects", "files"];
+  for (const collection of collections) {
+    await qdrantService.dropCollection(collection);
+    await qdrantService.initCollection(collection);
+    console.log(`Collection '${collection}' (re)created.`);
+  }
+
+  // Step 3: Generate embeddings for different entities
+  await generateEmbeddingsForEntities("pages", getAllPages, formatPageForEmbedding);
+  await generateEmbeddingsForEntities("blogs", blogService.getAllBlogEntries, formatBlogForEmbedding);
+  await generateEmbeddingsForEntities("projects", projectService.getAllProjects, formatProjectForEmbedding);
+  await generateEmbeddingsForEntities("files", fileService.getAllFiles, formatFileForEmbedding);
+
+  console.log("Embeddings initialization complete.");
+}
+
+async function defaultFormatter(entity){
+  let content = entity.content || entity.description || entity.excerpt || "";
+  if (collectionName === "files") {
+    content = await fileService.extractFileText(entity);
+  }
+  else{
+    content = entity.body || entity.content || entity.description || entity.excerpt || "";
+  }
+  return content;
+}
+async function generateEmbeddingsForEntities(collectionName, fetchFunction, formatFunction) {
+  const entities = await fetchFunction();
+  for (const entity of entities) {
+    const metadata = {
+      id: entity._id,
+      title: entity.title,
+      tags: entity.tags || [],
+      type: collectionName,
+    };
+
+    // Extract content to embed
+    let content = formatFunction ? await formatFunction(entity) : defaultFormatter(entity);
+
+    if (!content) continue;
+
+    // Generate embedding
+    const embeddings = await generateEmbeddings(content);
+    await qdrantService.storeEmbedding(collectionName, entity._id, embeddings, metadata);
+  }
+}
+
+function formatBlogForEmbedding(blog) {
+  return `
+    Title: ${blog.title}
+    Tags: ${blog.tags?.join(", ") || "None"}
+    Published: ${new Date(blog.createdAt).toLocaleDateString()}
+    
+    ${blog.content}
+  `.trim();
+}
+
+function formatProjectForEmbedding(project) {
+  return `
+    Project: ${project.title}
+    Tags: ${project.tags?.join(", ") || "None"}
+    Description: ${project.description || "No description available"}
+    Link: ${project.link || "No link"}
+  `.trim();
+}
+
+function formatPageForEmbedding(page) {
+  return `
+    Page Title: ${page.title}
+    Tags: ${page.tags?.join(", ") || "None"}
+    
+    ${page.content}
+  `.trim();
+}
+
+async function formatFileForEmbedding(file) {
+  return await fileService.extractFileText(file);
+}
+
+
+
 module.exports = {
   generateEmbeddings,
+  initializeEmbeddings 
 };

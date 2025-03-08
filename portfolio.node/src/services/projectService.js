@@ -1,6 +1,7 @@
 const Project = require("../models/Project");
-const { storeEmbedding, generateEmbedding, searchQdrant } = require("../services/qdrantService");
+const { storeEmbedding, searchQdrant } = require("../services/qdrantService");
 const {getNextVectorId} = require("../services/counterService");
+const { generateEmbeddings } = require("./embeddingService");
 
 /**
  * Creates a new project.
@@ -12,7 +13,7 @@ async function createProject(data) {
   await project.save();
 
   const textToEmbed = `${project.title} ${project.description} ${project.tags.join(" ")} ${project.industry}`;
-  const embedding = await generateEmbedding(textToEmbed);
+  const embedding = await generateEmbeddings(textToEmbed);
 
   if (embedding) {
     await storeEmbedding(project._id, textToEmbed, embedding);
@@ -67,7 +68,7 @@ async function generateEmbeddingsAndStore(project) {
   }
 
   // 1️⃣ Generate the embedding vector
-  const vector = await generateEmbedding(text);
+  const vector = await generateEmbeddings(text);
   
   if (!vector) {
     console.error(`❌ Failed to generate embedding for project: ${project._id}`);
@@ -88,7 +89,7 @@ async function searchProjects(search) {
 
   if (!query) return res.status(400).json({ message: "Query is required" });
 
-  const embedding = await generateEmbedding(query);
+  const embedding = await generateEmbeddings(query);
   if (!embedding) return res.status(500).json({ message: "Failed to generate query embedding" });
 
   const results = await searchQdrant(embedding, "projects");  // ✅ Always searches in "projects"

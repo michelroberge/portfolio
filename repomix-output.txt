@@ -53,6 +53,7 @@ docs/1.c.UserRequirements.v3.md
 docs/2. development-plan.md
 docs/2.b.development-plan.v2.md
 docs/2.c.development-plan.v3.md
+docs/jobs.html
 docs/prompts/default.md
 LICENSE
 portfolio.next/__tests__/apiServices.test.ts
@@ -72,14 +73,19 @@ portfolio.next/public/vercel.svg
 portfolio.next/public/window.svg
 portfolio.next/README.md
 portfolio.next/src/app/_not-found/page.tsx
+portfolio.next/src/app/[slug]/page.tsx
 portfolio.next/src/app/admin/analytics/page.tsx
 portfolio.next/src/app/admin/blogs/edit/[id]/page.tsx
 portfolio.next/src/app/admin/blogs/new/page.tsx
 portfolio.next/src/app/admin/blogs/page.tsx
+portfolio.next/src/app/admin/career/edit/[id]/page.tsx
+portfolio.next/src/app/admin/career/linkedin/page.tsx
+portfolio.next/src/app/admin/career/page.tsx
 portfolio.next/src/app/admin/comments/page.tsx
 portfolio.next/src/app/admin/files/page.tsx
 portfolio.next/src/app/admin/login/page.tsx
 portfolio.next/src/app/admin/page.tsx
+portfolio.next/src/app/admin/pages/page.tsx
 portfolio.next/src/app/admin/projects/edit/[id]/page.tsx
 portfolio.next/src/app/admin/projects/new/page.tsx
 portfolio.next/src/app/admin/projects/page.tsx
@@ -89,6 +95,7 @@ portfolio.next/src/app/admin/setup/page.tsx
 portfolio.next/src/app/admin/temp-layout.tsx
 portfolio.next/src/app/admin/users/page.tsx
 portfolio.next/src/app/blogs/[slug]/page.tsx
+portfolio.next/src/app/career/page.tsx
 portfolio.next/src/app/globals.css
 portfolio.next/src/app/layout.tsx
 portfolio.next/src/app/page.tsx
@@ -101,9 +108,11 @@ portfolio.next/src/components/admin/FileList.tsx
 portfolio.next/src/components/admin/FileWrapper.tsx
 portfolio.next/src/components/admin/UploadContextualFile.tsx
 portfolio.next/src/components/BlogView.tsx
+portfolio.next/src/components/CareerTimeline.tsx
 portfolio.next/src/components/Chat.tsx
 portfolio.next/src/components/ChatWrapper.tsx
 portfolio.next/src/components/CommentSection.tsx
+portfolio.next/src/components/EntryOverview.tsx
 portfolio.next/src/components/Footer.tsx
 portfolio.next/src/components/Header.tsx
 portfolio.next/src/components/Home.tsx
@@ -116,13 +125,16 @@ portfolio.next/src/context/SearchContext.tsx
 portfolio.next/src/hooks/useWebSocketChat.tsx
 portfolio.next/src/models/BlogEntry.ts
 portfolio.next/src/models/FileInfo.ts
+portfolio.next/src/models/ParsedJob.ts
 portfolio.next/src/models/Project.ts
 portfolio.next/src/services/aiService.ts
 portfolio.next/src/services/apiService.ts
 portfolio.next/src/services/authService.ts
 portfolio.next/src/services/blogService.ts
+portfolio.next/src/services/careerService.ts
 portfolio.next/src/services/fileService.ts
 portfolio.next/src/services/homePageService.ts
+portfolio.next/src/services/pageService.ts
 portfolio.next/src/services/projectService.ts
 portfolio.next/tailwind.config.ts
 portfolio.next/tsconfig.json
@@ -151,22 +163,26 @@ portfolio.node/src/middlewares/auth.js
 portfolio.node/src/middlewares/metrics.js
 portfolio.node/src/middlewares/validate.js
 portfolio.node/src/models/BlogEntry.js
+portfolio.node/src/models/CareerTimeline.js
 portfolio.node/src/models/ChatMessage.js
 portfolio.node/src/models/Comment.js
 portfolio.node/src/models/Counters.js
 portfolio.node/src/models/Embedding.js
 portfolio.node/src/models/Metadata.js
+portfolio.node/src/models/Page.js
 portfolio.node/src/models/Project.js
 portfolio.node/src/models/Prompt.js
 portfolio.node/src/models/ProviderConfig.js
 portfolio.node/src/models/User.js
 portfolio.node/src/routes/authRoutes.js
 portfolio.node/src/routes/blogRoutes.js
+portfolio.node/src/routes/careerTimelineRoutes.js
 portfolio.node/src/routes/chatRoutes.js
 portfolio.node/src/routes/commentRoutes.js
 portfolio.node/src/routes/embeddingRoutes.js
 portfolio.node/src/routes/fileRoutes.js
 portfolio.node/src/routes/oauthRoutes.js
+portfolio.node/src/routes/pageRoutes.js
 portfolio.node/src/routes/projectRoutes.js
 portfolio.node/src/routes/promptRoutes.js
 portfolio.node/src/routes/providerConfigRoutes.js
@@ -897,6 +913,1882 @@ This development plan outlines the **end-to-end** (E2E) implementation strategy 
 
 ### **Deliverable**
 A full **end-to-end functional portfolio** with AI-powered features, career timeline, and hybrid search.
+
+================
+File: docs/jobs.html
+================
+<html>
+
+<body>
+    <ul class="PdRUlssPYwwHVyfokYoPNtMeAOfjkIoxnUc
+            
+            
+            ">
+        <li class="artdeco-list__item yUYbUPmIDBCyujolHJvDMVJLdKKwbTvJNGnVDA qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+            <!---->
+            <div class="iySSlsjvmHFIjvVVBeTzQKiCkbVUEscOCasgZMM
+        AajnQCQGlEqOkCCSZJHqFVelplbPuTKoKw owSPWypkbaygNqfMzXkzygjefLVERYVMnw
+        
+        
+        
+        " data-view-name="profile-component-entity">
+                <div>
+
+                    <a data-field="experience_company_logo" class="optional-action-target-wrapper 
+            
+            pvs-entity__image-container--outline-offset
+            display-flex" target="_self" href="https://www.linkedin.com/company/1683932/">
+
+                        <div class="ivm-image-view-model  pvs-entity__image ">
+
+                            <div class="ivm-view-attr__img-wrapper
+        
+        ">
+                                <!---->
+                                <!----> <img width="48"
+                                    src="https://media.licdn.com/dms/image/v2/D560BAQFpE75AW3qexw/company-logo_100_100/company-logo_100_100/0/1706727892682/intrahealth_healwellai_logo?e=1749686400&amp;v=beta&amp;t=Aa_FOTs4LvxbN9RCn7pYOwgOAamfKDgLm-jFaQB7Wo4"
+                                    loading="lazy" height="48" alt="Intrahealth, a HEALWELL AI Company logo"
+                                    id="ember117"
+                                    class="ivm-view-attr__img--centered EntityPhoto-square-3   evi-image lazy-image ember-view">
+                            </div>
+
+                        </div>
+
+                    </a>
+
+                </div>
+
+                <div class="display-flex flex-column align-self-center flex-grow-1">
+                    <div class="display-flex flex-row justify-space-between">
+
+                        <div class="
+              display-flex flex-column full-width">
+
+                            <div class="display-flex flex-wrap align-items-center full-height">
+
+                                <div class="display-flex ">
+
+                                    <div class="
+          display-flex full-width">
+
+                                        <div class="display-flex align-items-center
+              mr1 t-bold">
+                                            <span aria-hidden="true"><!---->Principal .NET developer<!----></span><span
+                                                class="visually-hidden"><!---->Principal .NET developer<!----></span>
+                                        </div>
+                                        <!---->
+                                    </div>
+
+                                </div>
+
+                                <!----><!----><!---->
+                            </div>
+                            <span class="t-14 t-normal">
+                                <span aria-hidden="true"><!---->Intrahealth, a HEALWELL AI Company · Permanent
+                                    Full-time<!----></span><span class="visually-hidden"><!---->Intrahealth, a HEALWELL
+                                    AI Company · Permanent Full-time<!----></span>
+                            </span>
+                            <span class="t-14 t-normal
+                  t-black--light">
+                                <span class="pvs-entity__caption-wrapper" aria-hidden="true"><!---->Sep 2024 - Present ·
+                                    7 mos<!----></span><span class="visually-hidden"><!---->Sep 2024 to Present · 7
+                                    mos<!----></span>
+                            </span>
+                            <span class="t-14 t-normal
+                  t-black--light">
+                                <span aria-hidden="true"><!---->Canada · Remote<!----></span><span
+                                    class="visually-hidden"><!---->Canada · Remote<!----></span>
+                            </span>
+
+                        </div>
+
+                    </div>
+                    <!---->
+                </div>
+                <!---->
+                <!---->
+            </div>
+
+
+        </li>
+        <li class="artdeco-list__item yUYbUPmIDBCyujolHJvDMVJLdKKwbTvJNGnVDA qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+            <!---->
+            <div class="iySSlsjvmHFIjvVVBeTzQKiCkbVUEscOCasgZMM
+        AajnQCQGlEqOkCCSZJHqFVelplbPuTKoKw owSPWypkbaygNqfMzXkzygjefLVERYVMnw
+        
+        
+        
+        " data-view-name="profile-component-entity">
+                <div>
+
+                    <a data-field="experience_company_logo" class="optional-action-target-wrapper 
+            
+            pvs-entity__image-container--outline-offset
+            display-flex" target="_self" href="https://www.linkedin.com/company/4126/">
+
+                        <div class="ivm-image-view-model  pvs-entity__image ">
+
+                            <div class="ivm-view-attr__img-wrapper
+        
+        ">
+                                <!---->
+                                <!----> <img width="48"
+                                    src="https://media.licdn.com/dms/image/v2/C4D0BAQFfG02Ebu_lqg/company-logo_100_100/company-logo_100_100/0/1630543130113/sgs_logo?e=1749686400&amp;v=beta&amp;t=XU4-LyfOKS2S9cW3QoKb5OGm7i_9qwyPvFJrJNohUR0"
+                                    loading="lazy" height="48" alt="SGS logo" id="ember121"
+                                    class="ivm-view-attr__img--centered EntityPhoto-square-3   evi-image lazy-image ember-view">
+                            </div>
+
+                        </div>
+
+                    </a>
+
+                </div>
+
+                <div class="display-flex flex-column align-self-center flex-grow-1">
+                    <div class="display-flex flex-row justify-space-between">
+
+                        <a data-field="experience_company_logo" class="optional-action-target-wrapper 
+              display-flex flex-column full-width" target="_self" href="https://www.linkedin.com/company/4126/">
+                            <div class="display-flex flex-wrap align-items-center full-height">
+
+                                <div class="display-flex ">
+
+                                    <div class="
+          display-flex full-width">
+
+                                        <div class="display-flex align-items-center
+              mr1 hoverable-link-text t-bold">
+                                            <span aria-hidden="true"><!---->SGS<!----></span><span
+                                                class="visually-hidden"><!---->SGS<!----></span>
+                                        </div>
+                                        <!---->
+                                    </div>
+
+                                </div>
+
+                                <!----><!----><!---->
+                            </div>
+                            <span class="t-14 t-normal">
+                                <span aria-hidden="true"><!---->Permanent Full-time · 6 yrs 8 mos<!----></span><span
+                                    class="visually-hidden"><!---->Permanent Full-time · 6 yrs 8 mos<!----></span>
+                            </span>
+                            <!----><!---->
+                        </a>
+
+                    </div>
+
+                    <div class="FtwCyQiKWmAiGnEmVueQaXzXAGHOsFzwvUjJnmX pvs-entity__sub-components">
+                        <!---->
+                        <ul class="PdRUlssPYwwHVyfokYoPNtMeAOfjkIoxnUc
+            
+            
+            ">
+                            <li class="qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                <span class="EjZKUrtOZcFtnELEhNGFouebDCwJhXVgKMI"></span>
+                                <div class="iySSlsjvmHFIjvVVBeTzQKiCkbVUEscOCasgZMM
+        
+        ixzvzMZQySGEYBvQMGULohZYouQrhmiEk
+        
+        
+        " data-view-name="profile-component-entity">
+                                    <div>
+
+                                        <div class="
+            
+            
+            display-flex" tabindex="-1">
+
+                                            <!---->
+                                        </div>
+
+                                    </div>
+
+                                    <div class="display-flex flex-column align-self-center flex-grow-1">
+                                        <div class="display-flex flex-row justify-space-between">
+
+                                            <a class="optional-action-target-wrapper 
+              display-flex flex-column full-width" target="_self" href="https://www.linkedin.com/company/4126/">
+                                                <div class="display-flex flex-wrap align-items-center full-height">
+
+                                                    <div class="display-flex ">
+
+                                                        <div class="
+          display-flex full-width">
+
+                                                            <div class="display-flex align-items-center
+              mr1 hoverable-link-text t-bold">
+                                                                <span aria-hidden="true"><!---->Platform
+                                                                    Lead<!----></span><span
+                                                                    class="visually-hidden"><!---->Platform
+                                                                    Lead<!----></span>
+                                                            </div>
+                                                            <!---->
+                                                        </div>
+
+                                                    </div>
+
+                                                    <!----><!----><!---->
+                                                </div>
+                                                <!----> <span class="t-14 t-normal
+                  t-black--light">
+                                                    <span class="pvs-entity__caption-wrapper"
+                                                        aria-hidden="true"><!---->Jul 2024 - Aug 2024 · 2
+                                                        mos<!----></span><span class="visually-hidden"><!---->Jul 2024
+                                                        to Aug 2024 · 2 mos<!----></span>
+                                                </span>
+                                                <span class="t-14 t-normal
+                  t-black--light">
+                                                    <span aria-hidden="true"><!---->Remote<!----></span><span
+                                                        class="visually-hidden"><!---->Remote<!----></span>
+                                                </span>
+                                            </a>
+
+                                        </div>
+                                        <!---->
+                                    </div>
+                                    <!---->
+                                    <!---->
+                                </div>
+
+
+                            </li>
+                            <li class="qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                <span class="EjZKUrtOZcFtnELEhNGFouebDCwJhXVgKMI"></span>
+                                <div class="iySSlsjvmHFIjvVVBeTzQKiCkbVUEscOCasgZMM
+        
+        ixzvzMZQySGEYBvQMGULohZYouQrhmiEk
+        
+        
+        " data-view-name="profile-component-entity">
+                                    <div>
+
+                                        <div class="
+            
+            
+            display-flex" tabindex="-1">
+
+                                            <!---->
+                                        </div>
+
+                                    </div>
+
+                                    <div class="display-flex flex-column align-self-center flex-grow-1">
+                                        <div class="display-flex flex-row justify-space-between">
+
+                                            <a class="optional-action-target-wrapper 
+              display-flex flex-column full-width" target="_self" href="https://www.linkedin.com/company/4126/">
+                                                <div class="display-flex flex-wrap align-items-center full-height">
+
+                                                    <div class="display-flex ">
+
+                                                        <div class="
+          display-flex full-width">
+
+                                                            <div class="display-flex align-items-center
+              mr1 hoverable-link-text t-bold">
+                                                                <span aria-hidden="true"><!---->Architecte
+                                                                    solutions<!----></span><span
+                                                                    class="visually-hidden"><!---->Architecte
+                                                                    solutions<!----></span>
+                                                            </div>
+                                                            <!---->
+                                                        </div>
+
+                                                    </div>
+
+                                                    <!----><!----><!---->
+                                                </div>
+                                                <!----> <span class="t-14 t-normal
+                  t-black--light">
+                                                    <span class="pvs-entity__caption-wrapper"
+                                                        aria-hidden="true"><!---->Mar 2022 - Jul 2024 · 2 yrs 5
+                                                        mos<!----></span><span class="visually-hidden"><!---->Mar 2022
+                                                        to Jul 2024 · 2 yrs 5 mos<!----></span>
+                                                </span>
+                                                <!---->
+                                            </a>
+
+                                        </div>
+
+                                        <div class="FtwCyQiKWmAiGnEmVueQaXzXAGHOsFzwvUjJnmX pvs-entity__sub-components">
+                                            <!---->
+                                            <ul class="PdRUlssPYwwHVyfokYoPNtMeAOfjkIoxnUc
+            
+            
+            ">
+                                                <li class="qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                                    <div class="FtwCyQiKWmAiGnEmVueQaXzXAGHOsFzwvUjJnmX">
+                                                        <!---->
+                                                        <ul class="PdRUlssPYwwHVyfokYoPNtMeAOfjkIoxnUc
+            
+            
+            ">
+                                                            <li
+                                                                class="pvs-list__item--with-top-padding qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                                                <div class="display-flex ">
+
+                                                                    <div class="
+          display-flex full-width">
+
+
+                                                                        <div class="xyKuvshqjNOCLLbuJMSOACywiHYHucctJs
+          full-width t-14 t-normal t-black display-flex align-items-center" dir="ltr">
+
+                                                                            <div class="WcTepSkGpUVWbbheKPCszGxDQzmhiNFQ
+        inline-show-more-text--is-collapsed
+        inline-show-more-text--is-collapsed-with-line-clamp
+        
+        
+        
+         full-width" style="-webkit-line-clamp:2;" dir="ltr" tabindex="-1">
+
+                                                                                <span aria-hidden="true"><!---->aka LIMS
+                                                                                    architect<!----></span><span
+                                                                                    class="visually-hidden"><!---->aka
+                                                                                    LIMS architect<!----></span>
+
+                                                                                <!---->
+                                                                            </div>
+
+                                                                        </div>
+
+                                                                        <!---->
+                                                                    </div>
+
+                                                                </div>
+
+
+                                                            </li>
+                                                        </ul>
+                                                        <!---->
+                                                    </div>
+
+
+                                                </li>
+                                                <li class="qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                                    <div class="FtwCyQiKWmAiGnEmVueQaXzXAGHOsFzwvUjJnmX">
+                                                        <!---->
+                                                        <ul class="PdRUlssPYwwHVyfokYoPNtMeAOfjkIoxnUc
+            
+            
+            ">
+                                                            <li
+                                                                class="pvs-list__item--with-top-padding qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                                                <div class="
+        mv1
+        display-flex align-items-center">
+
+                                                                    <a data-field="position_contextual_skills_see_details"
+                                                                        class="optional-action-target-wrapper display-flex link-without-hover-visited"
+                                                                        target="_self"
+                                                                        href="https://www.linkedin.com/in/michel-roberge-7011b614/overlay/urn:li:fsd_profilePosition:(ACoAAALgc3EBglzhZDPKP2JcpyPypmkYxBacitY,1930019616)/skill-associations-details?profileUrn=urn%3Ali%3Afsd_profile%3AACoAAALgc3EBglzhZDPKP2JcpyPypmkYxBacitY">
+                                                                        <div class="mr1
+                mv1
+                
+                ">
+
+                                                                            <ul class="ivm-entity-pile
+        display-flex align-items-center t-black">
+                                                                                <li
+                                                                                    class="ivm-entity-pile__img-item--stacked">
+
+                                                                                    <div class="ivm-view-attr__img-wrapper
+        
+        ">
+                                                                                        <!---->
+                                                                                        <svg role="none"
+                                                                                            aria-hidden="true"
+                                                                                            class="ivm-view-attr__icon ivm-view-attr__icon--icon  "
+                                                                                            xmlns="http://www.w3.org/2000/svg"
+                                                                                            width="16" height="16"
+                                                                                            viewBox="0 0 16 16"
+                                                                                            data-supported-dps="16x16"
+                                                                                            data-test-icon="skills-small">
+                                                                                            <!---->
+                                                                                            <use href="#skills-small"
+                                                                                                width="16" height="16">
+                                                                                            </use>
+                                                                                        </svg>
+
+                                                                                    </div>
+
+                                                                                </li>
+                                                                            </ul>
+
+                                                                        </div>
+
+                                                                        <div class="display-flex ">
+
+                                                                            <div class="
+          display-flex full-width">
+
+                                                                                <div class="hoverable-link-text display-flex align-items-center
+              t-14 t-normal t-black">
+                                                                                    <strong><!---->Communication écrite,
+                                                                                        Communication and +6
+                                                                                        skills<!----></strong>
+                                                                                </div>
+                                                                                <!---->
+                                                                            </div>
+
+                                                                        </div>
+
+                                                                    </a>
+
+
+                                                                    <!---->
+                                                                </div>
+
+
+                                                            </li>
+                                                        </ul>
+                                                        <!---->
+                                                    </div>
+
+
+                                                </li>
+                                            </ul>
+                                            <!---->
+                                        </div>
+
+                                    </div>
+                                    <!---->
+                                    <!---->
+                                </div>
+
+
+                            </li>
+                            <li class="qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                <span class="EjZKUrtOZcFtnELEhNGFouebDCwJhXVgKMI"></span>
+                                <div class="iySSlsjvmHFIjvVVBeTzQKiCkbVUEscOCasgZMM
+        
+        
+        
+        
+        " data-view-name="profile-component-entity">
+                                    <div>
+
+                                        <div class="
+            
+            
+            display-flex" tabindex="-1">
+
+                                            <!---->
+                                        </div>
+
+                                    </div>
+
+                                    <div class="display-flex flex-column align-self-center flex-grow-1">
+                                        <div class="display-flex flex-row justify-space-between">
+
+                                            <a class="optional-action-target-wrapper 
+              display-flex flex-column full-width" target="_self" href="https://www.linkedin.com/company/4126/">
+                                                <div class="display-flex flex-wrap align-items-center full-height">
+
+                                                    <div class="display-flex ">
+
+                                                        <div class="
+          display-flex full-width">
+
+                                                            <div class="display-flex align-items-center
+              mr1 hoverable-link-text t-bold">
+                                                                <span aria-hidden="true"><!---->Software Development
+                                                                    Manager<!----></span><span
+                                                                    class="visually-hidden"><!---->Software Development
+                                                                    Manager<!----></span>
+                                                            </div>
+                                                            <!---->
+                                                        </div>
+
+                                                    </div>
+
+                                                    <!----><!----><!---->
+                                                </div>
+                                                <!----> <span class="t-14 t-normal
+                  t-black--light">
+                                                    <span class="pvs-entity__caption-wrapper"
+                                                        aria-hidden="true"><!---->Jan 2018 - Mar 2022 · 4 yrs 3
+                                                        mos<!----></span><span class="visually-hidden"><!---->Jan 2018
+                                                        to Mar 2022 · 4 yrs 3 mos<!----></span>
+                                                </span>
+                                                <span class="t-14 t-normal
+                  t-black--light">
+                                                    <span aria-hidden="true"><!---->Canada<!----></span><span
+                                                        class="visually-hidden"><!---->Canada<!----></span>
+                                                </span>
+                                            </a>
+
+                                        </div>
+
+                                        <div class="FtwCyQiKWmAiGnEmVueQaXzXAGHOsFzwvUjJnmX pvs-entity__sub-components">
+                                            <!---->
+                                            <ul class="PdRUlssPYwwHVyfokYoPNtMeAOfjkIoxnUc
+            
+            
+            ">
+                                                <li class="qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                                    <div class="FtwCyQiKWmAiGnEmVueQaXzXAGHOsFzwvUjJnmX">
+                                                        <!---->
+                                                        <ul class="PdRUlssPYwwHVyfokYoPNtMeAOfjkIoxnUc
+            
+            
+            ">
+                                                            <li
+                                                                class="pvs-list__item--with-top-padding qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                                                <div class="display-flex ">
+
+                                                                    <div class="
+          display-flex full-width">
+
+
+                                                                        <div class="xyKuvshqjNOCLLbuJMSOACywiHYHucctJs
+          full-width t-14 t-normal t-black display-flex align-items-center" dir="ltr">
+
+                                                                            <div class="WcTepSkGpUVWbbheKPCszGxDQzmhiNFQ
+        
+        
+        
+        
+        
+         full-width" style="" dir="ltr" tabindex="-1">
+
+                                                                                <span aria-hidden="true"><!---->- Manage
+                                                                                    global development team (10+
+                                                                                    developers
+                                                                                    worldwide)<!----><br><!---->-
+                                                                                    Create/Facilitate software design
+                                                                                    and architectural decisions<span
+                                                                                        class="white-space-pre">
+                                                                                    </span><br><!---->- Integration to
+                                                                                    many systems and
+                                                                                    technologies<!----><br><!---->- Help
+                                                                                    each team member to be the best in
+                                                                                    class<!----><br><!---->- Scrum
+                                                                                    Master<span class="white-space-pre">
+                                                                                    </span><br><!---->- Analysis,
+                                                                                    Design, Research and
+                                                                                    Development<!----><br><!---->-
+                                                                                    Define best practices and
+                                                                                    processes<!----><br><!---->- Define
+                                                                                    path to continuous
+                                                                                    improvement<!----><br><br><!---->...
+                                                                                    And much, much
+                                                                                    more.<!----></span><span
+                                                                                    class="visually-hidden"><!---->-
+                                                                                    Manage global development team (10+
+                                                                                    developers worldwide)
+                                                                                    - Create/Facilitate software design
+                                                                                    and architectural decisions
+                                                                                    - Integration to many systems and
+                                                                                    technologies
+                                                                                    - Help each team member to be the
+                                                                                    best in class
+                                                                                    - Scrum Master
+                                                                                    - Analysis, Design, Research and
+                                                                                    Development
+                                                                                    - Define best practices and
+                                                                                    processes
+                                                                                    - Define path to continuous
+                                                                                    improvement
+
+                                                                                    ... And much, much
+                                                                                    more.<!----></span>
+
+                                                                                <!---->
+                                                                                <!---->
+                                                                            </div>
+
+                                                                        </div>
+
+                                                                        <!---->
+                                                                    </div>
+
+                                                                </div>
+
+
+                                                            </li>
+                                                        </ul>
+                                                        <!---->
+                                                    </div>
+
+
+                                                </li>
+                                                <li class="qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                                    <div class="FtwCyQiKWmAiGnEmVueQaXzXAGHOsFzwvUjJnmX">
+                                                        <!---->
+                                                        <ul class="PdRUlssPYwwHVyfokYoPNtMeAOfjkIoxnUc
+            
+            
+            ">
+                                                            <li
+                                                                class="pvs-list__item--with-top-padding qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                                                <div class="
+        mv1
+        display-flex align-items-center">
+
+                                                                    <a data-field="position_contextual_skills_see_details"
+                                                                        class="optional-action-target-wrapper display-flex link-without-hover-visited"
+                                                                        target="_self"
+                                                                        href="https://www.linkedin.com/in/michel-roberge-7011b614/overlay/urn:li:fsd_profilePosition:(ACoAAALgc3EBglzhZDPKP2JcpyPypmkYxBacitY,1193221756)/skill-associations-details?profileUrn=urn%3Ali%3Afsd_profile%3AACoAAALgc3EBglzhZDPKP2JcpyPypmkYxBacitY">
+                                                                        <div class="mr1
+                mv1
+                
+                ">
+
+                                                                            <ul class="ivm-entity-pile
+        display-flex align-items-center t-black">
+                                                                                <li
+                                                                                    class="ivm-entity-pile__img-item--stacked">
+
+                                                                                    <div class="ivm-view-attr__img-wrapper
+        
+        ">
+                                                                                        <!---->
+                                                                                        <svg role="none"
+                                                                                            aria-hidden="true"
+                                                                                            class="ivm-view-attr__icon ivm-view-attr__icon--icon  "
+                                                                                            xmlns="http://www.w3.org/2000/svg"
+                                                                                            width="16" height="16"
+                                                                                            viewBox="0 0 16 16"
+                                                                                            data-supported-dps="16x16"
+                                                                                            data-test-icon="skills-small">
+                                                                                            <!---->
+                                                                                            <use href="#skills-small"
+                                                                                                width="16" height="16">
+                                                                                            </use>
+                                                                                        </svg>
+
+                                                                                    </div>
+
+                                                                                </li>
+                                                                            </ul>
+
+                                                                        </div>
+
+                                                                        <div class="display-flex ">
+
+                                                                            <div class="
+          display-flex full-width">
+
+                                                                                <div class="hoverable-link-text display-flex align-items-center
+              t-14 t-normal t-black">
+                                                                                    <strong><!---->Communication écrite,
+                                                                                        Communication and +6
+                                                                                        skills<!----></strong>
+                                                                                </div>
+                                                                                <!---->
+                                                                            </div>
+
+                                                                        </div>
+
+                                                                    </a>
+
+
+                                                                    <!---->
+                                                                </div>
+
+
+                                                            </li>
+                                                        </ul>
+                                                        <!---->
+                                                    </div>
+
+
+                                                </li>
+                                            </ul>
+                                            <!---->
+                                        </div>
+
+                                    </div>
+                                    <!---->
+                                    <!---->
+                                </div>
+
+
+                            </li>
+                        </ul>
+                        <!---->
+                    </div>
+
+                </div>
+                <!---->
+                <!---->
+            </div>
+
+
+        </li>
+        <li class="artdeco-list__item yUYbUPmIDBCyujolHJvDMVJLdKKwbTvJNGnVDA qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+            <!---->
+            <div class="iySSlsjvmHFIjvVVBeTzQKiCkbVUEscOCasgZMM
+        AajnQCQGlEqOkCCSZJHqFVelplbPuTKoKw owSPWypkbaygNqfMzXkzygjefLVERYVMnw
+        
+        
+        
+        " data-view-name="profile-component-entity">
+                <div>
+
+                    <a data-field="experience_company_logo" class="optional-action-target-wrapper 
+            
+            pvs-entity__image-container--outline-offset
+            display-flex" target="_self" tabindex="-1"
+                        href="https://www.linkedin.com/search/results/all/?keywords=Abbott+Informatics">
+
+                        <div class="ivm-image-view-model  pvs-entity__image ">
+
+                            <div class="ivm-view-attr__img-wrapper
+        
+        ">
+                                <!---->
+                                <div class="EntityPhoto-square-3-ghost-company ivm-view-attr__ghost-entity  ">
+                                    <div class="visually-hidden">Abbott Informatics</div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </a>
+
+                </div>
+
+                <div class="display-flex flex-column align-self-center flex-grow-1">
+                    <div class="display-flex flex-row justify-space-between">
+
+                        <a data-field="experience_company_logo" class="optional-action-target-wrapper 
+              display-flex flex-column full-width" target="_self" href="https://www.linkedin.com/company/248524/">
+                            <div class="display-flex flex-wrap align-items-center full-height">
+
+                                <div class="display-flex ">
+
+                                    <div class="
+          display-flex full-width">
+
+                                        <div class="display-flex align-items-center
+              mr1 hoverable-link-text t-bold">
+                                            <span aria-hidden="true"><!---->Abbott Informatics<!----></span><span
+                                                class="visually-hidden"><!---->Abbott Informatics<!----></span>
+                                        </div>
+                                        <!---->
+                                    </div>
+
+                                </div>
+
+                                <!----><!----><!---->
+                            </div>
+                            <span class="t-14 t-normal">
+                                <span aria-hidden="true"><!---->17 yrs 7 mos<!----></span><span
+                                    class="visually-hidden"><!---->17 yrs 7 mos<!----></span>
+                            </span>
+                            <!----><!---->
+                        </a>
+
+                    </div>
+
+                    <div class="FtwCyQiKWmAiGnEmVueQaXzXAGHOsFzwvUjJnmX pvs-entity__sub-components">
+                        <!---->
+                        <ul class="PdRUlssPYwwHVyfokYoPNtMeAOfjkIoxnUc
+            
+            
+            ">
+                            <li class="qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                <span class="EjZKUrtOZcFtnELEhNGFouebDCwJhXVgKMI"></span>
+                                <div class="iySSlsjvmHFIjvVVBeTzQKiCkbVUEscOCasgZMM
+        
+        ixzvzMZQySGEYBvQMGULohZYouQrhmiEk
+        
+        
+        " data-view-name="profile-component-entity">
+                                    <div>
+
+                                        <div class="
+            
+            
+            display-flex" tabindex="-1">
+
+                                            <!---->
+                                        </div>
+
+                                    </div>
+
+                                    <div class="display-flex flex-column align-self-center flex-grow-1">
+                                        <div class="display-flex flex-row justify-space-between">
+
+                                            <a class="optional-action-target-wrapper 
+              display-flex flex-column full-width" target="_self" href="https://www.linkedin.com/company/248524/">
+                                                <div class="display-flex flex-wrap align-items-center full-height">
+
+                                                    <div class="display-flex ">
+
+                                                        <div class="
+          display-flex full-width">
+
+                                                            <div class="display-flex align-items-center
+              mr1 hoverable-link-text t-bold">
+                                                                <span aria-hidden="true"><!---->Senior Business System
+                                                                    Analyst/Project Manager<!----></span><span
+                                                                    class="visually-hidden"><!---->Senior Business
+                                                                    System Analyst/Project Manager<!----></span>
+                                                            </div>
+                                                            <!---->
+                                                        </div>
+
+                                                    </div>
+
+                                                    <!----><!----><!---->
+                                                </div>
+                                                <!----> <span class="t-14 t-normal
+                  t-black--light">
+                                                    <span class="pvs-entity__caption-wrapper"
+                                                        aria-hidden="true"><!---->Jul 2013 - Jan 2018 · 4 yrs 7
+                                                        mos<!----></span><span class="visually-hidden"><!---->Jul 2013
+                                                        to Jan 2018 · 4 yrs 7 mos<!----></span>
+                                                </span>
+                                                <span class="t-14 t-normal
+                  t-black--light">
+                                                    <span aria-hidden="true"><!---->Virtual<!----></span><span
+                                                        class="visually-hidden"><!---->Virtual<!----></span>
+                                                </span>
+                                            </a>
+
+                                        </div>
+
+                                        <div class="FtwCyQiKWmAiGnEmVueQaXzXAGHOsFzwvUjJnmX pvs-entity__sub-components">
+                                            <!---->
+                                            <ul class="PdRUlssPYwwHVyfokYoPNtMeAOfjkIoxnUc
+            
+            
+            ">
+                                                <li class="qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                                    <div class="FtwCyQiKWmAiGnEmVueQaXzXAGHOsFzwvUjJnmX">
+                                                        <!---->
+                                                        <ul class="PdRUlssPYwwHVyfokYoPNtMeAOfjkIoxnUc
+            
+            
+            ">
+                                                            <li
+                                                                class="pvs-list__item--with-top-padding qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                                                <div class="display-flex ">
+
+                                                                    <div class="
+          display-flex full-width">
+
+
+                                                                        <div class="xyKuvshqjNOCLLbuJMSOACywiHYHucctJs
+          full-width t-14 t-normal t-black display-flex align-items-center" dir="ltr">
+
+                                                                            <div class="WcTepSkGpUVWbbheKPCszGxDQzmhiNFQ
+        inline-show-more-text--is-collapsed
+        inline-show-more-text--is-collapsed-with-line-clamp
+        
+        
+        
+         full-width" style="-webkit-line-clamp:2;" dir="ltr" tabindex="-1">
+
+                                                                                <span aria-hidden="true"><!---->After
+                                                                                    going around and trying many
+                                                                                    different things at Abbott
+                                                                                    Informatics (STARLIMS), I was
+                                                                                    offered to take on the Advanced
+                                                                                    Analytics product development lead.
+                                                                                    The role required good business
+                                                                                    knowledge, good communication
+                                                                                    skills, and the ability to get
+                                                                                    creative. Sounded like a
+                                                                                    plan!<!----><br><br><!---->Speciality
+                                                                                    Products - STARLIMS Advanced
+                                                                                    Analytics<!----><br><!---->- Project
+                                                                                    Management<!----><br><!---->-
+                                                                                    Development &amp;
+                                                                                    Integration<!----><br><!---->-
+                                                                                    Documentation (Training Material,
+                                                                                    requirements,
+                                                                                    etc)<!----><br><!---->- Marketing
+                                                                                    (Support material, ideas,
+                                                                                    presentations)<!----><br><!---->-
+                                                                                    Advanced Analytics Dashboards for
+                                                                                    many industries and
+                                                                                    clients<!----><br><!---->- Running
+                                                                                    an in-house continuous training
+                                                                                    program<span
+                                                                                        class="white-space-pre">
+                                                                                    </span><br><!---->- Library Platform
+                                                                                    (System
+                                                                                    Architect)<!----><br><!---->-
+                                                                                    Whiteboard Videos Authoring,
+                                                                                    Tutorials, and other
+                                                                                    media<!----><br><!---->- Scrum
+                                                                                    Master<!----></span><span
+                                                                                    class="visually-hidden"><!---->After
+                                                                                    going around and trying many
+                                                                                    different things at Abbott
+                                                                                    Informatics (STARLIMS), I was
+                                                                                    offered to take on the Advanced
+                                                                                    Analytics product development lead.
+                                                                                    The role required good business
+                                                                                    knowledge, good communication
+                                                                                    skills, and the ability to get
+                                                                                    creative. Sounded like a plan!
+
+                                                                                    Speciality Products - STARLIMS
+                                                                                    Advanced Analytics
+                                                                                    - Project Management
+                                                                                    - Development &amp; Integration
+                                                                                    - Documentation (Training Material,
+                                                                                    requirements, etc)
+                                                                                    - Marketing (Support material,
+                                                                                    ideas, presentations)
+                                                                                    - Advanced Analytics Dashboards for
+                                                                                    many industries and clients
+                                                                                    - Running an in-house continuous
+                                                                                    training program
+                                                                                    - Library Platform (System
+                                                                                    Architect)
+                                                                                    - Whiteboard Videos Authoring,
+                                                                                    Tutorials, and other media
+                                                                                    - Scrum Master<!----></span>
+
+                                                                                <span
+                                                                                    class="inline-show-more-text__link-container-collapsed">
+                                                                                    <!----> <button class="inline-show-more-text__button
+                inline-show-more-text__button--light
+                link" aria-expanded="false" role="button" type="button">
+                                                                                        …see more
+                                                                                    </button>
+                                                                                </span>
+
+                                                                                <!---->
+                                                                            </div>
+
+                                                                        </div>
+
+                                                                        <!---->
+                                                                    </div>
+
+                                                                </div>
+
+
+                                                            </li>
+                                                        </ul>
+                                                        <!---->
+                                                    </div>
+
+
+                                                </li>
+                                                <li class="qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                                    <div class="FtwCyQiKWmAiGnEmVueQaXzXAGHOsFzwvUjJnmX">
+                                                        <!---->
+                                                        <ul class="PdRUlssPYwwHVyfokYoPNtMeAOfjkIoxnUc
+            
+            
+            ">
+                                                            <li
+                                                                class="pvs-list__item--with-top-padding qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                                                <div class="
+        mv1
+        display-flex align-items-center">
+
+                                                                    <a data-field="position_contextual_skills_see_details"
+                                                                        class="optional-action-target-wrapper display-flex link-without-hover-visited"
+                                                                        target="_self"
+                                                                        href="https://www.linkedin.com/in/michel-roberge-7011b614/overlay/urn:li:fsd_profilePosition:(ACoAAALgc3EBglzhZDPKP2JcpyPypmkYxBacitY,420381636)/skill-associations-details?profileUrn=urn%3Ali%3Afsd_profile%3AACoAAALgc3EBglzhZDPKP2JcpyPypmkYxBacitY">
+                                                                        <div class="mr1
+                mv1
+                
+                ">
+
+                                                                            <ul class="ivm-entity-pile
+        display-flex align-items-center t-black">
+                                                                                <li
+                                                                                    class="ivm-entity-pile__img-item--stacked">
+
+                                                                                    <div class="ivm-view-attr__img-wrapper
+        
+        ">
+                                                                                        <!---->
+                                                                                        <svg role="none"
+                                                                                            aria-hidden="true"
+                                                                                            class="ivm-view-attr__icon ivm-view-attr__icon--icon  "
+                                                                                            xmlns="http://www.w3.org/2000/svg"
+                                                                                            width="16" height="16"
+                                                                                            viewBox="0 0 16 16"
+                                                                                            data-supported-dps="16x16"
+                                                                                            data-test-icon="skills-small">
+                                                                                            <!---->
+                                                                                            <use href="#skills-small"
+                                                                                                width="16" height="16">
+                                                                                            </use>
+                                                                                        </svg>
+
+                                                                                    </div>
+
+                                                                                </li>
+                                                                            </ul>
+
+                                                                        </div>
+
+                                                                        <div class="display-flex ">
+
+                                                                            <div class="
+          display-flex full-width">
+
+                                                                                <div class="hoverable-link-text display-flex align-items-center
+              t-14 t-normal t-black">
+                                                                                    <strong><!---->Communication écrite,
+                                                                                        Communication and +5
+                                                                                        skills<!----></strong>
+                                                                                </div>
+                                                                                <!---->
+                                                                            </div>
+
+                                                                        </div>
+
+                                                                    </a>
+
+
+                                                                    <!---->
+                                                                </div>
+
+
+                                                            </li>
+                                                        </ul>
+                                                        <!---->
+                                                    </div>
+
+
+                                                </li>
+                                                <li class="qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                                    <div class="FtwCyQiKWmAiGnEmVueQaXzXAGHOsFzwvUjJnmX">
+                                                        <!---->
+                                                        <ul class="PdRUlssPYwwHVyfokYoPNtMeAOfjkIoxnUc
+            
+            
+            ">
+                                                            <li
+                                                                class="pvs-list__item--with-top-padding qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                                                <div class="full-width profile-component-entity-pile">
+                                                                    <!---->
+                                                                    <div class="display-flex flex-row flex-wrap">
+
+
+                                                                        <a data-field="experience_media"
+                                                                            class="optional-action-target-wrapper pvs-thumbnail__wrapper"
+                                                                            target="_self"
+                                                                            aria-label="Thumbnail for A GMP inspection should not be a surprise"
+                                                                            href="https://www.linkedin.com/in/michel-roberge-7011b614/overlay/experience/420381636/multiple-media-viewer?profileId=ACoAAALgc3EBglzhZDPKP2JcpyPypmkYxBacitY&amp;treasuryMediaId=1515512338876&amp;type=LINK">
+                                                                            <figure class="pvs-thumbnail">
+                                                                                <img src="https://media.licdn.com/dms/image/sync/v2/D5627AQHwk_qzjyNoyg/articleshare-shrink_160/articleshare-shrink_160/0/1711778923519?e=1741982400&amp;v=beta&amp;t=a0fgIsStj4EynUuoCKGv0RLZTB0mcp0xw4pM484DXvg"
+                                                                                    loading="lazy" alt=""
+                                                                                    id="thumbnail-image-ember148"
+                                                                                    class="pvs-thumbnail__image evi-image lazy-image ember-view">
+                                                                                <!---->
+                                                                                <!---->
+                                                                            </figure>
+                                                                        </a>
+
+
+
+
+                                                                        <a data-field="experience_media"
+                                                                            class="optional-action-target-wrapper pvs-thumbnail__wrapper"
+                                                                            target="_self"
+                                                                            aria-label="Thumbnail for Maximize your investment with STARLIMS Content Library"
+                                                                            href="https://www.linkedin.com/in/michel-roberge-7011b614/overlay/urn:li:fsd_profilePosition:(ACoAAALgc3EBglzhZDPKP2JcpyPypmkYxBacitY,420381636)/treasury?profileUrn=urn%3Ali%3Afsd_profile%3AACoAAALgc3EBglzhZDPKP2JcpyPypmkYxBacitY">
+                                                                            <figure class="pvs-thumbnail">
+                                                                                <img src="https://media.licdn.com/dms/image/sync/v2/D4D27AQE7WbTlCZnPjQ/articleshare-shrink_160/articleshare-shrink_160/0/1711778923095?e=1741982400&amp;v=beta&amp;t=k53hg8jxfsrmbmzDd8D5_eLVkKAGZ-L6iLhtGsRqmvI"
+                                                                                    loading="lazy" alt=""
+                                                                                    id="thumbnail-image-ember251"
+                                                                                    class="pvs-thumbnail__image evi-image lazy-image ember-view">
+                                                                                <!---->
+                                                                                <div
+                                                                                    class="pvs-thumbnail__overlay pvs-thumbnail__overlay--text">
+                                                                                    <div class="t-14 t-white t-bold">+2
+                                                                                    </div>
+                                                                                </div>
+                                                                            </figure>
+                                                                        </a>
+
+
+                                                                    </div>
+                                                                </div>
+
+
+                                                            </li>
+                                                        </ul>
+                                                        <!---->
+                                                    </div>
+
+
+                                                </li>
+                                            </ul>
+                                            <!---->
+                                        </div>
+
+                                    </div>
+                                    <!---->
+                                    <!---->
+                                </div>
+
+
+                            </li>
+                            <li class="qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                <span class="EjZKUrtOZcFtnELEhNGFouebDCwJhXVgKMI"></span>
+                                <div class="iySSlsjvmHFIjvVVBeTzQKiCkbVUEscOCasgZMM
+        
+        
+        
+        
+        " data-view-name="profile-component-entity">
+                                    <div>
+
+                                        <div class="
+            
+            
+            display-flex" tabindex="-1">
+
+                                            <!---->
+                                        </div>
+
+                                    </div>
+
+                                    <div class="display-flex flex-column align-self-center flex-grow-1">
+                                        <div class="display-flex flex-row justify-space-between">
+
+                                            <a class="optional-action-target-wrapper 
+              display-flex flex-column full-width" target="_self" href="https://www.linkedin.com/company/248524/">
+                                                <div class="display-flex flex-wrap align-items-center full-height">
+
+                                                    <div class="display-flex ">
+
+                                                        <div class="
+          display-flex full-width">
+
+                                                            <div class="display-flex align-items-center
+              mr1 hoverable-link-text t-bold">
+                                                                <span aria-hidden="true"><!---->Senior Technical
+                                                                    Specialist<!----></span><span
+                                                                    class="visually-hidden"><!---->Senior Technical
+                                                                    Specialist<!----></span>
+                                                            </div>
+                                                            <!---->
+                                                        </div>
+
+                                                    </div>
+
+                                                    <!----><!----><!---->
+                                                </div>
+                                                <!----> <span class="t-14 t-normal
+                  t-black--light">
+                                                    <span class="pvs-entity__caption-wrapper"
+                                                        aria-hidden="true"><!---->Jul 2000 - Jul 2013 · 13 yrs 1
+                                                        mo<!----></span><span class="visually-hidden"><!---->Jul 2000 to
+                                                        Jul 2013 · 13 yrs 1 mo<!----></span>
+                                                </span>
+                                                <!---->
+                                            </a>
+
+                                        </div>
+
+                                        <div class="FtwCyQiKWmAiGnEmVueQaXzXAGHOsFzwvUjJnmX pvs-entity__sub-components">
+                                            <!---->
+                                            <ul class="PdRUlssPYwwHVyfokYoPNtMeAOfjkIoxnUc
+            
+            
+            ">
+                                                <li class="qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                                    <div class="FtwCyQiKWmAiGnEmVueQaXzXAGHOsFzwvUjJnmX">
+                                                        <!---->
+                                                        <ul class="PdRUlssPYwwHVyfokYoPNtMeAOfjkIoxnUc
+            
+            
+            ">
+                                                            <li
+                                                                class="pvs-list__item--with-top-padding qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                                                <div class="display-flex ">
+
+                                                                    <div class="
+          display-flex full-width">
+
+
+                                                                        <div class="xyKuvshqjNOCLLbuJMSOACywiHYHucctJs
+          full-width t-14 t-normal t-black display-flex align-items-center" dir="ltr">
+
+                                                                            <div class="WcTepSkGpUVWbbheKPCszGxDQzmhiNFQ
+        
+        
+        
+        
+        
+         full-width" style="" dir="ltr" tabindex="-1">
+
+                                                                                <span aria-hidden="true"><!---->I'd been
+                                                                                    working on that big system for two
+                                                                                    years and entered the maintenance
+                                                                                    and support cycle. I always wanted
+                                                                                    to go to big cities and started
+                                                                                    needing new challenges. A company
+                                                                                    named LIMS System (who would become
+                                                                                    part of STARLIMS) found me and
+                                                                                    offered me to learn the laboratory
+                                                                                    business. What an
+                                                                                    opportunity!<!----><br><br><!---->•STARLIMS
+                                                                                    Interfaces SME<!----><br><span
+                                                                                        class="white-space-pre">
+                                                                                    </span>•SAP Integration (.Net
+                                                                                    Connector, ES
+                                                                                    Bundles/Netweaver)<!----><br><span
+                                                                                        class="white-space-pre">
+                                                                                    </span>•Other third parties
+                                                                                    integration and
+                                                                                    interfacing<!----><br><span
+                                                                                        class="white-space-pre">
+                                                                                    </span>•Developer on special
+                                                                                    projects (SOA, OPC,
+                                                                                    SAP)<!----><br><!---->•Developer on
+                                                                                    customer projects (new modules, bug
+                                                                                    fixes, enhancements,
+                                                                                    reports)<!----><br><!---->•Project
+                                                                                    Management of special
+                                                                                    projects<!----><br><!---->•Solution
+                                                                                    Analysis<!----><br><!---->•Interface
+                                                                                    Proof of
+                                                                                    concepts<!----><br><!---->•Functional
+                                                                                    Requirements and System Design
+                                                                                    Specifications.<!----><br><!---->•Perform
+                                                                                    webex training for external
+                                                                                    application
+                                                                                    interfacing<!----><br><!---->•SME
+                                                                                    for: Audit Trail, Inventory,
+                                                                                    Specifications, Interface
+                                                                                    Connections, Manufacturing
+                                                                                    Lifecycle<!----></span><span
+                                                                                    class="visually-hidden"><!---->I'd
+                                                                                    been working on that big system for
+                                                                                    two years and entered the
+                                                                                    maintenance and support cycle. I
+                                                                                    always wanted to go to big cities
+                                                                                    and started needing new challenges.
+                                                                                    A company named LIMS System (who
+                                                                                    would become part of STARLIMS) found
+                                                                                    me and offered me to learn the
+                                                                                    laboratory business. What an
+                                                                                    opportunity!
+
+                                                                                    •STARLIMS Interfaces SME
+                                                                                    •SAP Integration (.Net Connector, ES
+                                                                                    Bundles/Netweaver)
+                                                                                    •Other third parties integration and
+                                                                                    interfacing
+                                                                                    •Developer on special projects (SOA,
+                                                                                    OPC, SAP)
+                                                                                    •Developer on customer projects (new
+                                                                                    modules, bug fixes, enhancements,
+                                                                                    reports)
+                                                                                    •Project Management of special
+                                                                                    projects
+                                                                                    •Solution Analysis
+                                                                                    •Interface Proof of concepts
+                                                                                    •Functional Requirements and System
+                                                                                    Design Specifications.
+                                                                                    •Perform webex training for external
+                                                                                    application interfacing
+                                                                                    •SME for: Audit Trail, Inventory,
+                                                                                    Specifications, Interface
+                                                                                    Connections, Manufacturing
+                                                                                    Lifecycle<!----></span>
+
+                                                                                <!---->
+                                                                                <!---->
+                                                                            </div>
+
+                                                                        </div>
+
+                                                                        <!---->
+                                                                    </div>
+
+                                                                </div>
+
+
+                                                            </li>
+                                                        </ul>
+                                                        <!---->
+                                                    </div>
+
+
+                                                </li>
+                                                <li class="qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                                    <div class="FtwCyQiKWmAiGnEmVueQaXzXAGHOsFzwvUjJnmX">
+                                                        <!---->
+                                                        <ul class="PdRUlssPYwwHVyfokYoPNtMeAOfjkIoxnUc
+            
+            
+            ">
+                                                            <li
+                                                                class="pvs-list__item--with-top-padding qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                                                <div class="
+        mv1
+        display-flex align-items-center">
+
+                                                                    <a data-field="position_contextual_skills_see_details"
+                                                                        class="optional-action-target-wrapper display-flex link-without-hover-visited"
+                                                                        target="_self"
+                                                                        href="https://www.linkedin.com/in/michel-roberge-7011b614/overlay/urn:li:fsd_profilePosition:(ACoAAALgc3EBglzhZDPKP2JcpyPypmkYxBacitY,78764121)/skill-associations-details?profileUrn=urn%3Ali%3Afsd_profile%3AACoAAALgc3EBglzhZDPKP2JcpyPypmkYxBacitY">
+                                                                        <div class="mr1
+                mv1
+                
+                ">
+
+                                                                            <ul class="ivm-entity-pile
+        display-flex align-items-center t-black">
+                                                                                <li
+                                                                                    class="ivm-entity-pile__img-item--stacked">
+
+                                                                                    <div class="ivm-view-attr__img-wrapper
+        
+        ">
+                                                                                        <!---->
+                                                                                        <svg role="none"
+                                                                                            aria-hidden="true"
+                                                                                            class="ivm-view-attr__icon ivm-view-attr__icon--icon  "
+                                                                                            xmlns="http://www.w3.org/2000/svg"
+                                                                                            width="16" height="16"
+                                                                                            viewBox="0 0 16 16"
+                                                                                            data-supported-dps="16x16"
+                                                                                            data-test-icon="skills-small">
+                                                                                            <!---->
+                                                                                            <use href="#skills-small"
+                                                                                                width="16" height="16">
+                                                                                            </use>
+                                                                                        </svg>
+
+                                                                                    </div>
+
+                                                                                </li>
+                                                                            </ul>
+
+                                                                        </div>
+
+                                                                        <div class="display-flex ">
+
+                                                                            <div class="
+          display-flex full-width">
+
+                                                                                <div class="hoverable-link-text display-flex align-items-center
+              t-14 t-normal t-black">
+                                                                                    <strong><!---->Communication,
+                                                                                        Partage des connaissances and +3
+                                                                                        skills<!----></strong>
+                                                                                </div>
+                                                                                <!---->
+                                                                            </div>
+
+                                                                        </div>
+
+                                                                    </a>
+
+
+                                                                    <!---->
+                                                                </div>
+
+
+                                                            </li>
+                                                        </ul>
+                                                        <!---->
+                                                    </div>
+
+
+                                                </li>
+                                            </ul>
+                                            <!---->
+                                        </div>
+
+                                    </div>
+                                    <!---->
+                                    <!---->
+                                </div>
+
+
+                            </li>
+                        </ul>
+                        <!---->
+                    </div>
+
+                </div>
+                <!---->
+                <!---->
+            </div>
+
+
+        </li>
+        <li class="artdeco-list__item yUYbUPmIDBCyujolHJvDMVJLdKKwbTvJNGnVDA qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+            <!---->
+            <div class="iySSlsjvmHFIjvVVBeTzQKiCkbVUEscOCasgZMM
+        AajnQCQGlEqOkCCSZJHqFVelplbPuTKoKw owSPWypkbaygNqfMzXkzygjefLVERYVMnw
+        
+        
+        
+        " data-view-name="profile-component-entity">
+                <div>
+
+                    <a data-field="experience_company_logo" class="optional-action-target-wrapper 
+            
+            pvs-entity__image-container--outline-offset
+            display-flex" target="_self" href="https://www.linkedin.com/company/1185/">
+
+                        <div class="ivm-image-view-model  pvs-entity__image ">
+
+                            <div class="ivm-view-attr__img-wrapper
+        
+        ">
+                                <!---->
+                                <!----> <img width="48"
+                                    src="https://media.licdn.com/dms/image/v2/D4D0BAQGUWkaCJOWLdA/company-logo_100_100/company-logo_100_100/0/1720685515776/pfizer_logo?e=1749686400&amp;v=beta&amp;t=8CLefoSkmLbhXMN5hJWqMP9RpdML65VL8y52fK2jfXc"
+                                    loading="lazy" height="48" alt="Pfizer logo" id="ember164"
+                                    class="ivm-view-attr__img--centered EntityPhoto-square-3   evi-image lazy-image ember-view">
+                            </div>
+
+                        </div>
+
+                    </a>
+
+                </div>
+
+                <div class="display-flex flex-column align-self-center flex-grow-1">
+                    <div class="display-flex flex-row justify-space-between">
+
+                        <div class="
+              display-flex flex-column full-width">
+
+                            <div class="display-flex flex-wrap align-items-center full-height">
+
+                                <div class="display-flex ">
+
+                                    <div class="
+          display-flex full-width">
+
+                                        <div class="display-flex align-items-center
+              mr1 t-bold">
+                                            <span aria-hidden="true"><!---->Senior Analyst<!----></span><span
+                                                class="visually-hidden"><!---->Senior Analyst<!----></span>
+                                        </div>
+                                        <!---->
+                                    </div>
+
+                                </div>
+
+                                <!----><!----><!---->
+                            </div>
+                            <span class="t-14 t-normal">
+                                <span aria-hidden="true"><!---->Wyeth<!----></span><span
+                                    class="visually-hidden"><!---->Wyeth<!----></span>
+                            </span>
+                            <span class="t-14 t-normal
+                  t-black--light">
+                                <span class="pvs-entity__caption-wrapper" aria-hidden="true"><!---->Feb 2004 - Feb 2006
+                                    · 2 yrs 1 mo<!----></span><span class="visually-hidden"><!---->Feb 2004 to Feb 2006
+                                    · 2 yrs 1 mo<!----></span>
+                            </span>
+                            <!---->
+                        </div>
+
+                    </div>
+
+                    <div class="FtwCyQiKWmAiGnEmVueQaXzXAGHOsFzwvUjJnmX pvs-entity__sub-components">
+                        <!---->
+                        <ul class="PdRUlssPYwwHVyfokYoPNtMeAOfjkIoxnUc
+            
+            
+            ">
+                            <li class="qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                <div class="FtwCyQiKWmAiGnEmVueQaXzXAGHOsFzwvUjJnmX">
+                                    <!---->
+                                    <ul class="PdRUlssPYwwHVyfokYoPNtMeAOfjkIoxnUc
+            
+            
+            ">
+                                        <li
+                                            class="pvs-list__item--with-top-padding qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                            <div class="display-flex ">
+
+                                                <div class="
+          display-flex full-width">
+
+
+                                                    <div class="xyKuvshqjNOCLLbuJMSOACywiHYHucctJs
+          full-width t-14 t-normal t-black display-flex align-items-center" dir="ltr">
+
+                                                        <div class="WcTepSkGpUVWbbheKPCszGxDQzmhiNFQ
+        
+        
+        
+        
+        
+         full-width" style="" dir="ltr" tabindex="-1">
+
+                                                            <span aria-hidden="true"><!---->While I was working at
+                                                                STARLIMS, I took a "break" and went for a big pharma
+                                                                company. I wanted to try a really big enterprise and
+                                                                accepted an offer at Wyeth. I stayed there 2 years, had
+                                                                a lot of fun and learned a lot. This was a small bubble
+                                                                in time where I stepped out of the laboratory world...
+                                                                Well, not quite.<!----><br><br><!---->•LIMS Specialist
+                                                                for upgrading STARLIMS for FDA
+                                                                compliance<!----><br><!---->•Analyst &amp; Development
+                                                                for Financial Software tools
+                                                                development<!----><br><!---->•Analysis &amp; Development
+                                                                for Essbase development<!----><br><!---->•SOP writer
+                                                                &amp; trainer for Software
+                                                                Development<!----><br><!---->•Certified
+                                                                Trainer<!----></span><span
+                                                                class="visually-hidden"><!---->While I was working at
+                                                                STARLIMS, I took a "break" and went for a big pharma
+                                                                company. I wanted to try a really big enterprise and
+                                                                accepted an offer at Wyeth. I stayed there 2 years, had
+                                                                a lot of fun and learned a lot. This was a small bubble
+                                                                in time where I stepped out of the laboratory world...
+                                                                Well, not quite.
+
+                                                                •LIMS Specialist for upgrading STARLIMS for FDA
+                                                                compliance
+                                                                •Analyst &amp; Development for Financial Software tools
+                                                                development
+                                                                •Analysis &amp; Development for Essbase development
+                                                                •SOP writer &amp; trainer for Software Development
+                                                                •Certified Trainer<!----></span>
+
+                                                            <!---->
+                                                            <!---->
+                                                        </div>
+
+                                                    </div>
+
+                                                    <!---->
+                                                </div>
+
+                                            </div>
+
+
+                                        </li>
+                                    </ul>
+                                    <!---->
+                                </div>
+
+
+                            </li>
+                            <li class="qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                <div class="FtwCyQiKWmAiGnEmVueQaXzXAGHOsFzwvUjJnmX">
+                                    <!---->
+                                    <ul class="PdRUlssPYwwHVyfokYoPNtMeAOfjkIoxnUc
+            
+            
+            ">
+                                        <li
+                                            class="pvs-list__item--with-top-padding qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                            <div class="
+        mv1
+        display-flex align-items-center">
+
+                                                <a data-field="position_contextual_skills_see_details"
+                                                    class="optional-action-target-wrapper display-flex link-without-hover-visited"
+                                                    target="_self"
+                                                    href="https://www.linkedin.com/in/michel-roberge-7011b614/overlay/urn:li:fsd_profilePosition:(ACoAAALgc3EBglzhZDPKP2JcpyPypmkYxBacitY,78766427)/skill-associations-details?profileUrn=urn%3Ali%3Afsd_profile%3AACoAAALgc3EBglzhZDPKP2JcpyPypmkYxBacitY">
+                                                    <div class="mr1
+                mv1
+                
+                ">
+
+                                                        <ul class="ivm-entity-pile
+        display-flex align-items-center t-black">
+                                                            <li class="ivm-entity-pile__img-item--stacked">
+
+                                                                <div class="ivm-view-attr__img-wrapper
+        
+        ">
+                                                                    <!---->
+                                                                    <svg role="none" aria-hidden="true"
+                                                                        class="ivm-view-attr__icon ivm-view-attr__icon--icon  "
+                                                                        xmlns="http://www.w3.org/2000/svg" width="16"
+                                                                        height="16" viewBox="0 0 16 16"
+                                                                        data-supported-dps="16x16"
+                                                                        data-test-icon="skills-small">
+                                                                        <!---->
+                                                                        <use href="#skills-small" width="16"
+                                                                            height="16"></use>
+                                                                    </svg>
+
+                                                                </div>
+
+                                                            </li>
+                                                        </ul>
+
+                                                    </div>
+
+                                                    <div class="display-flex ">
+
+                                                        <div class="
+          display-flex full-width">
+
+                                                            <div class="hoverable-link-text display-flex align-items-center
+              t-14 t-normal t-black">
+                                                                <strong><!---->Communication, Anglais and +1
+                                                                    skill<!----></strong>
+                                                            </div>
+                                                            <!---->
+                                                        </div>
+
+                                                    </div>
+
+                                                </a>
+
+
+                                                <!---->
+                                            </div>
+
+
+                                        </li>
+                                    </ul>
+                                    <!---->
+                                </div>
+
+
+                            </li>
+                        </ul>
+                        <!---->
+                    </div>
+
+                </div>
+                <!---->
+                <!---->
+            </div>
+
+
+        </li>
+        <li class="artdeco-list__item yUYbUPmIDBCyujolHJvDMVJLdKKwbTvJNGnVDA qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+            <!---->
+            <div class="iySSlsjvmHFIjvVVBeTzQKiCkbVUEscOCasgZMM
+        AajnQCQGlEqOkCCSZJHqFVelplbPuTKoKw owSPWypkbaygNqfMzXkzygjefLVERYVMnw
+        
+        
+        
+        " data-view-name="profile-component-entity">
+                <div>
+
+                    <a data-field="experience_company_logo" class="optional-action-target-wrapper 
+            
+            pvs-entity__image-container--outline-offset
+            display-flex" target="_self" tabindex="-1"
+                        href="https://www.linkedin.com/search/results/all/?keywords=Cablevision+du+Nord">
+
+                        <div class="ivm-image-view-model  pvs-entity__image ">
+
+                            <div class="ivm-view-attr__img-wrapper
+        
+        ">
+                                <!---->
+                                <div class="EntityPhoto-square-3-ghost-company ivm-view-attr__ghost-entity  ">
+                                    <div class="visually-hidden">Analyst/Developer</div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </a>
+
+                </div>
+
+                <div class="display-flex flex-column align-self-center flex-grow-1">
+                    <div class="display-flex flex-row justify-space-between">
+
+                        <div class="
+              display-flex flex-column full-width">
+
+                            <div class="display-flex flex-wrap align-items-center full-height">
+
+                                <div class="display-flex ">
+
+                                    <div class="
+          display-flex full-width">
+
+                                        <div class="display-flex align-items-center
+              mr1 t-bold">
+                                            <span aria-hidden="true"><!---->Analyst/Developer<!----></span><span
+                                                class="visually-hidden"><!---->Analyst/Developer<!----></span>
+                                        </div>
+                                        <!---->
+                                    </div>
+
+                                </div>
+
+                                <!----><!----><!---->
+                            </div>
+                            <span class="t-14 t-normal">
+                                <span aria-hidden="true"><!---->Cablevision du Nord<!----></span><span
+                                    class="visually-hidden"><!---->Cablevision du Nord<!----></span>
+                            </span>
+                            <span class="t-14 t-normal
+                  t-black--light">
+                                <span class="pvs-entity__caption-wrapper" aria-hidden="true"><!---->1998 - 2000 · 2
+                                    yrs<!----></span><span class="visually-hidden"><!---->1998 to 2000 · 2
+                                    yrs<!----></span>
+                            </span>
+                            <!---->
+                        </div>
+
+                    </div>
+
+                    <div class="FtwCyQiKWmAiGnEmVueQaXzXAGHOsFzwvUjJnmX pvs-entity__sub-components">
+                        <!---->
+                        <ul class="PdRUlssPYwwHVyfokYoPNtMeAOfjkIoxnUc
+            
+            
+            ">
+                            <li class="qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                <div class="FtwCyQiKWmAiGnEmVueQaXzXAGHOsFzwvUjJnmX">
+                                    <!---->
+                                    <ul class="PdRUlssPYwwHVyfokYoPNtMeAOfjkIoxnUc
+            
+            
+            ">
+                                        <li
+                                            class="pvs-list__item--with-top-padding qTaEZzPugVmGgmQLzqgJKjaQIQNUwNrUtsNQ">
+
+
+                                            <div class="display-flex ">
+
+                                                <div class="
+          display-flex full-width">
+
+
+                                                    <div class="xyKuvshqjNOCLLbuJMSOACywiHYHucctJs
+          full-width t-14 t-normal t-black display-flex align-items-center" dir="ltr">
+
+                                                        <div class="WcTepSkGpUVWbbheKPCszGxDQzmhiNFQ
+        
+        
+        
+        
+        
+         full-width" style="" dir="ltr" tabindex="-1">
+
+                                                            <span aria-hidden="true"><!---->I was given the opportunity
+                                                                to prove myself - fresh out of school - at the local
+                                                                cable company. I started as a consultant and was offered
+                                                                a permanent position. I really enjoyed my experience and
+                                                                learned a lot.<!----><br><br><!---->•In-House ERP
+                                                                Software analysis &amp;
+                                                                development<!----><br><!---->•Support for existing
+                                                                modules<!----><br><!---->•Analysis &amp; Development for
+                                                                new modules<!----><br><!---->•Reporting
+                                                                Development<!----></span><span
+                                                                class="visually-hidden"><!---->I was given the
+                                                                opportunity to prove myself - fresh out of school - at
+                                                                the local cable company. I started as a consultant and
+                                                                was offered a permanent position. I really enjoyed my
+                                                                experience and learned a lot.
+
+                                                                •In-House ERP Software analysis &amp; development
+                                                                •Support for existing modules
+                                                                •Analysis &amp; Development for new modules
+                                                                •Reporting Development<!----></span>
+
+                                                            <!---->
+                                                            <!---->
+                                                        </div>
+
+                                                    </div>
+
+                                                    <!---->
+                                                </div>
+
+                                            </div>
+
+
+                                        </li>
+                                    </ul>
+                                    <!---->
+                                </div>
+
+
+                            </li>
+                        </ul>
+                        <!---->
+                    </div>
+
+                </div>
+                <!---->
+                <!---->
+            </div>
+
+
+        </li>
+    </ul>
+</body>
+
+</html>
 
 ================
 File: docs/prompts/default.md
@@ -1956,6 +3848,38 @@ export default function NotFound() {
 }
 
 ================
+File: portfolio.next/src/app/[slug]/page.tsx
+================
+// portfolio.next/src/app/[slug]/page.tsx
+import { notFound } from "next/navigation";
+import { marked } from "marked";
+
+interface PageProps {
+  params: { slug: string };
+}
+
+async function fetchPage(slug: string) {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pages/${slug}`, { cache: "no-store" });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export default async function Page({ params }: PageProps) {
+  const page = await fetchPage(params.slug);
+
+  if (!page) {
+    return notFound();
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto p-6">
+      <h1 className="text-4xl font-bold mb-4">{page.title}</h1>
+      <div className="prose" dangerouslySetInnerHTML={{ __html: marked.parse(page.content) }} />
+    </div>
+  );
+}
+
+================
 File: portfolio.next/src/app/admin/analytics/page.tsx
 ================
 // portfolio.next/src/app/admin/analytics/page.tsx
@@ -2180,6 +4104,356 @@ export default async function AdminBlogPage() {
   const blogs = await getBlogs(); // Fetch blogs on the server
 
   return <BlogManagement initialBlogs={blogs || []} />;
+}
+
+================
+File: portfolio.next/src/app/admin/career/edit/[id]/page.tsx
+================
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { fetchCareerEntry, saveCareerEntry, fetchCareerTimeline } from "@/services/careerService";
+
+interface CareerEntry {
+  _id?: string;
+  title: string;
+  company?: string;
+  startDate: string;
+  endDate?: string | null;
+  description?: string;
+  skills: string[];
+  linkedEntries: string[];
+  importedFromLinkedIn: boolean;
+}
+
+export default function EditCareerEntry() {
+  const router = useRouter();
+  const params = useParams();
+  const entryId = params.id as string | undefined;
+  const { isAuthenticated, user } = useAuth();
+
+  const [entry, setEntry] = useState<CareerEntry>({
+    title: "",
+    company: "",
+    startDate: "",
+    endDate: null,
+    description: "",
+    skills: [],
+    linkedEntries: [],
+    importedFromLinkedIn: false,
+  });
+
+  const [timelineEntries, setTimelineEntries] = useState<CareerEntry[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        if (entryId) {
+            const existingEntry = await fetchCareerEntry(entryId);
+            if (existingEntry) {
+              setEntry({
+                ...existingEntry,
+                startDate: existingEntry.startDate ? new Date(existingEntry.startDate).toISOString().split("T")[0] : "",
+                endDate: existingEntry.endDate ? new Date(existingEntry.endDate).toISOString().split("T")[0] : "",
+              });
+            }
+          }
+        const allEntries = await fetchCareerTimeline();
+        setTimelineEntries(allEntries);
+      } catch (err) {
+        setError("Failed to load career timeline data.");
+      }
+    }
+
+    if (isAuthenticated) loadData();
+  }, [isAuthenticated, entryId]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      await saveCareerEntry(entry);
+      router.push("/admin/career");
+    } catch (err) {
+      setError("Failed to save career entry.");
+    }
+  }
+
+  if (!isAuthenticated || !user?.isAdmin) return <p>Only admins can access this page.</p>;
+
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-4">{entryId ? "Edit Career Entry" : "Add Career Entry"}</h1>
+      {error && <p className="text-red-500">{error}</p>}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input
+          type="text"
+          placeholder="Title"
+          value={entry.title}
+          onChange={(e) => setEntry({ ...entry, title: e.target.value })}
+          className="w-full p-2 border rounded"
+          required
+        />
+        <input
+          type="text"
+          placeholder="Company"
+          value={entry.company || ""}
+          onChange={(e) => setEntry({ ...entry, company: e.target.value })}
+          className="w-full p-2 border rounded"
+        />
+        <input
+          type="date"
+          value={entry.startDate}
+          onChange={(e) => setEntry({ ...entry, startDate: e.target.value })}
+          className="w-full p-2 border rounded"
+          required
+        />
+        <input
+          type="date"
+          value={entry.endDate || ""}
+          onChange={(e) => setEntry({ ...entry, endDate: e.target.value || null })}
+          className="w-full p-2 border rounded"
+        />
+        <textarea
+          placeholder="Description"
+          value={entry.description || ""}
+          onChange={(e) => setEntry({ ...entry, description: e.target.value })}
+          className="w-full p-2 border rounded"
+        />
+        <input
+          type="text"
+          placeholder="Skills (comma-separated)"
+          value={entry.skills.join(", ")}
+          onChange={(e) => setEntry({ ...entry, skills: e.target.value.split(",").map((s) => s.trim()) })}
+          className="w-full p-2 border rounded"
+        />
+
+        {/* Entry Linking Section */}
+        <label className="block">
+          Linked Entries:
+          <select
+            multiple
+            value={entry.linkedEntries}
+            onChange={(e) =>
+              setEntry({ ...entry, linkedEntries: Array.from(e.target.selectedOptions, (opt) => opt.value) })
+            }
+            className="w-full p-2 border rounded"
+          >
+            {timelineEntries.map((t) => (
+              <option key={t._id} value={t._id}>
+                {t.title} ({t.company}) - {new Date(t.startDate).toLocaleDateString()}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
+          {entryId ? "Save Changes" : "Add Entry"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+================
+File: portfolio.next/src/app/admin/career/linkedin/page.tsx
+================
+"use client"
+import { useState } from "react";
+import { parseLinkedInHTMLBackend, saveParsedJobs } from "@/services/careerService";
+import { ParsedJob } from "@/models/ParsedJob";
+
+export default function CareerTimelineAdmin() {
+  const [rawHTML, setRawHTML] = useState("");
+  const [parsedJobs, setParsedJobs] = useState<ParsedJob[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleParseHTML() {
+    if (!rawHTML.trim()) return alert("Paste your LinkedIn HTML first!");
+    try {
+      const jobs = await parseLinkedInHTMLBackend(rawHTML);
+      setParsedJobs(jobs);
+    } catch (err) {
+      setError("Failed to parse LinkedIn data.");
+    }
+  }
+
+  async function handleImportToBackend() {
+    if (parsedJobs.length === 0) return alert("No parsed jobs to import!");
+
+    try {
+      await saveParsedJobs(parsedJobs);
+      alert("Career entries imported successfully!");
+    } catch (err) {
+      setError("Failed to import LinkedIn data.");
+    }
+  }
+
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-4">Career Timeline Management</h1>
+
+      <div className="mb-4">
+        <p className="text-gray-600 mb-2">
+          To import your LinkedIn career history:
+        </p>
+        <ol className="list-decimal list-inside text-gray-600 mb-2">
+          <li>Go to your <strong>LinkedIn profile</strong> and open the Experience section.</li>
+          <li>Right-click on the job list and select <strong>Inspect</strong>.</li>
+          <li>Copy the HTML of the experience section.</li>
+          <li>Paste it below.</li>
+          <li>Click "Parse & Import".</li>
+        </ol>
+
+        <textarea
+          value={rawHTML}
+          onChange={(e) => setRawHTML(e.target.value)}
+          placeholder="Paste your LinkedIn Experience HTML here..."
+          className="w-full p-2 border rounded mb-2 h-60 font-mono"
+        />
+
+        <button onClick={handleParseHTML} className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+          Parse & Import
+        </button>
+
+        {parsedJobs.length > 0 && (
+          <button onClick={handleImportToBackend} className="ml-4 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+            Save to Backend
+          </button>
+        )}
+      </div>
+
+      {parsedJobs.length > 0 && (
+        <div className="mt-4">
+          <h2 className="text-2xl font-bold mb-2">Parsed Jobs:</h2>
+          <ul className="list-disc list-inside">
+            {parsedJobs.map((job, index) => (
+              <li key={index} className="mb-2">
+                <strong>{job.title}</strong> at {job.company} ({job.startDate} - {job.endDate})
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {error && <p className="text-red-500">{error}</p>}
+    </div>
+  );
+}
+
+================
+File: portfolio.next/src/app/admin/career/page.tsx
+================
+"use client";
+
+import { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { fetchCareerTimeline, deleteCareerEntry } from "@/services/careerService";
+import Link from "next/link";
+
+
+interface CareerEntry {
+  _id: string;
+  title: string;
+  company?: string;
+  startDate: string;
+  endDate?: string | null;
+  skills: string[];
+  linkedEntries: string[];
+  importedFromLinkedIn: boolean;
+}
+
+export default function CareerTimelineAdmin() {
+  const { isAuthenticated, user } = useAuth();
+  const [timeline, setTimeline] = useState<CareerEntry[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadEntries() {
+      try {
+        const data = await fetchCareerTimeline();
+        setTimeline(data);
+      } catch (err) {
+        setError("Failed to load career timeline.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (isAuthenticated) loadEntries();
+  }, [isAuthenticated]);
+
+  async function handleDelete(id: string) {
+    if (!confirm("Are you sure you want to delete this entry?")) return;
+    try {
+      await deleteCareerEntry(id);
+      setTimeline((prev) => prev.filter((entry) => entry._id !== id)); // ✅ Remove from UI
+    } catch (err) {
+      setError("Failed to delete entry.");
+    }
+  }
+  
+
+  if (!isAuthenticated || !user?.isAdmin) return <p>Only admins can access this page.</p>;
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p className="text-red-500">{error}</p>;
+
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-4">Career Timeline Management</h1>
+
+      {/* Import from LinkedIn Button */}
+      <div className="flex justify-between mb-4">
+        
+        <Link href="/admin/career/linkedin" className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+          Parse from Linkedin
+        </Link>
+
+        <Link href="/admin/career/edit/new" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+          + Add Entry
+        </Link>
+      </div>
+      
+
+      {/* Timeline Table */}
+      <table className="w-full border-collapse border border-gray-300">
+        <thead>
+          <tr className="bg-gray-200">
+            <th className="border p-2 text-left">Title</th>
+            <th className="border p-2 text-left">Company</th>
+            <th className="border p-2 text-left">Start Date</th>
+            <th className="border p-2 text-left">End Date</th>
+            <th className="border p-2 text-left">Skills</th>
+            <th className="border p-2 text-left">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {timeline.map((entry) => (
+            <tr key={entry._id} className="border">
+              <td className="border p-2">
+                {entry.title}
+                {entry.importedFromLinkedIn && <span className="text-blue-500 text-sm ml-2">(LinkedIn)</span>}
+              </td>
+              <td className="border p-2">{entry.company || "-"}</td>
+              <td className="border p-2">{new Date(entry.startDate).toLocaleDateString()}</td>
+              <td className="border p-2">{entry.endDate ? new Date(entry.endDate).toLocaleDateString() : "Present"}</td>
+              <td className="border p-2">{entry.skills.join(", ") || "-"}</td>
+              <td className="border p-2">
+                <Link href={`/admin/career/edit/${entry._id}`} className="text-blue-500 hover:underline mr-4">
+                  Edit
+                </Link>
+                <button onClick={() => handleDelete(entry._id)} className="text-red-500 hover:underline">
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 ================
@@ -2497,7 +4771,131 @@ export default function AdminDashboard() {
           <h2 className="text-lg font-medium text-gray-800">Global Files</h2>
           <p className="text-sm text-gray-500">Manage the global files to include in context</p>
         </Link>
+        <Link href="/admin/career"
+          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+        >
+          <h2 className="text-lg font-medium text-gray-800">Manage Timeline</h2>
+          <p className="text-sm text-gray-500">Add and update events on your timeline.</p>
+        </Link>
+        <Link href="/admin/pages"
+          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+        >
+          <h2 className="text-lg font-medium text-gray-800">Manage Custom Pages</h2>
+          <p className="text-sm text-gray-500">Add and update Pages.</p>
+        </Link>
       </div>
+    </div>
+  );
+}
+
+================
+File: portfolio.next/src/app/admin/pages/page.tsx
+================
+"use client";
+import { useState, useEffect } from "react";
+import { fetchPages, createPage, updatePage, deletePage } from "@/services/pageService";
+
+interface PageData {
+  _id?: string;
+  title: string;
+  slug: string;
+  content: string;
+  tags: string[];
+}
+
+export default function AdminPages() {
+  const [pages, setPages] = useState<PageData[]>([]);
+  const [form, setForm] = useState<PageData>({ title: "", slug: "", content: "", tags: [] });
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    async function loadPages() {
+      setPages(await fetchPages());
+    }
+    loadPages();
+  }, []);
+
+  async function handleSubmit() {
+    if (form._id) {
+      await updatePage(form._id, form);
+    } else {
+      await createPage(form);
+    }
+    setPages(await fetchPages());
+    setForm({ title: "", slug: "", content: "", tags: [] });
+    setEditing(false);
+  }
+
+  async function handleDelete(id: string) {
+    await deletePage(id);
+    setPages(await fetchPages());
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-4">Manage Pages</h1>
+
+      {editing ? (
+        <div className="border p-4 rounded-lg shadow-md bg-white">
+          <input
+            className="border p-2 w-full"
+            placeholder="Title"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+          />
+          <input
+            className="border p-2 w-full mt-2"
+            placeholder="Slug (URL-friendly)"
+            value={form.slug}
+            onChange={(e) => setForm({ ...form, slug: e.target.value })}
+          />
+
+          <textarea
+            className="border p-2 w-full mt-2 h-40"
+            placeholder="Content (Markdown supported)"
+            value={form.content}
+            onChange={(e) => setForm({ ...form, content: e.target.value })}
+          />
+
+          <input
+            className="border p-2 w-full mt-2"
+            placeholder="Tags (comma separated)"
+            value={form.tags.join(", ")}
+            onChange={(e) => setForm({ ...form, tags: e.target.value.split(",").map(tag => tag.trim()) })}
+          />
+
+          <div className="flex justify-between mt-4">
+            <button onClick={handleSubmit} className="bg-blue-500 text-white px-4 py-2 rounded">Save</button>
+            <button onClick={() => setEditing(false)} className="bg-gray-500 text-white px-4 py-2 rounded">Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setEditing(true)} className="mb-4 bg-green-500 text-white px-4 py-2 rounded">
+          Add New Page
+        </button>
+      )}
+
+      <ul className="mt-4 space-y-2">
+        {pages.map((page) => (
+          <li key={page._id} className="flex justify-between items-center p-2 border rounded-md">
+            <span>{page.title}</span>
+            <div className="space-x-2">
+              <button
+                onClick={() => {
+                  setForm(page);
+                  setEditing(true);
+                }}
+                className="text-blue-500"
+              >
+                Edit
+              </button>
+              <button onClick={() => handleDelete(page._id!)} className="text-red-500">
+                Delete
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -3403,6 +5801,21 @@ const BlogPage = async ({params,}: {params: Promise<{ slug: string }>}) => {
 export default BlogPage;
 
 ================
+File: portfolio.next/src/app/career/page.tsx
+================
+// portfolio.next/src/app/career/page.tsx
+import CareerTimeline from "@/components/CareerTimeline";
+
+export default function CareerPage() {
+  return (
+    <div className="max-w-4xl mx-auto py-8">
+      <h1 className="text-2xl font-bold mb-4">Career Timeline</h1>
+      <CareerTimeline />
+    </div>
+  );
+}
+
+================
 File: portfolio.next/src/app/globals.css
 ================
 @tailwind base;
@@ -4080,6 +6493,88 @@ export default function BlogView({ blog }: { blog: BlogEntry }) {
 }
 
 ================
+File: portfolio.next/src/components/CareerTimeline.tsx
+================
+// portfolio.next/src/components/CareerTimeline.tsx
+"use client";
+import React, { useState, useEffect } from "react";
+import EntryOverview from "./EntryOverview";
+import { fetchCareerTimeline } from "@/services/careerService";
+import { marked } from "marked";
+
+interface CareerEntry {
+  _id: string;
+  title: string;
+  company: string;
+  startDate: string;
+  endDate: string | null;
+  location: string;
+  description: string;
+}
+
+const formatDate = (date: string | null) => {
+  if (!date) return "Present";
+  return new Intl.DateTimeFormat("default", { year: "numeric", month: "short" }).format(new Date(date));
+};
+
+const CareerTimeline: React.FC = () => {
+  const [entries, setEntries] = useState<CareerEntry[]>([]);
+  const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadData() {
+      const data = await fetchCareerTimeline();
+      setEntries(data);
+    }
+    loadData();
+  }, []);
+
+  return (
+    <div className="relative">
+      {/* Dark vertical timeline bar */}
+      <div className="absolute left-3 top-0 bottom-0 w-6 bg-gray-800"></div>
+
+      <div className="relative space-y-6 pl-10">
+        {entries.map((entry) => (
+          <div key={entry._id} className="relative">
+            {/* Timeline connector */}
+            <div className="absolute left-0 top-6 w-6 h-6 bg-gray-800 rounded-full"></div>
+            <div className="ps-8">
+            {/* Entry Overview */}
+            <EntryOverview
+              title={entry.title}
+              company={entry.company}
+              startDate={formatDate(entry.startDate)}
+              endDate={formatDate(entry.endDate)}
+              location={entry.location}
+              onClick={() => setExpandedEntryId(expandedEntryId === entry._id ? null : entry._id)}
+            />
+
+            {/* Expanded Details (In-Place) */}
+            {expandedEntryId === entry._id && (
+              <div className="mt-2 p-4 border-l-4 border-blue-500 bg-gray-100 rounded-md">
+                <p className="text-sm text-gray-500">{entry.location}</p>
+                <div
+                  className="mt-2 text-gray-700 prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: marked.parse(entry.description) }}
+                />
+
+                <button onClick={() => setExpandedEntryId(null)} className="mt-2 text-blue-500">
+                  Close
+                </button>
+              </div>
+            )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default CareerTimeline;
+
+================
 File: portfolio.next/src/components/Chat.tsx
 ================
 "use client";
@@ -4311,6 +6806,39 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
 }
 
 ================
+File: portfolio.next/src/components/EntryOverview.tsx
+================
+// portfolio.next/src/components/EntryOverview.tsx
+import React from "react";
+
+interface EntryProps {
+  title: string;
+  company: string;
+  startDate: string;
+  endDate: string;
+  location: string;
+  onClick: () => void;
+}
+
+const EntryOverview: React.FC<EntryProps> = ({ title, company, startDate, endDate, location, onClick }) => {
+  return (
+    <div
+      className="border p-4 rounded-lg shadow-md bg-white cursor-pointer hover:bg-gray-100 transition"
+      onClick={onClick}
+    >
+      <h3 className="text-lg font-bold">{title}</h3>
+      <p className="text-sm text-gray-600">{company}</p>
+      <p className="text-sm">
+        {startDate} - {endDate}
+      </p>
+      <p className="text-sm text-gray-500">{location}</p>
+    </div>
+  );
+};
+
+export default EntryOverview;
+
+================
 File: portfolio.next/src/components/Footer.tsx
 ================
 export default function Footer (){
@@ -4329,7 +6857,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCog, faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+import { faAlignLeft, faCog, faContactCard, faParagraph, faPerson, faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 import { usePathname } from "next/navigation";
 export default function Header() {
   const { isAdmin, isAuthenticated, refreshAuth } = useAuth();
@@ -4363,6 +6891,18 @@ export default function Header() {
           </div>
         </Link>
         <div className="flex items-center gap-4">
+
+        <Link href="/about" className="flex items-center gap-2 text-white hover:text-gray-300">
+              <FontAwesomeIcon icon={faContactCard} className="w-6 h-6" />
+              <span>About me</span>
+            </Link>
+
+        <Link href="/career" className="flex items-center gap-2 text-white hover:text-gray-300">
+              <FontAwesomeIcon icon={faAlignLeft} className="w-6 h-6" />
+              <span>Experience</span>
+            </Link>
+
+
           {isAuthenticated && isAdmin && (
             <Link href={`/admin`} className="flex items-center gap-2 text-white hover:text-gray-300">
               <FontAwesomeIcon icon={faCog} className="w-6 h-6" />
@@ -4856,6 +7396,18 @@ export interface FileInfo {
   */
 
 ================
+File: portfolio.next/src/models/ParsedJob.ts
+================
+export interface ParsedJob {
+    title: string;
+    company: string;
+    startDate: string;
+    endDate: string;
+    description: string;
+    location: string;
+  }
+
+================
 File: portfolio.next/src/models/Project.ts
 ================
 export interface Project {
@@ -5062,6 +7614,76 @@ import { BlogEntry } from "@/models/BlogEntry";
   }
 
 ================
+File: portfolio.next/src/services/careerService.ts
+================
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+export async function fetchCareerTimeline() {
+  const res = await fetch(`${apiUrl}/api/career/timeline`, { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch timeline data");
+  return await res.json();
+}
+
+export async function fetchCareerEntry(id: string) {
+  const res = await fetch(`${apiUrl}/api/career/timeline/${id}`, { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch entry");
+  return await res.json();
+}
+
+export async function saveCareerEntry(entry: any) {
+  const method = entry._id ? "PUT" : "POST";
+  const url = entry._id ? `${apiUrl}/api/career/timeline/${entry._id}` : `${apiUrl}/api/career/timeline`;
+  const res = await fetch(url, {
+    method,
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(entry),
+  });
+  if (!res.ok) throw new Error("Failed to save entry");
+  return await res.json();
+}
+
+export async function deleteCareerEntry(id: string) {
+  const res = await fetch(`${apiUrl}/api/career/timeline/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to delete entry");
+}
+
+export async function linkEntries(id: string, linkedIds: string[]) {
+  const res = await fetch(`${apiUrl}/api/career/timeline/${id}/link`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ linkedEntries: linkedIds }),
+  });
+  if (!res.ok) throw new Error("Failed to link entries");
+}
+
+export async function parseLinkedInHTMLBackend(rawHTML: string) {
+  const res = await fetch(`${apiUrl}/api/career/parse-linkedin`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rawHTML }),
+  });
+  if (!res.ok) throw new Error("Failed to parse LinkedIn data.");
+  return await res.json();
+}
+
+export async function saveParsedJobs(parsedJobs: any[]) {
+  const res = await fetch(`${apiUrl}/api/career/timeline/bulk`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(parsedJobs),
+  });
+  if (!res.ok) throw new Error("Failed to save parsed jobs.");
+  return await res.json();
+}
+
+================
 File: portfolio.next/src/services/fileService.ts
 ================
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -5156,6 +7778,50 @@ export async function getHomePageData(): Promise<{ blogs: BlogEntry[]; projects:
     return { blogs: [], projects: [] }; // Fallback to avoid breaking the page
   }
 }
+
+================
+File: portfolio.next/src/services/pageService.ts
+================
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+export async function fetchPages() {
+    const res = await fetch(`${apiUrl}/api/pages`, { credentials: "include" });
+    if (!res.ok) throw new Error("Failed to fetch pages");
+    return await res.json();
+  }
+  
+  export async function fetchPage(slug: string) {
+    const res = await fetch(`${apiUrl}/api/pages/${slug}`);
+    if (!res.ok) throw new Error("Page not found");
+    return await res.json();
+  }
+  
+  export async function createPage(pageData: any) {
+    const res = await fetch(`${apiUrl}/api/pages`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(pageData),
+    });
+    if (!res.ok) throw new Error("Failed to create page");
+    return await res.json();
+  }
+  
+  export async function updatePage(id: string, pageData: any) {
+    const res = await fetch(`${apiUrl}/api/pages/${id}`, {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(pageData),
+    });
+    if (!res.ok) throw new Error("Failed to update page");
+    return await res.json();
+  }
+  
+  export async function deletePage(id: string) {
+    const res = await fetch(`${apiUrl}/api/pages/${id}`, { method: "DELETE", credentials: "include" });
+    if (!res.ok) throw new Error("Failed to delete page");
+  }
 
 ================
 File: portfolio.next/src/services/projectService.ts
@@ -5823,6 +8489,7 @@ File: portfolio.node/package.json
     "@opentelemetry/sdk-node": "^0.57.2",
     "@qdrant/js-client-rest": "^1.13.0",
     "bcrypt": "^5.1.1",
+    "cheerio": "^1.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
@@ -5840,6 +8507,7 @@ File: portfolio.node/package.json
     "passport-github": "^1.1.0",
     "passport-google-oauth20": "^2.0.0",
     "passport-microsoft": "^2.1.0",
+    "puppeteer": "^24.4.0",
     "qdrant-client": "^0.0.1",
     "swagger-ui-express": "^5.0.1",
     "ws": "^8.18.1",
@@ -5886,6 +8554,8 @@ const chatRoutes = require("./routes/chatRoutes");
 const embeddingRoutes = require("./routes/embeddingRoutes");
 const promptRoutes = require("./routes/promptRoutes");
 const fileRoutes = require("./routes/fileRoutes");
+const careerTimelineRoutes = require("./routes/careerTimelineRoutes");
+const pageRoutes = require("./routes/pageRoutes");
 
 const { prepopulateDefaultConfigs } = require("./services/providerConfigService");
 const { initCollection } = require("./services/qdrantService");
@@ -5948,6 +8618,8 @@ setupStrategies()
   app.use("/api/embeddings", embeddingRoutes);
   app.use("/api/prompts", promptRoutes);
   app.use("/api/files", fileRoutes);
+  app.use("/api/career", careerTimelineRoutes);  
+  app.use("/api/pages", pageRoutes);  
 
   return app;
 }
@@ -7462,6 +10134,24 @@ BlogEntrySchema.pre('save', async function(next) {
 module.exports = mongoose.model("BlogEntry", BlogEntrySchema);
 
 ================
+File: portfolio.node/src/models/CareerTimeline.js
+================
+const mongoose = require("mongoose");
+
+const CareerTimelineSchema = new mongoose.Schema({
+  title: { type: String, required: true }, // Job title, role, or key milestone
+  company: { type: String }, // Employer or organization
+  startDate: { type: Date, required: true },
+  endDate: { type: Date, default: null }, // Null if currently active
+  description: { type: String }, // Brief description of responsibilities
+  skills: [{ type: String }], // List of skills used
+  linkedEntries: [{ type: mongoose.Schema.Types.ObjectId, ref: "CareerTimeline" }], // Links to related events
+  importedFromLinkedIn: { type: Boolean, default: false }, // Flag for LinkedIn imports
+});
+
+module.exports = mongoose.model("CareerTimeline", CareerTimelineSchema);
+
+================
 File: portfolio.node/src/models/ChatMessage.js
 ================
 // portfolio.node/src/models/ChatMessage.js
@@ -7552,6 +10242,23 @@ const MetadataSchema = new mongoose.Schema({
     entityId: { type: mongoose.Schema.Types.ObjectId, required: true },
     entityType: { type: String, enum: ["Project", "BlogEntry", "File"], required: true },
   });
+
+================
+File: portfolio.node/src/models/Page.js
+================
+const mongoose = require("mongoose");
+
+const PageSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true },
+    slug: { type: String, required: true, unique: true }, // URL-friendly identifier
+    content: { type: String, required: true }, // Markdown content
+    tags: { type: [String], default: [] }, // Tags for categorization
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("Page", PageSchema);
 
 ================
 File: portfolio.node/src/models/Project.js
@@ -7793,6 +10500,165 @@ router.delete("/:id", isAuth, isAdmin, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+module.exports = router;
+
+================
+File: portfolio.node/src/routes/careerTimelineRoutes.js
+================
+const express = require("express");
+const CareerTimeline = require("../models/CareerTimeline");
+const router = express.Router();
+const isAuth = require("../middlewares/auth");
+const isAdmin = require("../middlewares/admin");
+const cheerio = require("cheerio");
+
+// GET all career timeline entries
+router.get("/timeline", async (req, res) => {
+  try {
+    const entries = await CareerTimeline.find().sort({ startDate: -1 });
+    res.json(entries);
+  } catch (error) {
+    res.status(500).json({ error: "Server error while fetching career timeline entries." });
+  }
+});
+
+// GET a single timeline entry
+router.get("/timeline/:id", async (req, res) => {
+  try {
+    const entry = await CareerTimeline.findById(req.params.id);
+    if (!entry) return res.status(404).json({ error: "Entry not found." });
+    res.json(entry);
+  } catch (error) {
+    res.status(500).json({ error: "Server error." });
+  }
+});
+
+// CREATE a new career timeline entry
+router.post("/timeline", isAuth, isAdmin, async (req, res) => {
+  try {
+    const newEntry = new CareerTimeline(req.body);
+    const savedEntry = await newEntry.save();
+    res.status(201).json(savedEntry);
+  } catch (error) {
+    res.status(400).json({ error: "Invalid data." });
+  }
+});
+
+// UPDATE an existing entry
+router.put("/timeline/:id", isAuth, isAdmin, async (req, res) => {
+  try {
+    const updatedEntry = await CareerTimeline.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updatedEntry) return res.status(404).json({ error: "Entry not found." });
+    res.json(updatedEntry);
+  } catch (error) {
+    res.status(400).json({ error: "Invalid update request." });
+  }
+});
+
+// DELETE an entry
+router.delete("/timeline/:id", isAuth, isAdmin, async (req, res) => {
+  try {
+    const deletedEntry = await CareerTimeline.findByIdAndDelete(req.params.id);
+    if (!deletedEntry) return res.status(404).json({ error: "Entry not found." });
+    res.json({ message: "Entry deleted successfully." });
+  } catch (error) {
+    res.status(500).json({ error: "Server error while deleting entry." });
+  }
+});
+
+// API to parse LinkedIn HTML
+router.post("/parse-linkedin", async (req, res) => {
+  try {
+    const { rawHTML } = req.body;
+    if (!rawHTML) return res.status(400).json({ error: "No HTML provided" });
+
+    const $ = cheerio.load(rawHTML);
+    const jobs = [];
+
+    // Iterate over each job entry
+    $(".artdeco-list__item").each((_, element) => {
+      const company = $(element).find("a.optional-action-target-wrapper span[aria-hidden='true']").first().text().trim();
+      const companyLink = $(element).find("a.optional-action-target-wrapper").attr("href");
+      const companyLogo = $(element).find("img.ivm-view-attr__img--centered").attr("src");
+
+      // Extract job title
+      $(element).find("div.t-bold span[aria-hidden='true']").each((_, jobElement) => {
+        const title = $(jobElement).text().trim();
+
+        // Extract date range
+        const dateRange = $(element).find("span.pvs-entity__caption-wrapper").first().text().trim();
+        let startDate = "", endDate = "Present";
+        if (dateRange.includes(" - ")) {
+          const dates = dateRange.split(" - ");
+          startDate = dates[0]?.trim();
+          endDate = dates[1]?.trim() || "Present";
+        }
+
+        // Extract location
+        const location = $(element).find("span.t-14.t-normal.t-black--light").last().text().trim();
+
+        // Extract job description
+        const description = $(element).find("div.WcTepSkGpUVWbbheKPCszGxDQzmhiNFQ span[aria-hidden='true']").text().trim();
+
+        // Ensure valid job entry
+        if (title ) {
+          jobs.push({
+            title,
+            company,
+            companyLink: companyLink ? `https://www.linkedin.com${companyLink}` : null,
+            companyLogo,
+            startDate,
+            endDate,
+            location,
+            description,
+          });
+        }
+      });
+    });
+
+    res.json(jobs);
+  } catch (error) {
+    console.error("Error parsing LinkedIn data:", error);
+    res.status(500).json({ error: "Failed to parse LinkedIn data." });
+  }
+});
+
+function parseDate(dateStr) {
+  if (!dateStr || dateStr.toLowerCase().includes("present")) {
+    return null; // Store null for current jobs
+  }
+  
+  // Extract only the first part of the date (e.g., "Jan 2018" from "Jan 2018 · 4 yrs 7 mos")
+  const cleanDate = dateStr.split("·")[0].trim();
+
+  // Convert to a valid Date object
+  const parsedDate = new Date(cleanDate);
+  return isNaN(parsedDate) ? null : parsedDate;
+}
+
+// Bulk insert parsed jobs into the database
+router.post("/timeline/bulk", isAuth, isAdmin, async (req, res) => {
+  try {
+    const entries = req.body.map((entry) => ({
+      title: entry.title,
+      company: entry.company,
+      startDate: parseDate(entry.startDate),
+      endDate: parseDate(entry.endDate),
+      location: entry.location,
+      description: entry.description,
+      importedFromLinkedIn: true,
+    }));
+
+    await CareerTimeline.insertMany(entries);
+    res.json({ success: true, message: "Career entries imported successfully." });
+  } catch (error) {
+    console.error("Bulk import error:", error);
+    res.status(500).json({ error: "Failed to import LinkedIn data." });
+  }
+});
+
+
 
 module.exports = router;
 
@@ -8319,6 +11185,74 @@ router.get("/microsoft/callback", passport.authenticate("microsoft", { failureRe
   }
   issueToken(req, res, returnUrl);
 });
+module.exports = router;
+
+================
+File: portfolio.node/src/routes/pageRoutes.js
+================
+const express = require("express");
+const Page = require("../models/Page");
+const router = express.Router();
+const isAdmin = require("../middlewares/admin");
+const isAuth = require("../middlewares/auth");
+
+// Fetch all pages
+router.get("/", async (req, res) => {
+  try {
+    const pages = await Page.find().sort({ createdAt: -1 });
+    res.json(pages);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to load pages" });
+  }
+});
+
+// Fetch a single page by slug
+router.get("/:slug", async (req, res) => {
+  try {
+    const page = await Page.findOne({ slug: req.params.slug });
+    if (!page) return res.status(404).json({ error: "Page not found" });
+    res.json(page);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch page" });
+  }
+});
+
+// Create a new page (Admin only)
+router.post("/", isAuth, isAdmin, async (req, res) => {
+  try {
+    const { title, slug, content, tags } = req.body;
+    const newPage = await Page.create({ title, slug, content, tags });
+    res.status(201).json(newPage);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to create page" });
+  }
+});
+
+// Update a page (Admin only)
+router.put("/:id", isAuth, isAdmin, async (req, res) => {
+  try {
+    const { title, slug, content, tags } = req.body;
+    const updatedPage = await Page.findByIdAndUpdate(
+      req.params.id,
+      { title, slug, content, tags },
+      { new: true }
+    );
+    res.json(updatedPage);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update page" });
+  }
+});
+
+// Delete a page (Admin only)
+router.delete("/:id", isAuth, isAdmin, async (req, res) => {
+  try {
+    await Page.findByIdAndDelete(req.params.id);
+    res.json({ message: "Page deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete page" });
+  }
+});
+
 module.exports = router;
 
 ================
