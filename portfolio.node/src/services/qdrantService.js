@@ -70,9 +70,18 @@ async function storeEmbedding(collection, id, vectors, metadata = {}) {
  * @param {number} [minScore=0.5] - Minimum similarity score
  * @returns {Promise<object[]>} - List of matching documents
  */
-async function searchQdrant(queryVector, collection, limit = 5, minScore = 0.5) {
+async function searchQdrant(queryVector, collection, limit = 5, minScore = 0.3) {
     try {
+
+        if ( !queryVector || queryVector.length != VECTOR_SIZE){
+            console.error("invalid vector received in searchQdrant");
+            return [];
+        }
         console.log(`📡 Searching Qdrant in collection "${collection}"...`);
+        console.log(`collection: ${collection}`);
+        console.log(`vector count: ${queryVector.length}`);
+        console.log(`limit: ${limit}`);
+        console.log(`min score: ${minScore}`);
 
         const response = await qdrantClient.search(collection, {
             vector: queryVector,

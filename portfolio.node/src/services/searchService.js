@@ -1,86 +1,54 @@
-const { generateEmbeddings } = require("./embeddingService");
-const { searchQdrant } = require("./qdrantService");
-
+const { searchQdrant } = require("../services/qdrantService");
+const { generateEmbeddings } = require("../services/embeddingService");
+const Project = require("../models/Project");
+const BlogEntry = require("../models/BlogEntry");
+const Page = require("../models/Page");
+const mongoose = require("mongoose");
+const { convertToText} = require('../utils/generatePrompt');
 /**
- * Perform a hybrid search on any entity by dynamically determining its collection name.
- * @param {Object} model - Mongoose model (e.g., Project, BlogEntry)
- * @param {string} query - User's search query
- * @param {number} [limit=10] - Maximum number of results
- * @param {number} [minScore=0.5] - Minimum similarity score for vector search
- * @returns {Promise<Array>} - Combined search results
+ * Perform a hybrid search and return enriched documents
+ * @param {string} query - The search query
+ * @returns {Promise<{ sources: Array, context: string }>}
  */
-async function searchEntitiesHybrid(model, query, limit = 10, minScore = 0.5) {
-    if (!query || query.trim().length === 0) throw new Error("Query is required for search.");
-    if (!model || !model.collection) throw new Error("Invalid model provided for search.");
-
-    const collectionName = model.collection.collectionName;
-    console.log(`🔍 Performing hybrid search for "${query}" in collection: ${collectionName}`);
-
-    // 1️⃣ Generate query embedding
+async function performSearch(query) {
     const queryEmbedding = await generateEmbeddings(query);
     if (!queryEmbedding) throw new Error("Failed to generate query embedding.");
 
-    // 2️⃣ Perform vector search in Qdrant
-    const vectorResults = await searchQdrant(queryEmbedding, collectionName, limit, minScore);
+    // 1️⃣ Search Qdrant for relevant vector matches
+    const projectResults = await searchQdrant(queryEmbedding, Project.collection.collectionName, 3);
+    const blogResults = await searchQdrant(queryEmbedding, BlogEntry.collection.collectionName, 3);
+    const pageResults = await searchQdrant(queryEmbedding, Page.collection.collectionName, 2);
 
-    // 3️⃣ Perform full-text search in MongoDB
-    const textResults = await searchEntitiesText(model, query, limit);
+    // 2️⃣ Fetch full MongoDB documents using vectorId
+    const projects = await fetchMongoDocs(Project, projectResults);
+    const blogs = await fetchMongoDocs(BlogEntry, blogResults);
+    const pages = await fetchMongoDocs(Page, pageResults);
 
-    // 4️⃣ Merge results (prioritizing vector search)
-    return mergeSearchResults(vectorResults, textResults, limit);
+    // 3️⃣ Merge results with type labels
+    const sources = [
+        ...projects.map(p => ({ ...p, type: "Project" })),
+        ...blogs.map(b => ({ ...b, type: "BlogEntry" })),
+        ...pages.map(p => ({ ...p, type: "Page" })),
+    ];
+
+    // 4️⃣ Convert sources to structured text
+    const context = sources.map(convertToText).join("\n\n");
+
+    return { sources, context };
 }
 
 /**
- * Perform a full-text search using MongoDB's text index.
- * @param {Object} model - Mongoose model (e.g., Project, BlogEntry)
- * @param {string} query - Search query
- * @param {number} [limit=10] - Maximum number of results
- * @returns {Promise<Array>} - List of matching documents
+ * Fetches full MongoDB documents for search results from Qdrant
  */
-async function searchEntitiesText(model, query, limit = 10) {
-    try {
+async function fetchMongoDocs(model, qdrantResults) {
+    const vectorIds = qdrantResults.map(doc => doc.id);
+    if (vectorIds.length === 0) return [];
 
-        // disabled for now
-        return [];
-        return await model.find(
-            { $text: { $search: query } },
-            { score: { $meta: "textScore" } }
-        )
-        .sort({ score: { $meta: "textScore" } })
-        .limit(limit)
-        .lean();
-    } catch (error) {
-        console.error(`❌ Error in full-text search (${model.modelName}):`, error.message);
-        return [];
-    }
+    const documents = await model.find({ vectorId: { $in: vectorIds } }).lean();
+    return documents.map(doc => {
+        const qdrantMatch = qdrantResults.find(q => q.id === doc.vectorId);
+        return { ...doc, score: qdrantMatch?.score || 0 };
+    });
 }
 
-/**
- * Merge search results from Qdrant and MongoDB, ensuring diversity.
- * @param {Array} vectorResults - Results from Qdrant
- * @param {Array} textResults - Results from MongoDB
- * @param {number} limit - Maximum number of results
- * @returns {Array} - Combined results with minimal duplication
- */
-function mergeSearchResults(vectorResults, textResults, limit) {
-    const resultMap = new Map();
-
-    // Prioritize vector results
-    for (const item of vectorResults) {
-        resultMap.set(item.id, { ...item.metadata, score: item.score, source: "vector" });
-    }
-
-    // Add full-text results (if not already included)
-    for (const item of textResults) {
-        if (!resultMap.has(item._id.toString())) {
-            resultMap.set(item._id.toString(), { ...item, score: 1.0, source: "text" });
-        }
-    }
-
-    // Convert to array, sort by highest score, and limit results
-    return Array.from(resultMap.values())
-        .sort((a, b) => b.score - a.score)
-        .slice(0, limit);
-}
-
-module.exports = { searchEntitiesHybrid, searchEntitiesText };
+module.exports = { performSearch };
