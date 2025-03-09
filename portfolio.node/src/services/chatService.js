@@ -1,9 +1,10 @@
 // portfolio.node/src/services/chatService.js
 const ChatMessage = require("../models/ChatMessage");
-const {searchQdrant, generateEmbedding} = require("../services/qdrantService");
 const providerConfigService = require("../services/providerConfigService");
 const ollamaService = require("../services/ollamaService"); // AI Model Integration
 const generatePrompt = require("../utils/generatePrompt");
+const {queryLLM} = require("../services/llmService");
+const cache = require("../utils/cache");
 
 /**
  * Processes a user query using the AI model.
@@ -69,4 +70,25 @@ async function requestOpenAIResponse(query, history, clientId, clientSecret) {
 
   return response.data.choices[0].message.content;
 }
-module.exports = { processChat, getChatHistory };
+
+/**
+ * Returns a random pre-generated greeting from cache.
+ */
+async function getRandomGreeting() {
+
+  let greetings = cache.get("chat_greetings");
+   if (!greetings){
+    console.log('no greetings here');
+    greetings =  ["Hello! How can I assist you today?"];
+   }
+  return greetings[Math.floor(Math.random() * greetings.length)];
+}
+
+/**
+ * Returns the pre-generated starting context for chat.
+ */
+async function getChatStartingContext() {
+  return cache.get("chat_context") || "This is an AI assistant for answering questions about projects and skills.";
+}
+
+module.exports = { processChat, getChatHistory, getRandomGreeting, getChatStartingContext };

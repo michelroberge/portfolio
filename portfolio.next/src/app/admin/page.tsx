@@ -83,6 +83,15 @@ export default function AdminDashboard() {
           <h2 className="text-lg font-medium text-gray-800">Manage Custom Pages</h2>
           <p className="text-sm text-gray-500">Add and update Pages.</p>
         </Link>
+
+        <Link
+  href="/admin/embeddings"
+  className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+>
+  <h2 className="text-lg font-medium text-gray-800">Refresh Embeddings</h2>
+  <p className="text-sm text-gray-500">Reset and update AI embeddings for blogs, projects, and files</p>
+</Link>
+
       </div>
     </div>
   );

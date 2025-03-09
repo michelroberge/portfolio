@@ -3,6 +3,7 @@
 import { useState } from "react";
 import SectionToggle from "@/components/SectionToggle";
 import Image from "next/image";
+import WarmUp from "@/components/warmup";
 
 interface Project {
   _id: string;
@@ -23,6 +24,12 @@ interface BlogEntry {
 export default function Home({ blogs, projects }: { blogs: BlogEntry[]; projects: Project[] }) {
   const [activeSection, setActiveSection] = useState<"blogs" | "projects">("blogs");
 
+  const [isWarmupComplete, setWarmupComplete] = useState(false);
+
+  if (!isWarmupComplete) {
+    return <WarmUp onComplete={() => setWarmupComplete(true)} />;
+  }
+  
   return (
     <div className="flex flex-col min-h-screen">
       <SectionToggle activeSection={activeSection} setActiveSection={setActiveSection} />

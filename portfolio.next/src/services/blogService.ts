@@ -8,7 +8,6 @@ import { BlogEntry } from "@/models/BlogEntry";
   export async function getBlog(id: string): Promise<BlogEntry | null> {
     try {
       const url = `${process.env.NEXT_PUBLIC_API_URL}/api/blogs/${id}`;
-      console.log('url', url);
       const response = await fetch(url);
       if (!response.ok) return null;
       const data: BlogEntry = await response.json();
@@ -42,8 +41,7 @@ import { BlogEntry } from "@/models/BlogEntry";
   
   export async function archiveBlog(id: string) {
     try {
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/blogs/${id}`;
-      const res = await fetch(`${url}/api/blogs/${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/blogs/${id}`, {
         method: "DELETE",
         credentials: "include",
       });

@@ -1,5 +1,5 @@
-'use client';
-import { createContext, useContext, useState, ReactNode } from "react";
+"use client";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 type ChatMessage = {
   role: "user" | "ai";
@@ -15,10 +15,30 @@ type ChatContextType = {
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export function ChatProvider({ children }: { children: ReactNode }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([{
-    role: "ai",
-    text: "Hello! Ask me anything about my projects or skills."
-  }]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+  // Fetch greeting and context when chat initializes
+  useEffect(() => {
+    async function fetchChatData() {
+      try {
+        const greetingRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/greeting`);
+        const { greeting } = await greetingRes.json();
+
+        const contextRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/context`);
+        const { context } = await contextRes.json();
+
+        setMessages([
+          { role: "ai", text: greeting },
+          { role: "ai", text: context }
+        ]);
+      } catch (error) {
+        console.error("Failed to fetch chat initialization data:", error);
+        setMessages([{ role: "ai", text: "Hello! Ask me anything about my projects or skills." }]);
+      }
+    }
+
+    fetchChatData();
+  }, []);
 
   const addMessage = (message: ChatMessage) => {
     setMessages((prev) => [...prev, message]);

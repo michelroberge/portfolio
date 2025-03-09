@@ -11,6 +11,7 @@ const cors = require("cors");
 
 const connectDB = require("./config/db");
 const { passport, setupStrategies } = require("./config/passport");
+const { warmupLLM } = require("./services/warmUpService");
 
 
 const authRoutes = require("./routes/authRoutes");
@@ -27,32 +28,23 @@ const promptRoutes = require("./routes/promptRoutes");
 const fileRoutes = require("./routes/fileRoutes");
 const careerTimelineRoutes = require("./routes/careerTimelineRoutes");
 const pageRoutes = require("./routes/pageRoutes");
+const aiRoutes = require("./routes/aiRoutes");
 
 const { prepopulateDefaultConfigs } = require("./services/providerConfigService");
-const { initCollection } = require("./services/qdrantService");
 const metricsMiddleware = require("./middlewares/metrics");
 
 const { swaggerMiddleware, swaggerSetup } = require('./config/swagger');
 
-const { dropCollection } = require('./services/qdrantService');
 
 async function createApp() {
   // Connect to the database
   await connectDB();
 
-  try{
-
-    // await dropCollection();
-    await initCollection();
-  }
-  catch(err){
-    console.error("Cannot initialize collections", err);
-  }
   // default configuration population
   await prepopulateDefaultConfigs();
 
   const app = express();
-
+  
   app.use(cors({
     origin: process.env.ALLOW_CORS || "http://localhost:3000",
     credentials: true, // Allow cookies to be sent
@@ -91,7 +83,15 @@ setupStrategies()
   app.use("/api/files", fileRoutes);
   app.use("/api/career", careerTimelineRoutes);  
   app.use("/api/pages", pageRoutes);  
+  app.use("/api/ai", aiRoutes);  
 
+    // Warm-up LLM at startup
+    warmupLLM().then(() => {
+      console.log("🚀 Warm-up complete!");
+    }).catch(err => {
+      console.error("⚠️ Warm-up encountered an issue:", err);
+    });
+  
   return app;
 }
 

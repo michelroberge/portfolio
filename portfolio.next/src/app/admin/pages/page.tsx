@@ -26,12 +26,20 @@ export default function AdminPages() {
     if (form._id) {
       await updatePage(form._id, form);
     } else {
-      await createPage(form);
+      // Ensure a new entry starts with a blank state (no _id)
+      const newPage = { ...form };
+      delete newPage._id;  // Remove `_id` to ensure it's a new entry
+      await createPage(newPage);
     }
+    
+    // Refresh the list after submission
     setPages(await fetchPages());
+  
+    // Reset form
     setForm({ title: "", slug: "", content: "", tags: [] });
     setEditing(false);
   }
+  
 
   async function handleDelete(id: string) {
     await deletePage(id);
@@ -77,9 +85,15 @@ export default function AdminPages() {
           </div>
         </div>
       ) : (
-        <button onClick={() => setEditing(true)} className="mb-4 bg-green-500 text-white px-4 py-2 rounded">
-          Add New Page
-        </button>
+<button
+  onClick={() => {
+    setForm({ title: "", slug: "", content: "", tags: [] }); // Reset form for new entry
+    setEditing(true);
+  }}
+  className="mb-4 bg-green-500 text-white px-4 py-2 rounded"
+>
+  Add New Page
+</button>
       )}
 
       <ul className="mt-4 space-y-2">
