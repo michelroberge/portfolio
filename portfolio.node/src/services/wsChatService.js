@@ -3,6 +3,7 @@ const ChatMessage = require("../models/ChatMessage");
 const { generatePrompt } = require("../utils/generatePrompt");
 const { performSearch } = require("../services/searchService");
 const ollamaService = require("../services/ollamaService");
+const { queryLLM } = require("./llmService");
 
 const setupWebSocketServer = (server) => {
     const wss = new WebSocket.Server({ server });
@@ -58,5 +59,19 @@ const setupWebSocketServer = (server) => {
 
     return wss;
 };
+
+/**
+ * Generates a random greeting message.
+ * @returns {Promise<string>} - A friendly AI-generated greeting.
+ */
+async function generateRandomGreeting() {
+    const response = await queryLLM(
+        "AI Chat Assistant",
+        "Generate a friendly greeting for a user who just started a conversation.",
+        {}
+    );
+
+    return response?.greeting || "Hello! How can I assist you today?";
+}
 
 module.exports = { setupWebSocketServer };

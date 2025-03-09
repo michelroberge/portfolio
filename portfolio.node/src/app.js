@@ -11,6 +11,7 @@ const cors = require("cors");
 
 const connectDB = require("./config/db");
 const { passport, setupStrategies } = require("./config/passport");
+const { warmupLLM } = require("./services/warmUpService");
 
 
 const authRoutes = require("./routes/authRoutes");
@@ -43,7 +44,7 @@ async function createApp() {
   await prepopulateDefaultConfigs();
 
   const app = express();
-
+  
   app.use(cors({
     origin: process.env.ALLOW_CORS || "http://localhost:3000",
     credentials: true, // Allow cookies to be sent
@@ -84,6 +85,13 @@ setupStrategies()
   app.use("/api/pages", pageRoutes);  
   app.use("/api/ai", aiRoutes);  
 
+    // Warm-up LLM at startup
+    warmupLLM().then(() => {
+      console.log("🚀 Warm-up complete!");
+    }).catch(err => {
+      console.error("⚠️ Warm-up encountered an issue:", err);
+    });
+  
   return app;
 }
 
