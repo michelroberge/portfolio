@@ -1,117 +1,111 @@
 const express = require("express");
 const {
-    parseLocalDirectory,
-    updateEmbedding,
-    initializeEmbeddings,
-    listEmbeddings
-} = require("../services/embeddingService");  //
+    generateEmbeddings
+} = require("../services/embeddingService");
+const {
+    storeEmbedding,
+    deleteEmbedding,
+    searchQdrant,
+    dropCollection
+} = require("../services/qdrantService");
 const isAdmin = require("../middlewares/admin");
 
 const router = express.Router();
 
 /**
- * @route POST /api/embeddings/local-directory
- * @desc Parse a local directory and generate embeddings
+ * @route POST /api/embeddings/generate
+ * @desc Generate embeddings for a given text (without storing)
  * @access Admin
  */
-router.post("/local-directory", isAdmin, async (req, res) => {
+router.post("/generate", isAdmin, async (req, res) => {
     try {
-        const { directoryPath, includeExtensions, metadata } = req.body;
-        const result = await parseLocalDirectory(directoryPath, includeExtensions, metadata);
-        res.status(200).json(result);
+        const { text } = req.body;
+        if (!text) return res.status(400).json({ error: "Text is required" });
+
+        const embedding = await generateEmbeddings(text);
+        res.status(200).json({ embedding });
     } catch (error) {
-        console.error("❌ Error in embedding route:", error.message);
+        console.error("❌ Error generating embedding:", error.message);
         res.status(500).json({ error: error.message });
     }
 });
 
 /**
- * @route PUT /api/embeddings/:id/metadata
- * @desc Update metadata for a specific embedding
- * @access Admin
- */
-router.put("/:id/metadata", isAdmin, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { metadata } = req.body;
-        const result = await updateEmbeddingMetadata({id, metadata});
-        res.status(200).json(result);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * @route GET /api/embeddings/list
- * @desc Retrieve a list of all embeddings
- * @access Admin
- */
-router.get("/list", isAdmin, async (req, res) => {
-    try {
-        const embeddings = await listEmbeddings();
-        res.status(200).json(embeddings);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * @route POST /api/embeddings
- * @desc Store a new embedding for a document
+ * @route POST /api/embeddings/store
+ * @desc Generate embeddings and store them in Qdrant
  * @access Admin
  */
 router.post("/", isAdmin, async (req, res) => {
     try {
-        const { filePath, content, metadata } = req.body;
-        const result = await storeEmbedding(filePath, content, metadata);
-        res.status(201).json(result);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * @route DELETE /api/embeddings/:id
- * @desc Delete an embedding by ID
- * @access Admin
- */
-router.delete("/:id", isAdmin, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const success = await deleteEmbedding(id);
-        if (success) {
-            res.status(200).json({ message: "Embedding deleted successfully." });
-        } else {
-            res.status(404).json({ error: "Embedding not found." });
+        const { collection, id, text, metadata } = req.body;
+        if (!collection || !id || !text) {
+            return res.status(400).json({ error: "Collection, ID, and text are required" });
         }
+
+        const embedding = await generateEmbeddings(text);
+        if (!embedding) throw new Error("Failed to generate embedding");
+
+        await storeEmbedding(collection, id, embedding, metadata);
+        res.status(201).json({ message: "Embedding stored successfully" });
     } catch (error) {
+        console.error("❌ Error storing embedding:", error.message);
         res.status(500).json({ error: error.message });
     }
 });
 
 /**
  * @route POST /api/embeddings/search
- * @desc Perform a similarity search in Qdrant
+ * @desc Perform a vector search in Qdrant
  * @access Public
  */
 router.post("/search", async (req, res) => {
     try {
-        const { queryVector, topK, minScore } = req.body;
-        const results = await searchQdrant(queryVector, COLLECTION_NAME, topK, minScore);
+        const { query, collection, limit = 5, minScore = 0.5 } = req.body;
+        if (!query || !collection) return res.status(400).json({ error: "Query and collection are required" });
+
+        const queryVector = await generateEmbeddings(query);
+        if (!queryVector) return res.status(500).json({ error: "Failed to generate query embedding" });
+
+        const results = await searchQdrant(queryVector, collection, limit, minScore);
         res.status(200).json(results);
     } catch (error) {
+        console.error("❌ Error performing embedding search:", error.message);
         res.status(500).json({ error: error.message });
     }
 });
 
-router.post("/initialize", async (req, res) => {
+/**
+ * @route DELETE /api/embeddings/:collection/:id
+ * @desc Delete an embedding by ID
+ * @access Admin
+ */
+router.delete("/:collection/:id", isAdmin, async (req, res) => {
     try {
-      await initializeEmbeddings();
-      res.json({ message: "Embeddings initialized successfully." });
+        const { collection, id } = req.params;
+        const success = await deleteEmbedding(collection, id);
+        if (!success) return res.status(404).json({ error: "Embedding not found" });
+
+        res.status(200).json({ message: "Embedding deleted successfully" });
     } catch (error) {
-      console.error("Error initializing embeddings:", error);
-      res.status(500).json({ error: "Failed to initialize embeddings" });
+        console.error("❌ Error deleting embedding:", error.message);
+        res.status(500).json({ error: error.message });
     }
-  });
-  
+});
+
+/**
+ * @route DELETE /api/embeddings/collection/:collection
+ * @desc Drop an entire Qdrant collection
+ * @access Admin
+ */
+router.delete("/collection/:collection", isAdmin, async (req, res) => {
+    try {
+        const { collection } = req.params;
+        await dropCollection(collection);
+        res.status(200).json({ message: `Collection "${collection}" dropped successfully.` });
+    } catch (error) {
+        console.error("❌ Error dropping collection:", error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;

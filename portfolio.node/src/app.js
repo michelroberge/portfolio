@@ -30,25 +30,15 @@ const pageRoutes = require("./routes/pageRoutes");
 const aiRoutes = require("./routes/aiRoutes");
 
 const { prepopulateDefaultConfigs } = require("./services/providerConfigService");
-const { initCollection } = require("./services/qdrantService");
 const metricsMiddleware = require("./middlewares/metrics");
 
 const { swaggerMiddleware, swaggerSetup } = require('./config/swagger');
 
-const { dropCollection } = require('./services/qdrantService');
 
 async function createApp() {
   // Connect to the database
   await connectDB();
 
-  try{
-
-    // await dropCollection();
-    await initCollection();
-  }
-  catch(err){
-    console.error("Cannot initialize collections", err);
-  }
   // default configuration population
   await prepopulateDefaultConfigs();
 

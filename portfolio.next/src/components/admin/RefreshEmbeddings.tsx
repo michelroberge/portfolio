@@ -11,7 +11,7 @@ export default function RefreshEmbeddings() {
     setMessage("");
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/embeddings/initialize`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ai/initialize`, {
         method: "POST",
         credentials: "include",
       });

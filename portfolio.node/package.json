@@ -37,7 +37,7 @@
     "passport-github": "^1.1.0",
     "passport-google-oauth20": "^2.0.0",
     "passport-microsoft": "^2.1.0",
-    "puppeteer": "^24.4.0",
+    "pdf-parse": "^1.1.1",
     "qdrant-client": "^0.0.1",
     "swagger-ui-express": "^5.0.1",
     "ws": "^8.18.1",

@@ -1,214 +1,84 @@
-require("dotenv").config();
 const { QdrantClient } = require("@qdrant/js-client-rest");
-const Embedding = require("../models/Embedding");
-const NodeCache = require("node-cache");
-const searchCache = new NodeCache({ stdTTL: 300 });
-const counterService = require("../services/counterService");
 const QDRANT_URL = process.env.QDRANT_URL || "http://10.0.0.42:6333";
 const QDRANT_API_KEY = process.env.QDRANT_API_KEY || "";
-const COLLECTION_NAME = "projects";
-const VECTOR_SIZE = parseInt(process.env.VECTOR_SIZE, 10) || 4096; // Default to OpenAI size if not set
+const EMBEDDING_SERVICE = process.env.EMBEDDING_SERVICE?.toLowerCase() || "ollama"; // Default to Ollama
+const VECTOR_SIZE = parseInt(process.env.VECTOR_SIZE, 10) || (EMBEDDING_SERVICE === "openai" ? 1536 : 4096);
 
 const qdrantClient = new QdrantClient({
     url: QDRANT_URL,
     apiKey: QDRANT_API_KEY,
 });
-  
+
 /**
- * Initializes the Qdrant collection if it does not exist.
+ * Initialize a Qdrant collection if it does not exist.
+ * @param {string} collection - Collection name
  */
 async function initCollection(collection) {
     try {
-        await qdrantClient.getCollection(collection);
-        console.log(`✅ Qdrant collection "${collection}" already exists.`);
+        console.log(`🗑️ Dropping existing Qdrant collection: "${collection}"...`);
+        await qdrantClient.deleteCollection(collection); // ✅ Drop collection before reinitialization
+        console.log(`✅ Collection "${collection}" dropped successfully.`);
     } catch (error) {
-        console.log(`⚠️ Qdrant collection "${collection}" not found. Creating...`);
+        console.log(`⚠️ Collection "${collection}" did not exist, proceeding with initialization.`);
+    }
 
+    try {
+        console.log(`📌 Creating new Qdrant collection: "${collection}"...`);
         await qdrantClient.createCollection(collection, {
-            vectors: {
-                size: VECTOR_SIZE, 
-                distance: "Cosine"
-            }
+            vectors: { size: VECTOR_SIZE, distance: "Cosine" },
         });
-
-        console.log(`✅ Qdrant collection "${collection}" created.`);
-    }
-}
-
-/**
- * Stores an embedding in Qdrant and MongoDB.
- * @param {string} filePath - Path of the file being embedded.
- * @param {string} content - File content for embedding generation.
- * @param {object} metadata - Additional metadata related to the embedding.
- */
-async function storeEmbedding(collectionName, filePath, vectors, metadata = {}) {
-    try {
-        // Validate vector
-        if (!Array.isArray(vectors) || vectors.length !== VECTOR_SIZE) {
-            throw new Error(`Invalid embedding vector received.`);
-        }
-
-        // Store in MongoDB
-        const id = await counterService.getNextVectorId(`${collectionName}VectorId`);
-        const embeddingEntry = await Embedding.create({ filePath, metadata, externalId: id });
-
-        // Store in Qdrant
-        await qdrantClient.upsert(collectionName, {
-            points: [
-                {
-                    id: id,
-                    vectors,
-                    payload: { filePath, metadata },
-                },
-            ],
-        });
-
-        console.log(`✅ Stored '${collectionName}' embedding ${id}`);
-        return embeddingEntry;
+        console.log(`✅ Collection "${collection}" reinitialized.`);
     } catch (error) {
+        console.error(`❌ Error creating collection "${collection}":`, error.message);
         console.error(error);
-        // console.error(`❌ Qdrant Error:`, error.message);
-        return null;
     }
 }
 
 /**
- * Updates metadata for an embedding entry in MongoDB and Qdrant.
- * @param {object} payload - The embedding document by id or name and the metadata.
+ * Store an embedding in Qdrant.
+ * @param {string} collection - Collection name
+ * @param {string} id - Unique document ID
+ * @param {number[]} vectors - Embedding vector
+ * @param {object} metadata - Metadata associated with the document
  */
-async function updateEmbeddingMetadata({ id = null, filePath = null, metadata }) {
-    try {
-        let embeddings;
+async function storeEmbedding(collection, id, vectors, metadata = {}) {
 
-        if (id) {
-            // ✅ Update a single embedding by ID
-            embeddings = await Embedding.find({ externalId: id });
-            if (embeddings.length === 0) throw new Error("Embedding not found.");
-        } else if (filePath) {
-            // ✅ Update all embeddings for a filePath
-            embeddings = await Embedding.find({ filePath });
-            if (embeddings.length === 0) throw new Error("No embeddings found for file.");
-        } else {
-            throw new Error("Either id or filePath must be provided.");
-        }
-
-        // ✅ Update metadata in MongoDB
-        await Embedding.updateMany({ _id: { $in: embeddings.map(e => e._id) } }, { metadata });
-
-        // ✅ Update in Qdrant
-        await qdrantClient.updatePayload(COLLECTION_NAME, {
-            points: embeddings.map(e => e.externalId), // Ensure IDs are updated correctly
-            payload: { metadata },
-        });
-
-        console.log(`✅ Updated metadata for ${embeddings.length} embeddings.`);
-        return embeddings;
-    } catch (error) {
-        console.error(`❌ Error updating metadata:`, error.message);
-        return null;
+    if (!Array.isArray(vectors) || vectors.length !== VECTOR_SIZE) {
+        throw new Error(`❌ Invalid embedding vector: expected ${VECTOR_SIZE} dimensions.`);
     }
-}
 
-async function updateEmbedding(filePath, newVectors, metadata) {
     try {
-        // ✅ Find existing embedding by filePath
-        const embedding = await Embedding.findOne({ filePath });
-        if (!embedding) {
-            throw new Error("Embedding not found for file.");
-        }
-
-        // ✅ Validate vector
-        if (!Array.isArray(newVectors) || newVectors.length !== VECTOR_SIZE || newVectors.some(isNaN)) {
-            throw new Error("Invalid embedding vector.");
-        }
-
-        // ✅ Update vector + metadata in Qdrant
-        await qdrantClient.upsert(COLLECTION_NAME, {
+        await qdrantClient.upsert(collection, {
             points: [
                 {
-                    id: embedding.externalId, // Keep the same ID
-                    vector: newVectors, // ✅ Overwrite vector
-                    payload: { filePath, metadata }, // ✅ Overwrite metadata
+                    id,
+                    vectors,
+                    payload: metadata,
                 },
             ],
         });
-
-        // ✅ Update metadata in MongoDB
-        await Embedding.updateOne({ filePath }, { metadata });
-
-        console.log(`✅ Updated embedding & metadata for file: ${filePath}`);
-        return embedding;
     } catch (error) {
-        console.error(`❌ Error updating embedding:`, error.message);
-        return null;
-    }
-}
-
-
-/**
- * Retrieves all stored embeddings from MongoDB.
- */
-async function listEmbeddings() {
-    try {
-        return await Embedding.find();
-    } catch (error) {
-        console.error("❌ Error fetching embeddings:", error.message);
-        return [];
+        console.error(`❌ Error storing embedding in Qdrant:`, error.message);
     }
 }
 
 /**
- * Search across all collections and return the most relevant results.
- * @param {number[]} queryVector - The embedding vector to search with.
- * @param {number} limit - Maximum number of results to return.
- * @param {number} threshold - Minimum similarity score to consider.
+ * Perform a semantic search in Qdrant.
+ * @param {number[]} queryVector - The query embedding vector
+ * @param {string} collection - Collection name
+ * @param {number} [limit=5] - Max number of results
+ * @param {number} [minScore=0.5] - Minimum similarity score
+ * @returns {Promise<object[]>} - List of matching documents
  */
-async function searchAcrossCollections(queryVector, limit = 10, threshold = 0.3) {
-    const collections = ["pages", "blogs", "projects", "files"];
-    let allResults = [];
-  
-    for (const collection of collections) {
-      try {
-        const results = await searchQdrant(queryVector, collection, limit, threshold)
-        allResults = allResults.concat(results);
-      } catch (error) {
-        console.warn(`Error searching ${collection}:`, error.message);
-      }
-    }
-  
-    // Sort results by highest similarity score
-    allResults.sort((a, b) => b.score - a.score);
-  
-    // Limit final results
-    return allResults.slice(0, limit);
-  }
-  
-/**
- * Performs a semantic search in Qdrant.
- * @param {number[]} queryVector - The query embedding.
- * @param {string} collection - The collection to search.
- * @param {number} topK - Number of results to retrieve.
- * @param {number} minScore - filter out if score is below this value.
- * @returns {Promise<object[]>} - List of matching projects.
- */
-async function searchQdrant(queryVector, collection = "projects", topK = 5, minScore = 0.5, useCache = false) {
+async function searchQdrant(queryVector, collection, limit = 5, minScore = 0.5) {
     try {
+        console.log(`📡 Searching Qdrant in collection "${collection}"...`);
 
-        const cacheKey = `${collection}:${queryVector.slice(0, 5).join(",")}:${topK}:${minScore}`;
-        const cachedResults = useCache ? searchCache.get(cacheKey) : null;
-        if (cachedResults) {
-            console.log(`🔄 Returning cached search results for query.`);
-            return cachedResults;
-        }
-
-        console.log(`📡 Searching Qdrant in collection "${collection}" with topK=${topK}`);
-
-        // Perform vector search in Qdrant
         const response = await qdrantClient.search(collection, {
             vector: queryVector,
-            limit: topK * 2, // Retrieve extra results to allow filtering
+            limit,
             with_payload: true,
-            score_threshold: minScore, // Ignore low-score results
+            score_threshold: minScore,
         });
 
         if (!response || response.length === 0) {
@@ -216,48 +86,39 @@ async function searchQdrant(queryVector, collection = "projects", topK = 5, minS
             return [];
         }
 
-        // Sort results by score (descending) and take only the top K results
-        const sortedResults = response
-            .filter(doc => doc.score >= minScore) // Remove low-quality matches
-            .sort((a, b) => b.score - a.score) // Sort by highest relevance
-            .slice(0, topK); // Limit to top K results
-
-        searchCache.set(cacheKey, sortedResults); // Store results in cache
-
-        console.log(`✅ Retrieved ${sortedResults.length} relevant results from Qdrant.`);
-        return sortedResults;
+        return response
+            .filter(doc => doc.score >= minScore)
+            .sort((a, b) => b.score - a.score)
+            .map(doc => ({
+                id: doc.id,
+                score: doc.score,
+                metadata: doc.payload,
+            }));
     } catch (error) {
         console.error(`❌ Qdrant Search Error: ${error.message}`);
         return [];
     }
 }
 
-async function deleteEmbedding(filePath) {
+/**
+ * Delete an embedding from Qdrant.
+ * @param {string} collection - Collection name
+ * @param {string} id - Document ID to delete
+ */
+async function deleteEmbedding(collection, id) {
     try {
-        const embedding = await Embedding.findOne({ filePath });
-        if (!embedding) {
-            throw new Error("Embedding not found.");
-        }
-
-        // ✅ Remove from Qdrant
-        await qdrantClient.delete(COLLECTION_NAME, {
-            points: [embedding.externalId],
+        await qdrantClient.delete(collection, {
+            points: [id],
         });
-
-        // ✅ Remove from MongoDB
-        await Embedding.deleteOne({ filePath });
-
-        console.log(`✅ Deleted embedding for file: ${filePath}`);
-        return true;
+        console.log(`✅ Deleted embedding for document ID: ${id} in collection '${collection}'`);
     } catch (error) {
         console.error(`❌ Error deleting embedding:`, error.message);
-        return false;
     }
 }
 
-
 /**
- * Deletes the entire Qdrant collection.
+ * Drop an entire Qdrant collection.
+ * @param {string} collection - Collection name
  */
 async function dropCollection(collection) {
     try {
@@ -271,10 +132,7 @@ async function dropCollection(collection) {
 module.exports = {
     initCollection,
     storeEmbedding,
-    updateEmbeddingMetadata,
-    updateEmbedding,
-    listEmbeddings,
+    searchQdrant,
     deleteEmbedding,
     dropCollection,
-    searchAcrossCollections
 };
