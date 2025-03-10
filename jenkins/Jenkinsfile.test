@@ -1,0 +1,28 @@
+// Jenkinsfile.test (run tests & coverage)
+pipeline {
+    agent any
+    tools { nodejs "node" } 
+
+    stages {
+        stage('Run Tests') { 
+            steps {
+                dir('portfolio.next') {
+                    sh 'npm test'
+                }
+                dir('portfolio.node') {
+                    sh 'npm test'
+                }
+            }
+        }
+        stage('Run Test Coverage') { 
+            steps {
+                dir('portfolio.next') {
+                    sh 'npm run coverage'
+                }
+                dir('portfolio.node') {
+                    sh 'npm run coverage'
+                }
+            }
+        }
+    }
+}
