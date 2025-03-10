@@ -24,12 +24,5 @@ pipeline {
                 }
             }
         }
-        stage('Build Application - Node Backend') { 
-            steps {
-                dir('portfolio.node') {
-                    sh 'npm run build'
-                }
-            }
-        }
     }
 }
