@@ -1,0 +1,21 @@
+// Jenkinsfile.analysis (run SonarQube analysis)
+pipeline {
+    agent any
+    tools { nodejs "node" } 
+
+    stages {
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    def scannerHome = tool 'sonar-scanner'
+                    withSonarQubeEnv('local-sonarqube') {
+                        withCredentials([string(credentialsId: 'sonar-secret', variable: 'SONAR_TOKEN')]) {
+                            sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=portfolio-next -Dsonar.sources=portfolio.next -Dsonar.login=$SONAR_TOKEN"
+                            sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=portfolio-node -Dsonar.sources=portfolio.node -Dsonar.login=$SONAR_TOKEN"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
