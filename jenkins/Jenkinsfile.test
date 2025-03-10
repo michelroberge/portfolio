@@ -4,6 +4,16 @@ pipeline {
     tools { nodejs "node" } 
 
     stages {
+        stage('Install dependencies') { 
+            steps {
+                dir('portfolio.next') {
+                    sh 'npm install'
+                }
+                dir('portfolio.node') {
+                    sh 'npm install'
+                }
+            }
+        }
         stage('Run Tests') { 
             steps {
                 dir('portfolio.next') {
