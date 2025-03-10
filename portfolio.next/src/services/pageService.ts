@@ -1,5 +1,11 @@
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
+export interface Page{
+  _id?: string,
+  title: string,
+  content: string
+}
+
 export async function fetchPages() {
     const res = await fetch(`${apiUrl}/api/pages`, { credentials: "include" });
     if (!res.ok) throw new Error("Failed to fetch pages");
@@ -12,7 +18,7 @@ export async function fetchPages() {
     return await res.json();
   }
   
-  export async function createPage(pageData: any) {
+  export async function createPage(pageData: Page) {
     const res = await fetch(`${apiUrl}/api/pages`, {
       method: "POST",
       credentials: "include",
@@ -23,7 +29,7 @@ export async function fetchPages() {
     return await res.json();
   }
   
-  export async function updatePage(id: string, pageData: any) {
+  export async function updatePage(id: string, pageData: Page) {
     const res = await fetch(`${apiUrl}/api/pages/${id}`, {
       method: "PUT",
       credentials: "include",

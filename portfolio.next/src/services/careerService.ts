@@ -1,4 +1,19 @@
+import { ParsedJob } from "@/models/ParsedJob";
+
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+export interface CareerEntry {
+  _id?: string;
+  title: string;
+  company?: string;
+  startDate: string;
+  endDate?: string | null;
+  location?: string;
+  description: string;
+  skills: string[];
+  linkedEntries: string[];
+  importedFromLinkedIn: boolean;
+}
 
 export async function fetchCareerTimeline() {
   const res = await fetch(`${apiUrl}/api/career/timeline`, { credentials: "include" });
@@ -12,7 +27,7 @@ export async function fetchCareerEntry(id: string) {
   return await res.json();
 }
 
-export async function saveCareerEntry(entry: any) {
+export async function saveCareerEntry(entry: CareerEntry) {
   const method = entry._id ? "PUT" : "POST";
   const url = entry._id ? `${apiUrl}/api/career/timeline/${entry._id}` : `${apiUrl}/api/career/timeline`;
   const res = await fetch(url, {
@@ -54,7 +69,7 @@ export async function parseLinkedInHTMLBackend(rawHTML: string) {
   return await res.json();
 }
 
-export async function saveParsedJobs(parsedJobs: any[]) {
+export async function saveParsedJobs(parsedJobs: ParsedJob[]) {
   const res = await fetch(`${apiUrl}/api/career/timeline/bulk`, {
     method: "POST",
     credentials: "include",

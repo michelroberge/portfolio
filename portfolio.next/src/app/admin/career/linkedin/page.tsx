@@ -14,6 +14,7 @@ export default function CareerTimelineAdmin() {
       const jobs = await parseLinkedInHTMLBackend(rawHTML);
       setParsedJobs(jobs);
     } catch (err) {
+      console.error(err);
       setError("Failed to parse LinkedIn data.");
     }
   }
@@ -25,6 +26,7 @@ export default function CareerTimelineAdmin() {
       await saveParsedJobs(parsedJobs);
       alert("Career entries imported successfully!");
     } catch (err) {
+      console.error(err);
       setError("Failed to import LinkedIn data.");
     }
   }
@@ -42,7 +44,7 @@ export default function CareerTimelineAdmin() {
           <li>Right-click on the job list and select <strong>Inspect</strong>.</li>
           <li>Copy the HTML of the experience section.</li>
           <li>Paste it below.</li>
-          <li>Click "Parse & Import".</li>
+          <li>Click &quot;Parse & Import&quot;.</li>
         </ol>
 
         <textarea

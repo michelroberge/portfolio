@@ -2,18 +2,19 @@
 import { notFound } from "next/navigation";
 import { marked } from "marked";
 
-interface PageProps {
-  params: { slug: string };
-}
-
 async function fetchPage(slug: string) {
   const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pages/${slug}`, { cache: "no-store" });
   if (!res.ok) return null;
   return res.json();
 }
 
-export default async function Page({ params }: PageProps) {
-  const page = await fetchPage(params.slug);
+export default async function Page({ params }: {params: Promise<{ slug: string }>}) {
+
+  const { slug } = await params;
+
+  if (!slug) return notFound();
+
+  const page = await fetchPage(slug);
 
   if (!page) {
     return notFound();

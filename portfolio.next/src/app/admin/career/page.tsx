@@ -2,20 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { fetchCareerTimeline, deleteCareerEntry } from "@/services/careerService";
+import { fetchCareerTimeline, deleteCareerEntry, CareerEntry } from "@/services/careerService";
 import Link from "next/link";
-
-
-interface CareerEntry {
-  _id: string;
-  title: string;
-  company?: string;
-  startDate: string;
-  endDate?: string | null;
-  skills: string[];
-  linkedEntries: string[];
-  importedFromLinkedIn: boolean;
-}
 
 export default function CareerTimelineAdmin() {
   const { isAuthenticated, user } = useAuth();
@@ -29,6 +17,7 @@ export default function CareerTimelineAdmin() {
         const data = await fetchCareerTimeline();
         setTimeline(data);
       } catch (err) {
+        console.error(err);
         setError("Failed to load career timeline.");
       } finally {
         setLoading(false);
@@ -43,6 +32,7 @@ export default function CareerTimelineAdmin() {
       await deleteCareerEntry(id);
       setTimeline((prev) => prev.filter((entry) => entry._id !== id)); // ✅ Remove from UI
     } catch (err) {
+      console.error(err);
       setError("Failed to delete entry.");
     }
   }
@@ -96,7 +86,7 @@ export default function CareerTimelineAdmin() {
                 <Link href={`/admin/career/edit/${entry._id}`} className="text-blue-500 hover:underline mr-4">
                   Edit
                 </Link>
-                <button onClick={() => handleDelete(entry._id)} className="text-red-500 hover:underline">
+                <button onClick={() => handleDelete(entry._id || "")} className="text-red-500 hover:underline">
                   Delete
                 </button>
               </td>
