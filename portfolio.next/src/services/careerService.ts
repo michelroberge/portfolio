@@ -36,7 +36,7 @@ export async function saveCareerEntry(entry: CareerEntry) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(entry),
   });
-  if (!res.ok) throw new Error("Failed to save entry");
+  if (!res || !res.ok) throw new Error("Failed to save entry");
   return await res.json();
 }
 

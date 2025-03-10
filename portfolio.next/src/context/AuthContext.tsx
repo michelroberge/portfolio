@@ -32,6 +32,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/check`, {
         credentials: "include",
       });
+      
+
+      if (!res || !res.ok) {
+        console.error("Login request failed", res);
+        return;
+      }
+      
       const data = await res.json();
       if ( data.setupRequired){
         router.push("/admin/setup"); // Redirect to setup page
@@ -54,6 +61,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ username, password }),
     });
 
+    if (!res || !res.ok) {
+      console.error("Login request failed", res);
+      return false;
+    }
+    
     if (res.ok) {
       await refreshAuth();
       setIsAuthenticated(true);
