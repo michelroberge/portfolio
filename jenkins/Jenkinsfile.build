@@ -1,17 +1,32 @@
-// Jenkinsfile.build (build only)
 pipeline {
     agent any
     tools { nodejs "node" } 
 
     stages {
-        stage('Install Dependencies') { 
+        stage('Install Dependencies - Next.js') { 
             steps {
-                sh 'npm install'
+                dir('portfolio.next') {  // Ensure the context is inside portfolio.next
+                    sh 'npm install'
+                }
             }
         }
-        stage('Build Application') { 
+        stage('Install Dependencies - Node Backend') { 
+            steps {
+                dir('portfolio.node') {  // Ensure the context is inside portfolio.node
+                    sh 'npm install'
+                }
+            }
+        }
+        stage('Build Application - Next.js') { 
             steps {
                 dir('portfolio.next') {
+                    sh 'npm run build'
+                }
+            }
+        }
+        stage('Build Application - Node Backend') { 
+            steps {
+                dir('portfolio.node') {
                     sh 'npm run build'
                 }
             }
