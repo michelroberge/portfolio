@@ -1,5 +1,3 @@
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 export async function fetchFiles(entityId?: string, context?: string) {
     const url = new URL(`${process.env.NEXT_PUBLIC_API_URL}/api/files`);
     if (entityId && context) {
@@ -45,16 +43,14 @@ export async function fetchFiles(entityId?: string, context?: string) {
   }
   
 
-export async function deleteFile(fileId : string) {
-  try {
-    const res = await fetch(`${apiUrl}/api/files/${fileId}`, {
+  export async function deleteFile(fileId: string): Promise<void> {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/files/${fileId}`, {
       method: "DELETE",
       credentials: "include",
     });
-    if (!res.ok) throw new Error("Failed to delete file");
-    return await res.json();
-  } catch (error) {
-    console.error(error);
-    throw error;
+  
+    if (!res.ok) {
+      throw new Error("Failed to delete");
+    }
   }
-}
+  
