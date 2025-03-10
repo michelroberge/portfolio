@@ -3,7 +3,7 @@
 import { useState } from "react";
 import SectionToggle from "@/components/SectionToggle";
 import Image from "next/image";
-import WarmUp from "@/components/warmup";
+import WarmUp from "@/components/WarmUp";
 
 interface Project {
   _id: string;

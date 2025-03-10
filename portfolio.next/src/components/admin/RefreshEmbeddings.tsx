@@ -21,7 +21,8 @@ export default function RefreshEmbeddings() {
       }
 
       setMessage("Embeddings refreshed successfully!");
-    } catch (error) {
+    } catch (err) {
+      console.error(err);
       setMessage("Error refreshing embeddings.");
     } finally {
       setLoading(false);

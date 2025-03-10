@@ -1,8 +1,7 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 
 export default function WarmUp({ onComplete }: { onComplete: () => void }) {
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkWarmupStatus = async () => {
@@ -11,7 +10,6 @@ export default function WarmUp({ onComplete }: { onComplete: () => void }) {
         const data = await response.json();
 
         if (data.warmupComplete) {
-          setLoading(false);
           onComplete(); // Notify parent to show the main app
         } else {
           setTimeout(checkWarmupStatus, 2000); // Retry in 2 seconds
@@ -23,7 +21,7 @@ export default function WarmUp({ onComplete }: { onComplete: () => void }) {
     };
 
     checkWarmupStatus();
-  }, []);
+  }, [onComplete]);
 
   return (
     <div className="flex items-center justify-center h-screen bg-gray-900 text-white">

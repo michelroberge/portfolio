@@ -3,19 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { fetchCareerEntry, saveCareerEntry, fetchCareerTimeline } from "@/services/careerService";
-
-interface CareerEntry {
-  _id?: string;
-  title: string;
-  company?: string;
-  startDate: string;
-  endDate?: string | null;
-  description?: string;
-  skills: string[];
-  linkedEntries: string[];
-  importedFromLinkedIn: boolean;
-}
+import { fetchCareerEntry, saveCareerEntry, fetchCareerTimeline, CareerEntry } from "@/services/careerService";
 
 export default function EditCareerEntry() {
   const router = useRouter();
@@ -53,6 +41,7 @@ export default function EditCareerEntry() {
         const allEntries = await fetchCareerTimeline();
         setTimelineEntries(allEntries);
       } catch (err) {
+        console.error(err);
         setError("Failed to load career timeline data.");
       }
     }
@@ -66,6 +55,7 @@ export default function EditCareerEntry() {
       await saveCareerEntry(entry);
       router.push("/admin/career");
     } catch (err) {
+      console.error(err);
       setError("Failed to save career entry.");
     }
   }

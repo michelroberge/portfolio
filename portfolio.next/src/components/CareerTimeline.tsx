@@ -2,18 +2,8 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import EntryOverview from "./EntryOverview";
-import { fetchCareerTimeline } from "@/services/careerService";
+import { fetchCareerTimeline, CareerEntry } from "@/services/careerService";
 import { marked } from "marked";
-
-interface CareerEntry {
-  _id: string;
-  title: string;
-  company: string;
-  startDate: string;
-  endDate: string | null;
-  location: string;
-  description: string;
-}
 
 const formatDate = (date: string | null) => {
   if (!date) return "Present";
@@ -46,11 +36,11 @@ const CareerTimeline: React.FC = () => {
             {/* Entry Overview */}
             <EntryOverview
               title={entry.title}
-              company={entry.company}
+              company={entry.company || ""}
               startDate={formatDate(entry.startDate)}
-              endDate={formatDate(entry.endDate)}
-              location={entry.location}
-              onClick={() => setExpandedEntryId(expandedEntryId === entry._id ? null : entry._id)}
+              endDate={(entry.endDate && formatDate(entry.endDate)) || ""}
+              location={entry.location || ""}
+              onClick={() => setExpandedEntryId((expandedEntryId === entry._id ? null : entry._id)|| "" )}
             />
 
             {/* Expanded Details (In-Place) */}
