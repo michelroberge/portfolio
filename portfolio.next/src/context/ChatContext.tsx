@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-
+import { API_ENDPOINTS } from "@/lib/constants";
 type ChatMessage = {
   role: "user" | "ai";
   text: string;
@@ -21,10 +21,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function fetchChatData() {
       try {
-        const greetingRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/greeting`);
+        const greetingRes = await fetch(`${API_ENDPOINTS.chat}/greeting`);
         const { greeting } = await greetingRes.json();
 
-        const contextRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/context`);
+        const contextRes = await fetch(`${API_ENDPOINTS.chat}/context`);
         const { context } = await contextRes.json();
 
         setMessages([

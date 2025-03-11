@@ -1,6 +1,7 @@
 // portfolio.next/src/services/projectService.ts
 import { Project } from "@/models/Project";
-  
+import { API_ENDPOINTS } from "@/lib/constants";
+
   /**
    * Fetches a single project entry by its ID.
    * @param id - The project  identifier.
@@ -8,7 +9,7 @@ import { Project } from "@/models/Project";
    */
   export async function getProject(id: string): Promise<Project | null> {
     try {
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/projects/${id}`;
+      const url = `${API_ENDPOINTS.project}/${id}`;
       const response = await fetch(url);
       if (!response.ok) return null;
       const data: Project = await response.json();

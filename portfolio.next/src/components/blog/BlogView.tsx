@@ -5,7 +5,7 @@ import CommentSection from "@/components/CommentSection";
 import { BlogEntry } from "@/models/BlogEntry";
 
 export default function BlogView({ blog }: { blog: BlogEntry }) {
-  return (
+  return ( 
     <main className="container mx-auto px-6 py-10 flex flex-col flex-1">
       <h1 className="text-3xl font-bold">{blog.title}</h1>
       <p className="text-gray-500">

@@ -5,6 +5,8 @@ import { useAuth } from "@/context/AuthContext";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faAlignLeft, faCog, faContactCard, faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 import { usePathname } from "next/navigation";
+import { API_ENDPOINTS } from "@/lib/constants";
+
 export default function Header() {
   const { isAdmin, isAuthenticated, refreshAuth } = useAuth();
   const pathname = usePathname();
@@ -12,7 +14,7 @@ export default function Header() {
 
   async function handleLogout() {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`, {
+      const res = await fetch(`${API_ENDPOINTS.auth}/logout`, {
         credentials: "include",
       });
       if (res.ok) {

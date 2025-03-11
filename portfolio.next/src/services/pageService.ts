@@ -1,4 +1,4 @@
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import { API_ENDPOINTS } from "@/lib/constants";
 
 export interface Page{
   _id?: string,
@@ -7,19 +7,19 @@ export interface Page{
 }
 
 export async function fetchPages() {
-    const res = await fetch(`${apiUrl}/api/pages`, { credentials: "include" });
+    const res = await fetch(`${API_ENDPOINTS.page}`, { credentials: "include" });
     if (!res.ok) throw new Error("Failed to fetch pages");
     return await res.json();
   }
   
   export async function fetchPage(slug: string) {
-    const res = await fetch(`${apiUrl}/api/pages/${slug}`);
+    const res = await fetch(`${API_ENDPOINTS.page}/${slug}`);
     if (!res.ok) throw new Error("Page not found");
     return await res.json();
   }
   
   export async function createPage(pageData: Page) {
-    const res = await fetch(`${apiUrl}/api/pages`, {
+    const res = await fetch(`${API_ENDPOINTS.page}`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -30,7 +30,7 @@ export async function fetchPages() {
   }
   
   export async function updatePage(id: string, pageData: Page) {
-    const res = await fetch(`${apiUrl}/api/pages/${id}`, {
+    const res = await fetch(`${API_ENDPOINTS.page}/${id}`, {
       method: "PUT",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -41,7 +41,7 @@ export async function fetchPages() {
   }
   
   export async function deletePage(id: string) {
-    const res = await fetch(`${apiUrl}/api/pages/${id}`, { method: "DELETE", credentials: "include" });
+    const res = await fetch(`${API_ENDPOINTS.page}/${id}`, { method: "DELETE", credentials: "include" });
     if (!res.ok) throw new Error("Failed to delete page");
   }
   

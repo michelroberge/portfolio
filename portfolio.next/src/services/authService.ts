@@ -1,12 +1,11 @@
 import { cookies } from "next/headers";
+import { API_ENDPOINTS } from "@/lib/constants";
 
 export interface AuthUser {
   id: string;
   isAdmin: boolean;
   message: string | null;
 }
-
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export async function getAuthUser(): Promise<AuthUser | null> {
   try {
@@ -18,7 +17,7 @@ export async function getAuthUser(): Promise<AuthUser | null> {
       return {id : "0", isAdmin: false, message: "no cookie found"};
     }
 
-    const res = await fetch(`${apiUrl}/api/auth/check`, {
+    const res = await fetch(`${API_ENDPOINTS.auth}/check`, {
       method: "GET",
       headers: { Authorization: `Bearer ${token}` }, // ✅ Send token manually
       credentials: "include",
@@ -26,7 +25,7 @@ export async function getAuthUser(): Promise<AuthUser | null> {
 
     if (!res.ok) {
       console.log("Authentication failed");
-      return {id : "0", isAdmin: false, message: apiUrl};
+      return {id : "0", isAdmin: false, message: `${API_ENDPOINTS.auth}/admin/login`};
     }
 
     const data = await res.json();

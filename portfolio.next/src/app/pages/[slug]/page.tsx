@@ -1,9 +1,10 @@
 // portfolio.next/src/app/[slug]/page.tsx
 import { notFound } from "next/navigation";
 import { marked } from "marked";
+import { API_ENDPOINTS } from "@/lib/constants";
 
 async function fetchPage(slug: string) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pages/${slug}`, { cache: "no-store" });
+  const res = await fetch(`${API_ENDPOINTS.page}/slug/${slug}`, { cache: "no-store" });
   if (!res.ok) return null;
   return res.json();
 }

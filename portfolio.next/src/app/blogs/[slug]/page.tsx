@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getBlog } from "@/services/blogService";
 import { BlogEntry } from "@/models/BlogEntry";
-import BlogView from "@/components/BlogView";
+import BlogView from "@/components/blog/BlogView";
 
 const BlogPage = async ({params,}: {params: Promise<{ slug: string }>}) => {
   

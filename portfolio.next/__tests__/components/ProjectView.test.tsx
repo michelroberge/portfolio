@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import ProjectView from "@/components/ProjectView";
+import ProjectView from "@/components/project/ProjectView";
 import { marked } from "marked";
 
 jest.mock("marked", () => ({

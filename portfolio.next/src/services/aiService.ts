@@ -1,14 +1,14 @@
+import { API_ENDPOINTS } from "@/lib/constants";
+
 export interface AIConfig {
     provider: "ollama" | "openai";
     clientId?: string;
     clientSecret?: string;
   }
-  
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-  
+    
   export async function getAIConfig(): Promise<AIConfig> {
     try {
-      const res = await fetch(`${apiUrl}/api/provider-configs/ai`, { credentials: "include" });
+      const res = await fetch(`${API_ENDPOINTS.providerConfig}/ai`, { credentials: "include" });
       if (!res.ok) {
         // throw new Error("Failed to fetch AI configuration");
         return { provider: "ollama" };
@@ -22,7 +22,7 @@ export interface AIConfig {
   
   export async function updateAIConfig(config: AIConfig) {
     try {
-      const res = await fetch(`${apiUrl}/api/provider-configs/ai`, {
+      const res = await fetch(`${API_ENDPOINTS.providerConfig}/ai`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
