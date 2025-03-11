@@ -6,15 +6,15 @@ export interface Page{
   content: string
 }
 
+export async function fetchPage(slug: string, fromCache: boolean = true) {
+  const res = await fetch(`${API_ENDPOINTS.page}/slug/${slug}`, fromCache ? {} : { cache: "no-store" });
+  if (!res.ok) return null;
+  return res.json();
+}
+
 export async function fetchPages() {
     const res = await fetch(`${API_ENDPOINTS.page}`, { credentials: "include" });
     if (!res.ok) throw new Error("Failed to fetch pages");
-    return await res.json();
-  }
-  
-  export async function fetchPage(slug: string) {
-    const res = await fetch(`${API_ENDPOINTS.page}/${slug}`);
-    if (!res.ok) throw new Error("Page not found");
     return await res.json();
   }
   

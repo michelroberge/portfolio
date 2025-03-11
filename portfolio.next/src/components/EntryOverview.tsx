@@ -7,10 +7,11 @@ interface EntryProps {
   startDate: string;
   endDate: string;
   location: string;
+  skills: string[];
   onClick: () => void;
 }
 
-const EntryOverview: React.FC<EntryProps> = ({ title, company, startDate, endDate, location, onClick }) => {
+const EntryOverview: React.FC<EntryProps> = ({ title, company, startDate, endDate, location, skills, onClick }) => {
   return (
     <div
       className="border p-4 rounded-lg shadow-md bg-white cursor-pointer hover:bg-gray-100 transition"
@@ -21,7 +22,16 @@ const EntryOverview: React.FC<EntryProps> = ({ title, company, startDate, endDat
       <p className="text-sm">
         {startDate} - {endDate}
       </p>
-      <p className="text-sm text-gray-500">{location}</p>
+      <div className="flex flex-wrap gap-2 mt-2">
+        {skills.map((skill, index) => (
+          <span
+            key={index}
+            className="px-3 py-1 text-sm font-medium text-gray-700 bg-gray-200 rounded-full"
+          >
+            {skill}
+          </span>
+        ))}
+      </div>
     </div>
   );
 };

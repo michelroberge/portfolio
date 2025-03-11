@@ -1,13 +1,7 @@
 // portfolio.next/src/app/[slug]/page.tsx
 import { notFound } from "next/navigation";
 import { marked } from "marked";
-import { API_ENDPOINTS } from "@/lib/constants";
-
-async function fetchPage(slug: string) {
-  const res = await fetch(`${API_ENDPOINTS.page}/slug/${slug}`, { cache: "no-store" });
-  if (!res.ok) return null;
-  return res.json();
-}
+import { fetchPage } from "@/services/pageService";
 
 export default async function Page({ params }: {params: Promise<{ slug: string }>}) {
 
