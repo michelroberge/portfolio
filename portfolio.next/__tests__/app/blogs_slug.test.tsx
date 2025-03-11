@@ -10,7 +10,7 @@ jest.mock("@/services/blogService", () => ({
 describe("Blog Page", () => {
   it("fetches and displays a blog post", async () => {
     (getBlog as jest.Mock).mockResolvedValue({ title: "Test Blog", body: "Blog Content" });
-    render(<BlogPage params={{ slug: "test-blog" }} />);
+    render(<BlogPage params={Promise.resolve({ slug: "test-blog" })} />);
     
     await waitFor(() => expect(screen.getByText("Test Blog")).toBeInTheDocument());
   });

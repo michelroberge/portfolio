@@ -37,7 +37,7 @@ describe("CareerTimeline Component", () => {
     
     await waitFor(() => expect(fetchCareerTimeline).toHaveBeenCalledTimes(1));
     
-    expect(screen.getByText("Software Engineer")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Software Engineer")).toBeInTheDocument());
     expect(screen.getByText("Tech Corp")).toBeInTheDocument();
     expect(screen.getByText("Jan 2020 - Dec 2023")).toBeInTheDocument();
   });

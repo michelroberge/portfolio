@@ -1,11 +1,11 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import RootLayout from "@/app/layout";
 
 describe("Layout Component", () => {
-  it("renders the layout with header and footer", () => {
+  it("renders the layout with header and footer", async () => {
     render(<RootLayout><div>Test Content</div></RootLayout>);
     
-    expect(screen.getByText("Curious Coder: A Portfolio")).toBeInTheDocument();
+    await waitFor(()=>expect(screen.getByText("Curious Coder: A Portfolio")).toBeInTheDocument());
   });
 });
