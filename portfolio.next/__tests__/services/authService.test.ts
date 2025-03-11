@@ -55,7 +55,7 @@ describe("Auth Service", () => {
     } as Response);
 
     const user = await getAuthUser();
-    expect(user).toEqual({ id: "0", isAdmin: false, message: process.env.NEXT_PUBLIC_API_URL });
+    expect(user).toEqual({ id: "0", isAdmin: false, message: `${process.env.NEXT_PUBLIC_API_URL}/api/auth/admin/login` });
   });
 
   it("should return null on fetch error", async () => {
