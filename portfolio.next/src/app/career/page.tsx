@@ -1,4 +1,4 @@
-// portfolio.next/src/app/career/page.tsx
+export const dynamic = 'force-dynamic';
 import CareerTimeline from "@/components/CareerTimeline";
 
 export default function CareerPage() {

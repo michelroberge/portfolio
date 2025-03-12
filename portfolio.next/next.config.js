@@ -23,6 +23,16 @@ const nextConfig = {
     path: `${basePath}/_next/image/`,
     domains: ["azure.microsoft.com", "logos-world.net", "miro.medium.com"],
   },
+  logging: {
+    fetches: {
+      fullUrl: true,
+    },
+  },
+  onDemandEntries: {
+    // Makes the production server keep pages in memory
+    maxInactiveAge: 60 * 60 * 1000,
+    pagesBufferLength: 5,
+  },
 };
 
 module.exports = nextConfig; // ✅ Use module.exports instead of export default

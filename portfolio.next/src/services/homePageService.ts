@@ -4,6 +4,14 @@ import { Project } from '@/models/Project';
 import { API_ENDPOINTS } from '@/lib/constants';
 
 export async function getHomePageData(): Promise<{ blogEntries: BlogEntry[]; projects: Project[] }> {
+  console.log('='.repeat(80));
+  console.log('🔍 [DEBUG] API_ENDPOINTS:', {
+    blog: API_ENDPOINTS.blog,
+    project: API_ENDPOINTS.project,
+    REMOTE_URL: process.env.NEXT_PUBLIC_API_URL,
+    NODE_ENV: process.env.NODE_ENV
+  });
+
   try {
     console.log('📝 [SSR getHomePageData] Starting fetch', {
       blogUrl: API_ENDPOINTS.blog,
