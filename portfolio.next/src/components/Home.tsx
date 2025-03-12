@@ -47,7 +47,10 @@ export default function Home({ blogEntries, projects }: HomeProps) {
       {/* Desktop Layout */}
       <div className="flex flex-col md:flex-row md:gap-8">
         {/* Blog Posts Section - Hidden on mobile when projects are shown */}
-        <section className={`md:w-2/3 ${!showBlogs ? 'hidden md:block' : ''}`}>
+        <section 
+          role="region"
+          aria-label="Latest Blog Posts"
+          className={`md:w-2/3 ${!showBlogs ? 'hidden md:block' : ''}`}>
           <h2 className="text-3xl font-bold mb-6 text-gray-900 dark:text-gray-100">Latest Blog Posts</h2>
           <div className="space-y-6">
             {publishedBlogEntries.length === 0 ? (
@@ -85,7 +88,10 @@ export default function Home({ blogEntries, projects }: HomeProps) {
         </section>
 
         {/* Projects Section - Hidden on mobile when blogs are shown */}
-        <section className={`md:w-1/3 ${showBlogs ? 'hidden md:block' : ''}`}>
+        <section 
+          role="region"
+          aria-label="Projects"
+          className={`md:w-1/3 ${showBlogs ? 'hidden md:block' : ''}`}>
           <h2 className="text-3xl font-bold mb-6 text-gray-900 dark:text-gray-100">Projects</h2>
           <div className="space-y-6">
             {publishedProjects.length === 0 ? (
