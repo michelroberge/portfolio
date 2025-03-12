@@ -1,98 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { useAuth } from "@/context/AuthContext";
+import AdminLayout from "@/components/layouts/AdminLayout";
+import AdminDashboard from "@/components/admin/AdminDashboard";
 
-export default function AdminDashboard() {
-  const { isAuthenticated, isAdmin } = useAuth();
-
-  if (!isAuthenticated) return <p>You are not authenticated.</p>;
-  if (!isAdmin) return <p>Only admins can access this page.</p>;
-
-
+export default function AdminPage() {
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <h1 className="text-4xl font-semibold mb-4">Admin Dashboard</h1>
-      <p className="text-gray-600 mb-8">
-        Welcome to the admin panel. Use the options below to manage your site.
-      </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Link
-          href="/admin/blogs"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">Manage Blogs</h2>
-          <p className="text-sm text-gray-500">Edit, create, and manage blog posts</p>
-        </Link>
-        <Link
-          href="/admin/projects"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">Manage Projects</h2>
-          <p className="text-sm text-gray-500">Edit, create, and manage projects</p>
-        </Link>
-        <Link
-          href="/admin/comments"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">Manage Comments</h2>
-          <p className="text-sm text-gray-500">Review and moderate user comments</p>
-        </Link>
-        <Link
-          href="/admin/analytics"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">Analytics Dashboard</h2>
-          <p className="text-sm text-gray-500">View site metrics and performance data</p>
-        </Link>
-        <Link
-          href="/admin/settings/provider-config"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">OAuth Provider Config</h2>
-          <p className="text-sm text-gray-500">Configure external identity providers</p>
-        </Link>
-        <Link
-          href="/admin/users"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">Manage Users</h2>
-          <p className="text-sm text-gray-500">Edit, create and manage users</p>
-        </Link>
-        <Link href="/admin/settings/ai-model"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">AI Model</h2>
-          <p className="text-sm text-gray-500">Configure Artificial Intelligence Model</p>
-        </Link>
-        <Link href="/admin/files"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">Global Files</h2>
-          <p className="text-sm text-gray-500">Manage the global files to include in context</p>
-        </Link>
-        <Link href="/admin/career"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">Manage Timeline</h2>
-          <p className="text-sm text-gray-500">Add and update events on your timeline.</p>
-        </Link>
-        <Link href="/admin/pages"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">Manage Custom Pages</h2>
-          <p className="text-sm text-gray-500">Add and update Pages.</p>
-        </Link>
-
-        <Link
-  href="/admin/embeddings"
-  className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
->
-  <h2 className="text-lg font-medium text-gray-800">Refresh Embeddings</h2>
-  <p className="text-sm text-gray-500">Reset and update AI embeddings for blogs, projects, and files</p>
-</Link>
-
-      </div>
-    </div>
+    <AdminLayout>
+      <AdminDashboard />
+    </AdminLayout>
   );
 }

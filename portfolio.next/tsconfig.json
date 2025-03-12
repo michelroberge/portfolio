@@ -40,7 +40,7 @@
     "jest.config.ts",
     "next.config.js",
     "jest.setup.ts"
-  ],
+, "src/app/admin/page.tsx.old"  ],
   "exclude": [
     "node_modules"
   ]

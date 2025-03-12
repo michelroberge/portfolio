@@ -1,6 +1,6 @@
 // portfolio.next/src/context/AuthContext.tsx
 "use client";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation"; 
 import { API_ENDPOINTS } from "@/lib/constants";
 import { User } from '@/models/User';
@@ -21,12 +21,17 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Start as loading
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const isAuthenticated = !!user;
   const isAdmin = user?.isAdmin ?? false;
+
+  // Check auth status when component mounts
+  useEffect(() => {
+    refreshAuth().finally(() => setLoading(false));
+  }, []);
 
   async function refreshAuth() {
     try {
