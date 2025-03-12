@@ -1,11 +1,11 @@
 "use client"
 import { useState } from "react";
 import { parseLinkedInHTMLBackend, saveParsedJobs } from "@/services/careerService";
-import { ParsedJob } from "@/models/ParsedJob";
+import type { LinkedInParseResult } from "@/services/careerService";
 
 export default function CareerTimelineAdmin() {
   const [rawHTML, setRawHTML] = useState("");
-  const [parsedJobs, setParsedJobs] = useState<ParsedJob[]>([]);
+  const [parsedJobs, setParsedJobs] = useState<LinkedInParseResult[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   async function handleParseHTML() {
@@ -25,6 +25,8 @@ export default function CareerTimelineAdmin() {
     try {
       await saveParsedJobs(parsedJobs);
       alert("Career entries imported successfully!");
+      setParsedJobs([]); // Clear the list after successful import
+      setRawHTML(""); // Clear the textarea
     } catch (err) {
       console.error(err);
       setError("Failed to import LinkedIn data.");
@@ -54,12 +56,19 @@ export default function CareerTimelineAdmin() {
           className="w-full p-2 border rounded mb-2 h-60 font-mono"
         />
 
-        <button onClick={handleParseHTML} className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+        <button 
+          onClick={handleParseHTML} 
+          className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:opacity-50"
+          disabled={!rawHTML.trim()}
+        >
           Parse & Import
         </button>
 
         {parsedJobs.length > 0 && (
-          <button onClick={handleImportToBackend} className="ml-4 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+          <button 
+            onClick={handleImportToBackend} 
+            className="ml-4 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+          >
             Save to Backend
           </button>
         )}
@@ -71,7 +80,9 @@ export default function CareerTimelineAdmin() {
           <ul className="list-disc list-inside">
             {parsedJobs.map((job, index) => (
               <li key={index} className="mb-2">
-                <strong>{job.title}</strong> at {job.company} ({job.startDate} - {job.endDate})
+                <strong>{job.title}</strong> at {job.company} ({job.startDate} - {job.endDate || 'Present'})
+                <br />
+                <span className="text-gray-600 ml-6">{job.location}</span>
               </li>
             ))}
           </ul>

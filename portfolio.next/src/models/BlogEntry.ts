@@ -1,10 +1,15 @@
-export interface BlogEntry {
-    _id: string ; 
-    title: string;
-    publishAt?: string | null;
-    body: string;
-    excerpt?: string;
-    link: string;
-    isDraft: boolean;
-    tags: Array<string>;
-  }
+export interface BaseBlogEntry {
+  title: string;
+  excerpt: string;
+  body: string;
+  tags: string[];
+  isDraft: boolean;
+  publishAt?: string | null;
+}
+
+export interface BlogEntry extends BaseBlogEntry {
+  _id: string;
+  link: string;
+  createdAt: string;
+  updatedAt: string;
+}

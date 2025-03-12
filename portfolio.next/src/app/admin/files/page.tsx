@@ -3,8 +3,8 @@ import FileWrapper from "@/components/admin/FileWrapper";
 
 export default async function FileManagement() {
 
-  const user = await getAuthUser();
-  if (!user || !user.isAdmin) {
+  const { authenticated, user } = await getAuthUser();
+  if (!authenticated || !user || !user.isAdmin) {
     return <p>You are not authorized to view this page.</p>;
   }
 

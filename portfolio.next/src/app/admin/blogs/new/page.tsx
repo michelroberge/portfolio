@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-
-const apiUrl :string = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import { API_ENDPOINTS } from "@/lib/constants";
 
 export default function NewBlogEntry() {
   
@@ -23,7 +22,7 @@ export default function NewBlogEntry() {
     const blogData = { title, excerpt, body, isDraft, publishAt };
 
     try {
-      const response = await fetch(`${apiUrl}/api/blogs`, {
+      const response = await fetch(`${API_ENDPOINTS.admin.blogs}`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -41,7 +40,7 @@ export default function NewBlogEntry() {
   };
 
   if (!isAuthenticated) return <p>You are not authenticated.</p>;
-  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
+  if (!(user?.isAdmin)) return <p>Only admins can access this page.</p>;
 
   return (
     <div className="p-6">

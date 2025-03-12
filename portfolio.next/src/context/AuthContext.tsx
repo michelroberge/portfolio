@@ -3,80 +3,103 @@
 import { createContext, useContext, useState } from "react";
 import { useRouter } from "next/navigation"; 
 import { API_ENDPOINTS } from "@/lib/constants";
+import { User } from '@/models/User';
+import { checkAuthStatus } from '@/services/authService';
 
 interface AuthContextType {
-  isAdmin: boolean;
-  isAuthenticated: boolean;
   user: User | null;
-  setIsAuthenticated: (val: boolean) => void;
-  setUser: (user: User | null) => void;
-  refreshAuth: () => Promise<void>;
-  login: (username : string, password : string) => Promise<boolean>;
-}
-
-interface User {
-  username: string;
+  loading: boolean;
+  error: string | null;
+  isAuthenticated: boolean;
   isAdmin: boolean;
-  // Add other user properties as needed.
+  login: (username: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  refreshAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  const isAuthenticated = !!user;
+  const isAdmin = user?.isAdmin ?? false;
 
   async function refreshAuth() {
     try {
-      const res = await fetch(`${API_ENDPOINTS.auth}/check`, {
-        credentials: "include",
-      });
+      const { authenticated, user: authUser } = await checkAuthStatus();
       
+      if (!authenticated) {
+        setUser(null);
+        return;
+      }
 
-      if (!res || !res.ok) {
-        console.error("Login request failed", res);
-        return;
-      }
-      
-      const data = await res.json();
-      if ( data.setupRequired){
-        router.push("/admin/setup"); // Redirect to setup page
-        return;
-      }
-      setIsAuthenticated(data.authenticated);
-      setUser(data.authenticated ? data.user : null);
-      setIsAdmin(data.user?.isAdmin || false);
-    } catch (error) {
-      console.error(error);
-      setIsAuthenticated(false);
+      setUser(authUser);
+    } catch (err) {
+      console.error('Failed to refresh auth:', err);
+      setUser(null);
+      setError("Authentication failed");
     }
   }
 
-  async function login(username : string, password : string) : Promise<boolean>  {
-    const res = await fetch(`${API_ENDPOINTS.auth}/login`, {
-      method: "POST",
-      credentials: "include", // Ensures the auth-token cookie is stored
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
+  async function login(username: string, password: string): Promise<void> {
+    setLoading(true);
+    setError(null);
 
-    if (!res || !res.ok) {
-      console.error("Login request failed", res);
-      return false;
+    try {
+      const res = await fetch(`${API_ENDPOINTS.auth}/login`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.message || "Login failed");
+        return;
+      }
+
+      setUser(data.user);
+    } catch (err) {
+      console.error('Failed to login:', err);
+      setError("Login failed");
+    } finally {
+      setLoading(false);
     }
-    
-    if (res.ok) {
-      await refreshAuth();
-      setIsAuthenticated(true);
-      return true;
+  }
+
+  async function logout(): Promise<void> {
+    try {
+      await fetch(`${API_ENDPOINTS.auth}/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (err) {
+      console.error('Failed to logout:', err);
+    } finally {
+      setUser(null);
+      router.push("/login");
     }
-    return false;
   }
 
   return (
-    <AuthContext.Provider value={{ isAdmin, isAuthenticated, user, setIsAuthenticated, setUser, refreshAuth, login }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      error, 
+      isAuthenticated,
+      isAdmin,
+      login, 
+      logout, 
+      refreshAuth 
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,0 +1,74 @@
+General information
+1. Frontend project is portfolio.next
+2. Backend project is portfolio.node
+3. Backend is supported by MongoDb, Qdrant and Ollama.
+4. Both projects have a ./src directory where the source code is located.
+5. Both projects have a __tests__ directory where the tests are located.
+
+Development Principles
+6. Use Domain Driven Design.
+7. Use Clean Architecture.
+8. Model source of truth is backend.
+9. Use TypeScript for Frontend
+10. Use .js for Backend
+11. Aim for reusability and scalability
+12. Use SOLID principles
+13. Do not over-engineer
+14. Be consistent from a feature to another (i.e. apply same patterns)
+15. Develop for testability (Jest)
+16. Models / entities / interfaces should be in their own scripts, never in a page implementation or in a service implementation.
+
+Frontend Specifics
+17. All API calls should use import from constants (i.e. API_ENDPOINTS) 
+18. The correct page initialization for SSR is promise params with await.
+Good Example:
+```
+import { notFound } from "next/navigation";
+import { fetchBlogEntry } from "@/services/blogService";
+import BlogView from "@/components/blog/BlogView";
+
+export default async function BlogPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  if (!slug) return notFound();
+
+  const id = slug.split("-").pop(); // Extract the last part as the ID
+  if (!id) return notFound();
+
+  try {
+    const blog = await fetchBlogEntry(id);
+    return <BlogView blog={blog} />;
+  } catch (err) {
+    console.error('Failed to fetch blog:', err);
+    return notFound();
+  }
+}
+
+```
+19. All catch(err) should be followed by a console.error(err)
+20. Use tailwindcss for formatting
+21. Optimize Frontend for SSR
+22. Use .ts for Frontend
+23. Use Next.js 15.1.7+ best practices when applicable.
+24. Before any modification to a model, always verify the backend equivalent model. The backend is the source of truth.
+
+Backend Specifics
+25. Use Node.js 18+ best practices when applicable.
+26. Use MongoDB for data storage
+27. Use Qdrant for vector search
+28. Use Ollama for AI
+29. Use .js for Backend
+30. Before changing model, always ask if it is necessary and the correct way. 
+31. If a change to a model is necessary, always consider the frontend changes needed.
+
+Guiding Principle for Fixes and Improvements
+29. When addressing an issue, bug, or inconsistency, always consider the broader context of the system. 
+30. A fix should not only resolve the immediate problem but also align with the overall design principles, architecture, and coding guidelines. 
+31. Strive for solutions that are consistent, maintainable, and scalable, avoiding quick patches that may introduce technical debt or conflict with existing patterns.
+
+32. Before finalizing a fix, ask:
+
+- Does this align with the established design and architectural decisions?
+- Is this solution consistent with similar implementations elsewhere?
+- Will this fix create unexpected side effects in related components?
+- Can this be refactored into a more elegant and reusable solution?
+- Always prioritize long-term clarity and maintainability over short-term convenience.

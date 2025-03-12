@@ -1,114 +1,91 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { User } from "@/models/User";
+import { getUsers, updateUserAdmin } from "@/services/userService";
 
-interface User {
-  _id: string;
-  username: string;
-  isAdmin: boolean;
-}
-
-export default function UserManagement() {
-  const { isAuthenticated, isAdmin } = useAuth();
+export default function UserManagementPage() {
+  const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const { isAuthenticated, user } = useAuth();
 
   useEffect(() => {
-    if (!isAuthenticated || !isAdmin) return;
-
-    async function fetchUsers() {
+    async function loadUsers() {
       try {
-        const res = await fetch(`${apiUrl}/api/users`, {
-          credentials: "include",
-        });
-        if (!res.ok) throw new Error("Failed to fetch users");
-        const data = await res.json();
+        const data = await getUsers();
         setUsers(data);
       } catch (err) {
-        setError((err as Error).message);
+        console.error('Failed to fetch users:', err);
+        setError('Failed to load users');
       }
     }
 
-    fetchUsers();
-  }, [isAuthenticated, isAdmin, apiUrl]);
+    if (isAuthenticated) {
+      loadUsers();
+    }
+  }, [isAuthenticated]);
 
-  const toggleAdmin = async (id: string) => {
+  if (!isAuthenticated || !user?.isAdmin) {
+    router.push('/admin/login');
+    return null;
+  }
+
+  const handleAdminChange = async (userId: string, isAdmin: boolean) => {
     try {
-      const user = users.find((u) => u._id === id);
-      if (!user) return;
-      
-      const updatedUser = { ...user, isAdmin: !user.isAdmin };
-      const res = await fetch(`${apiUrl}/api/users/${id}`, {
-        method: "PUT",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedUser),
-      });
-
-      if (!res.ok) throw new Error("Failed to update user");
-      setUsers(users.map((u) => (u._id === id ? updatedUser : u)));
+      await updateUserAdmin(userId, isAdmin);
+      const updatedUsers = await getUsers();
+      setUsers(updatedUsers);
     } catch (err) {
-      setError((err as Error).message);
+      console.error('Failed to update user admin status:', err);
+      setError('Failed to update user admin status');
     }
   };
 
-  const deleteUser = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this user?")) return;
-
-    try {
-      const res = await fetch(`${apiUrl}/api/users/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      if (!res.ok) throw new Error("Failed to delete user");
-      setUsers(users.filter((u) => u._id !== id));
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  };
-
-  if (!isAuthenticated) return <p>You are not authenticated.</p>;
-  if (!isAdmin) return <p>Only admins can access this page.</p>;
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded">
+        Error: {error}
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-4">Manage Users</h1>
-      {error && <p className="text-red-500">{error}</p>}
-      <table className="w-full border-collapse border border-gray-300">
-        <thead>
-          <tr className="bg-gray-200">
-            <th className="border p-2 text-left">Username</th>
-            <th className="border p-2 text-left">Role</th>
-            <th className="border p-2 text-left">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user) => (
-            <tr key={user._id} className="border">
-              <td className="border p-2">{user.username}</td>
-              <td className="border p-2">{user.isAdmin ? "Admin" : "User"}</td>
-              <td className="border p-2">
-                <button
-                  onClick={() => toggleAdmin(user._id)}
-                  className="text-blue-500 hover:underline mr-4"
-                >
-                  {user.isAdmin ? "Demote to User" : "Promote to Admin"}
-                </button>
-                <button
-                  onClick={() => deleteUser(user._id)}
-                  className="text-red-500 hover:underline"
-                  disabled={user.isAdmin} // Prevent deleting admins for now
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <h1 className="text-2xl font-bold mb-6">User Management</h1>
+      <div className="space-y-4">
+        {users.map((u) => (
+          <div key={u._id} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold dark:text-gray-200">{u.username}</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Created: {new Date(u.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <label className="inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={u.isAdmin}
+                    onChange={(e) => handleAdminChange(u._id, e.target.checked)}
+                    className="form-checkbox h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    disabled={u._id === user._id} // Can't change own admin status
+                  />
+                  <span className="ml-2 text-gray-700 dark:text-gray-300">Administrator</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        ))}
+        {users.length === 0 && (
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            No users found.
+          </div>
+        )}
+      </div>
     </div>
   );
 }

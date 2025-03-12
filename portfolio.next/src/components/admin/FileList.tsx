@@ -5,11 +5,13 @@ import { fetchFiles, deleteFile } from "@/services/fileService";
 import { FileInfo } from "@/models/FileInfo";
 import { useAuth } from "@/context/AuthContext";
 
-export default function FileList({ entityId, context, refreshFiles }: { 
-  entityId: string; 
+interface FileListProps {
+  entityId: string;
   context: string;
-  refreshFiles: () => void; // ✅ Function to refresh file list
-}) {
+  refreshFiles: () => void;
+}
+
+export default function FileList({ entityId, context, refreshFiles }: FileListProps) {
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +23,7 @@ export default function FileList({ entityId, context, refreshFiles }: {
         const data = await fetchFiles(entityId, context);
         setFiles(data);
       } catch (err) {
-        console.error(err);
+        console.error('Failed to load files:', err);
         setError("Failed to load files.");
       } finally {
         setLoading(false);
@@ -35,10 +37,10 @@ export default function FileList({ entityId, context, refreshFiles }: {
 
     try {
       await deleteFile(fileId);
-      refreshFiles(); // ✅ Trigger a fresh fetch instead of manual filtering
+      refreshFiles();
     } catch (err) {
-      console.error(err);
-      alert("Failed to delete file.");
+      console.error('Failed to delete file:', err);
+      setError("Failed to delete file.");
     }
   }
 
@@ -70,7 +72,7 @@ export default function FileList({ entityId, context, refreshFiles }: {
               {user?.isAdmin && (
                 <button
                   onClick={() => handleDelete(file._id)}
-                  className="ml-3 px-3 py-1 bg-red-500 text-white rounded"
+                  className="ml-3 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                 >
                   Delete
                 </button>

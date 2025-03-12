@@ -1,11 +1,11 @@
+import { redirect } from "next/navigation";
 import { getAuthUser } from "@/services/authService";
 import RefreshEmbeddings from "@/components/admin/RefreshEmbeddings";
-import { redirect } from "next/navigation";
 
 export default async function AdminEmbeddingsPage() {
-  const user = await getAuthUser();
+  const { authenticated, user } = await getAuthUser();
 
-  if (!user || !user.isAdmin) {
+  if (!authenticated || !user?.isAdmin) {
     redirect("/admin/login");
   }
 

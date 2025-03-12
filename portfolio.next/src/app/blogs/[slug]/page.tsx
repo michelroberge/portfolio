@@ -1,21 +1,19 @@
 import { notFound } from "next/navigation";
-import { getBlog } from "@/services/blogService";
-import { BlogEntry } from "@/models/BlogEntry";
+import { fetchBlogEntry } from "@/services/blogService";
 import BlogView from "@/components/blog/BlogView";
 
-const BlogPage = async ({params,}: {params: Promise<{ slug: string }>}) => {
-  
+export default async function BlogPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-
   if (!slug) return notFound();
 
-  const id = slug.toString().split("-").pop(); // Extract the last part as the ID
+  const id = slug.split("-").pop(); // Extract the last part as the ID
   if (!id) return notFound();
 
-  const blog: BlogEntry | null = await getBlog(id);
-  if (!blog) return notFound();
-
-  return <BlogView blog={blog} />;
-};
-
-export default BlogPage;
+  try {
+    const blog = await fetchBlogEntry(id);
+    return <BlogView blog={blog} />;
+  } catch (err) {
+    console.error('Failed to fetch blog:', err);
+    return notFound();
+  }
+}
