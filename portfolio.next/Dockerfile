@@ -7,7 +7,7 @@ WORKDIR /app
 # Copy necessary files
 COPY package.json package-lock.json tsconfig.json next.config.ts ./
 COPY .env.production ./ 
-
+COPY .env.production ./.env
 # Install dependencies
 RUN npm install --production
 
