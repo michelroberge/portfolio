@@ -1,125 +1,71 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import Image from "next/image";
+import { Project } from "@/models/Project";
+import { getProjects } from "@/services/projectService";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
-interface Project {
-  _id: string;
-  title: string;
-  excerpt: string;
-  image: string;
-  link: string;
-}
-
-export default function ProjectManagement() {
+export default function ProjectManagementPage() {
+  const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, user } = useAuth();
 
-  // Fetch projects once authenticated.
   useEffect(() => {
-    if (!isAuthenticated) return;
-    async function fetchProjects() {
+    async function loadProjects() {
       try {
-        const response = await fetch(`${apiUrl}/api/projects`);
-        if (!response.ok) throw new Error("Failed to fetch projects");
-        const data = await response.json();
+        const data = await getProjects();
         setProjects(data);
       } catch (err) {
-        setError((err as Error).message);
+        console.error('Failed to fetch projects:', err);
+        setError('Failed to load projects');
       }
     }
-    fetchProjects();
+
+    if (isAuthenticated) {
+      loadProjects();
+    }
   }, [isAuthenticated]);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this project?")) return;
-    try {
-      const response = await fetch(`${apiUrl}/api/projects/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to delete project");
-      setProjects((prev) => prev.filter((project) => project._id !== id));
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  };
+  if (!isAuthenticated || !(user?.isAdmin)) {
+    router.push('/auth/login');
+    return null;
+  }
 
-  if (!isAuthenticated) return <p>You are not authenticated.</p>;
-  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
-    <>
-      <h1 className="text-3xl font-bold mb-6">Manage Projects</h1>
-      <div className="flex justify-end mb-4">
-        <Link
-          href="/admin/projects/new"
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Project Management</h1>
+        <button
+          onClick={() => router.push('/admin/projects/new')}
           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
-          + Add New Project
-        </Link>
+          Create New Project
+        </button>
       </div>
-      {error && <p className="text-red-500">{error}</p>}
-      <table className="w-full border-collapse border border-gray-300">
-        <thead>
-          <tr className="bg-gray-200">
-            <th className="border border-gray-300 p-2 text-left">Title</th>
-            <th className="border border-gray-300 p-2 text-left">Excerpt</th>
-            <th className="border border-gray-300 p-2 text-left">Image</th>
-            <th className="border border-gray-300 p-2 text-left">Link</th>
-            <th className="border border-gray-300 p-2 text-left">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {projects.map((project) => (
-            <tr key={project._id} className="border border-gray-300">
-              <td className="border border-gray-300 p-2">{project.title}</td>
-              <td className="border border-gray-300 p-2">{project.excerpt}</td>
-              <td className="border border-gray-300 p-2">
-                {project.image &&
-                <Image
-                  src={project.image}
-                  alt={project.title}
-                  width={48}
-                  height={48}
-                  className="h-16 w-auto object-contain"
-                />
-                }
-                {!project.image && <span>No image</span>}
-              </td>
-              <td className="border border-gray-300 p-2">
-                <a
-                  href={project.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:underline"
-                >
-                  View
-                </a>
-              </td>
-              <td className="border border-gray-300 p-2">
-                <Link
-                  href={`/admin/projects/edit/${project._id}`}
-                  className="text-blue-500 hover:underline mr-4"
-                >
-                  Edit
-                </Link>
-                <button
-                  onClick={() => handleDelete(project._id)}
-                  className="text-red-500 hover:underline"
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </>
+
+      <div className="space-y-4">
+        {projects.map((project) => (
+          <div key={project._id} className="bg-white p-4 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-2">{project.title}</h2>
+            <p className="text-gray-600 mb-2">{project.excerpt}</p>
+            <div className="flex items-center space-x-4 text-sm text-gray-500">
+              <span>{project.isDraft ? 'Draft' : 'Published'}</span>
+              <span>{new Date(project.createdAt).toLocaleDateString()}</span>
+              <div className="flex-grow"></div>
+              <button
+                onClick={() => router.push(`/admin/projects/edit/${project._id}`)}
+                className="text-blue-500 hover:text-blue-600"
+              >
+                Edit
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

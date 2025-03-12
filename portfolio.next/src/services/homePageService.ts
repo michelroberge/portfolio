@@ -1,29 +1,27 @@
 // services/homePageService.ts
-import { fetchBlogEntries, fetchProjects } from "./apiService";
+import { BlogEntry } from '@/models/BlogEntry';
+import { Project } from '@/models/Project';
+import { API_ENDPOINTS } from '@/lib/constants';
 
-export interface Project {
-  _id: string;
-  title: string;
-  excerpt: string;
-  image: string;
-  link: string;
-}
-
-export interface BlogEntry {
-  _id: string;
-  title: string;
-  date: string;
-  excerpt: string;
-  link: string;
-}
-
-export async function getHomePageData(): Promise<{ blogs: BlogEntry[]; projects: Project[] }> {
+export async function getHomePageData(): Promise<{ blogEntries: BlogEntry[]; projects: Project[] }> {
   try {
-    const [blogs, projects] = await Promise.all([fetchBlogEntries(), fetchProjects()]);
-    return { blogs, projects };
+    const [blogsRes, projectsRes] = await Promise.all([
+      fetch(`${API_ENDPOINTS.blog}`),
+      fetch(`${API_ENDPOINTS.project}`)
+    ]);
+
+    if (!blogsRes.ok || !projectsRes.ok) {
+      throw new Error('Failed to fetch homepage data');
+    }
+
+    const [blogEntries, projects] = await Promise.all([
+      blogsRes.json(),
+      projectsRes.json()
+    ]);
+
+    return { blogEntries, projects };
   } catch (error) {
-    console.error("Error fetching homepage data:", error);
-    return { blogs: [], projects: [] }; // Fallback to avoid breaking the page
+    console.error(error);
+    return { blogEntries: [], projects: [] }; // Fallback to avoid breaking the page
   }
 }
- 

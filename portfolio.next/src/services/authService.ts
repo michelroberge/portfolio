@@ -1,43 +1,90 @@
-import { cookies } from "next/headers";
 import { API_ENDPOINTS } from "@/lib/constants";
+import { User } from "@/models/User";
 
-export interface AuthUser {
-  id: string;
-  isAdmin: boolean;
-  message: string | null;
+/**
+ * Interface representing the response from authentication checks.
+ */
+export interface AuthResponse {
+  /**
+   * Whether the user is authenticated.
+   */
+  authenticated: boolean;
+  /**
+   * The authenticated user, or null if not authenticated.
+   */
+  user: User | null;
+  /**
+   * Optional message providing additional context.
+   */
+  message?: string;
 }
 
-export async function getAuthUser(): Promise<AuthUser | null> {
+/**
+ * Server-side authentication check.
+ * 
+ * This function is intended to be used on the server-side to verify the user's authentication status.
+ * 
+ * @returns A promise resolving to an AuthResponse object.
+ */
+export async function getAuthUser(): Promise<AuthResponse> {
   try {
-    const cookieStore = await cookies(); // ✅ Manually access cookies on the server
-    const token = cookieStore.get("auth-token")?.value;
-
-    if (!token) {
-      console.log("No token found in cookies");
-      return {id : "0", isAdmin: false, message: "no cookie found"};
-    }
-
     const res = await fetch(`${API_ENDPOINTS.auth}/check`, {
       method: "GET",
-      headers: { Authorization: `Bearer ${token}` }, // ✅ Send token manually
       credentials: "include",
+      cache: "no-store"
     });
 
     if (!res.ok) {
       console.log("Authentication failed");
-      return {id : "0", isAdmin: false, message: `${API_ENDPOINTS.auth}/admin/login`};
+      return { authenticated: false, user: null, message: `${API_ENDPOINTS.auth}/admin/login` };
     }
 
     const data = await res.json();
-    if (!data.authenticated || !data.user) return null;
+    if (!data.authenticated || !data.user) {
+      return { authenticated: false, user: null, message: "Authentication failed" };
+    }
 
     return {
-      id: data.user.id,
-      isAdmin: data.user.isAdmin,
-      message: "should be good"
+      authenticated: true,
+      user: data.user,
+      message: "authenticated"
     };
-  } catch (error) {
-    console.error("Error fetching auth status:", error);
-    return null;
+  } catch (err) {
+    console.error("Error fetching auth status:", err);
+    return { authenticated: false, user: null, message: "Auth check failed" };
+  }
+}
+
+/**
+ * Client-side authentication check.
+ * 
+ * This function is intended to be used on the client-side to verify the user's authentication status.
+ * 
+ * @returns A promise resolving to an AuthResponse object.
+ */
+export async function checkAuthStatus(): Promise<AuthResponse> {
+  try {
+    const res = await fetch(`${API_ENDPOINTS.auth}/check`, {
+      method: "GET",
+      credentials: "include"
+    });
+
+    if (!res.ok) {
+      return { authenticated: false, user: null, message: "Authentication failed" };
+    }
+
+    const data = await res.json();
+    if (!data.authenticated || !data.user) {
+      return { authenticated: false, user: null, message: "Authentication failed" };
+    }
+
+    return {
+      authenticated: true,
+      user: data.user,
+      message: "authenticated"
+    };
+  } catch (err) {
+    console.error("Error checking auth status:", err);
+    return { authenticated: false, user: null, message: "Auth check failed" };
   }
 }

@@ -1,72 +1,113 @@
 // portfolio.next/src/services/blogService.ts
-import { BlogEntry } from "@/models/BlogEntry";
-import { API_ENDPOINTS } from "@/lib/constants";
-  /**
-   * Fetches a single blog entry by its ID.
-   * @param id - The blog entry identifier.
-   * @returns A BlogEntry object if successful, or null otherwise.
-   */
-  export async function getBlog(id: string): Promise<BlogEntry | null> {
-    try {
-      const url = `${API_ENDPOINTS.blog}/${id}`;
-      const response = await fetch(url);
-      if (!response.ok) return null;
-      const data: BlogEntry = await response.json();
-      return {
-        ...data,
-        _id: String(data._id), 
-        tags: data.tags
-      } as BlogEntry;
-    } catch (error) {
-      console.error("Error fetching blog:", error);
-      return null;
-    }
-  }
-  
-  export async function getBlogs(): Promise<BlogEntry[]> {
-    try {
-      const url = `${API_ENDPOINTS.blog}`;
-      const res = await fetch(url, {
-        method: "GET",
-        credentials: "include",
-      });
-  
-      if (!res.ok) throw new Error("Failed to fetch blogs");
-  
-      return await res.json();
-    } catch (error) {
-      console.error(error);
-      throw new Error("Error fetching blogs");
-    }
-  }
-  
-  export async function archiveBlog(id: string) {
-    try {
-      const res = await fetch(`${API_ENDPOINTS.blog}/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-  
-      if (!res.ok) throw new Error("Failed to archive blog post");
-    } catch (error) {
-      console.error(error);
-      throw new Error("Error archiving blog");
-    }
-  }
 
-  export async function updateBlog(id: string, blogData: Partial<BlogEntry>) {
-    try {
-      const url = `${API_ENDPOINTS.blog}/${id}`;
-      const res = await fetch(url, {
-        method: "PUT",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(blogData),
-      });
-  
-      if (!res.ok) throw new Error("Failed to update blog post");
-    } catch (error) {
-      console.error(error);
-      throw new Error("Error updating blog");
+import { API_ENDPOINTS } from "@/lib/constants";
+import { BlogEntry, BaseBlogEntry } from "@/models/BlogEntry";
+
+/**
+ * Fetches all blog entries
+ */
+export async function fetchBlogEntries(): Promise<BlogEntry[]> {
+  try {
+    const response = await fetch(`${API_ENDPOINTS.admin.blogs}`, {
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch blog entries");
     }
+
+    return await response.json();
+  } catch (err) {
+    console.error("Failed to fetch blog entries:", err);
+    throw err;
   }
+}
+
+/**
+ * Fetches a single blog entry by ID
+ */
+export async function fetchBlogEntry(id: string): Promise<BlogEntry> {
+  try {
+    const response = await fetch(`${API_ENDPOINTS.blog}/${id}`, {
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch blog entry");
+    }
+
+    return await response.json();
+  } catch (err) {
+    console.error("Failed to fetch blog entry:", err);
+    throw err;
+  }
+}
+
+/**
+ * Creates a new blog entry
+ */
+export async function createBlogEntry(blog: Omit<BlogEntry, '_id' | 'createdAt' | 'updatedAt'>): Promise<BlogEntry> {
+  try {
+    const response = await fetch(`${API_ENDPOINTS.admin.blogs}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(blog),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to create blog entry");
+    }
+
+    return await response.json();
+  } catch (err) {
+    console.error("Failed to create blog entry:", err);
+    throw err;
+  }
+}
+
+/**
+ * Updates an existing blog entry
+ */
+export async function updateBlogEntry(id: string, blog: Partial<BaseBlogEntry>): Promise<BaseBlogEntry> {
+  try {
+    const response = await fetch(`${API_ENDPOINTS.admin.blogs}/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(blog),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to update blog entry");
+    }
+
+    return await response.json();
+  } catch (err) {
+    console.error("Failed to update blog entry:", err);
+    throw err;
+  }
+}
+
+/**
+ * Deletes a blog entry
+ */
+export async function deleteBlogEntry(id: string): Promise<void> {
+  try {
+    const response = await fetch(`${API_ENDPOINTS.admin.blogs}/${id}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to delete blog entry");
+    }
+  } catch (err) {
+    console.error("Failed to delete blog entry:", err);
+    throw err;
+  }
+}

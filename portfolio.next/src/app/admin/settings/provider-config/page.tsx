@@ -1,190 +1,92 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import Link from "next/link";
-
-interface ProviderConfig {
-  _id?: string;
-  provider: string;
-  clientId: string;
-  clientSecret: string;
-  callbackURL: string;
-}
+import { ProviderConfig } from "@/models/ProviderConfig";
+import { getProviderConfigs, updateProviderConfig } from "@/services/providerConfigService";
 
 export default function ProviderConfigPage() {
-  const { isAuthenticated, user } = useAuth();
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const router = useRouter();
   const [configs, setConfigs] = useState<ProviderConfig[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [editingConfigs, setEditingConfigs] = useState<Record<string, ProviderConfig>>({});
-  // const [newConfig, setNewConfig] = useState<ProviderConfig>({
-  //   provider: "",
-  //   clientId: "",
-  //   clientSecret: "",
-  //   callbackURL: "",
-  // });
+  const { isAuthenticated, user } = useAuth();
 
   useEffect(() => {
-    async function fetchConfigs() {
+    async function loadConfigs() {
       try {
-        const res = await fetch(`${apiUrl}/api/provider-configs`, { credentials: "include" });
-        if (!res.ok) throw new Error("Failed to fetch provider configurations");
-        const data = await res.json();
+        const data = await getProviderConfigs();
         setConfigs(data);
-        const initialEditing: Record<string, ProviderConfig> = {};
-        data.forEach((config: ProviderConfig) => {
-          initialEditing[config.provider] = config;
-        });
-        setEditingConfigs(initialEditing);
-        setLoading(false);
-      } catch (err: unknown) { // ✅ Use unknown instead of any
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError("An unexpected error occurred while fetching provider configurations.");
-        }
-        setLoading(false);
+      } catch (err) {
+        console.error('Failed to fetch provider configs:', err);
+        setError('Failed to load provider configurations');
       }
     }
 
-    if (isAuthenticated) fetchConfigs();
-  }, [apiUrl, isAuthenticated]);
+    if (isAuthenticated) {
+      loadConfigs();
+    }
+  }, [isAuthenticated]);
 
-  const handleChange = (provider: string, field: keyof ProviderConfig, value: string) => {
-    setEditingConfigs((prev) => ({
-      ...prev,
-      [provider]: {
-        ...prev[provider],
-        [field]: value,
-      },
-    }));
-  };
+  if (!isAuthenticated || !(user?.isAdmin)) {
+    router.push('/auth/login');
+    return null;
+  }
 
-  const handleSave = async (provider: string) => {
+  const handleUpdate = async (id: string, config: Partial<ProviderConfig>) => {
     try {
-      const configToSave = editingConfigs[provider];
-      const res = await fetch(`${apiUrl}/api/provider-configs/${provider}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(configToSave),
-      });
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Failed to update configuration");
-      }
-      const updatedConfig = await res.json();
-      setConfigs((prev) => prev.map((c) => (c.provider === provider ? updatedConfig : c)));
-      alert(`Configuration for ${provider} updated. A restart may be required to apply changes.`);
-    } catch (err: unknown) { // ✅ Use unknown instead of any
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("An unexpected error occurred while saving the configuration.");
-      }
+      await updateProviderConfig(id, config);
+      const updatedConfigs = await getProviderConfigs();
+      setConfigs(updatedConfigs);
+    } catch (err) {
+      console.error('Failed to update provider config:', err);
+      setError('Failed to update configuration');
     }
   };
-/*
-  const handleNewChange = (field: keyof ProviderConfig, value: string) => {
-    setNewConfig((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-  const handleNewSave = async () => {
-    if (!newConfig.provider) {
-      setError("Provider field is required for new configuration.");
-      return;
-    }
-    try {
-      const res = await fetch(`${apiUrl}/api/provider-configs/${newConfig.provider}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(newConfig),
-      });
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Failed to create new configuration");
-      }
-      const createdConfig = await res.json();
-      setConfigs((prev) => [...prev, createdConfig]);
-      setEditingConfigs((prev) => ({ ...prev, [createdConfig.provider]: createdConfig }));
-      setNewConfig({ provider: "", clientId: "", clientSecret: "", callbackURL: "" });
-    } catch (err: unknown) { // ✅ Use unknown instead of any
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("An unexpected error occurred while creating a new configuration.");
-      }
-    }
-  };*/
 
-  if (loading) return <p>Loading provider configurations...</p>;
-  if (!isAuthenticated) return <p>You are not authenticated.</p>;
-  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-4">OAuth2/OIDC Provider Configuration</h1>
-      {error && <p className="text-red-500">{error}</p>}
-
-      <table className="w-full border-collapse border border-gray-300 mb-4">
-        <thead>
-          <tr className="bg-gray-200">
-            <th className="border p-2 text-left">Provider</th>
-            <th className="border p-2 text-left">Client ID</th>
-            <th className="border p-2 text-left">Client Secret</th>
-            <th className="border p-2 text-left">Callback URL</th>
-            <th className="border p-2 text-left">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {configs.map((config) => (
-            <tr key={config.provider}>
-              <td className="border p-2">{config.provider}</td>
-              <td className="border p-2">
-                <input
-                  type="text"
-                  value={editingConfigs[config.provider]?.clientId || ""}
-                  onChange={(e) => handleChange(config.provider, "clientId", e.target.value)}
-                  className="w-full p-1 border rounded"
-                />
-              </td>
-              <td className="border p-2">
+      <h1 className="text-2xl font-bold mb-6">Provider Configuration</h1>
+      <div className="space-y-6">
+        {configs.map((config) => (
+          <div key={config._id} className="bg-white p-4 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-4">{config.name}</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">API Key</label>
                 <input
                   type="password"
-                  value={editingConfigs[config.provider]?.clientSecret || ""}
-                  onChange={(e) => handleChange(config.provider, "clientSecret", e.target.value)}
-                  className="w-full p-1 border rounded"
+                  value={config.apiKey || ''}
+                  onChange={(e) => handleUpdate(config._id, { apiKey: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
-              </td>
-              <td className="border p-2">
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Base URL</label>
                 <input
                   type="text"
-                  value={editingConfigs[config.provider]?.callbackURL || ""}
-                  onChange={(e) => handleChange(config.provider, "callbackURL", e.target.value)}
-                  className="w-full p-1 border rounded"
+                  value={config.baseUrl || ''}
+                  onChange={(e) => handleUpdate(config._id, { baseUrl: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
-              </td>
-              <td className="border p-2">
-                <button
-                  onClick={() => handleSave(config.provider)}
-                  className="bg-blue-500 text-white px-3 py-1 rounded"
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Status</label>
+                <select
+                  value={config.status}
+                  onChange={(e) => handleUpdate(config._id, { status: e.target.value as 'active' | 'inactive' })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 >
-                  Save
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <Link href="/admin" className="text-blue-500 underline">
-        Back to Dashboard
-      </Link>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

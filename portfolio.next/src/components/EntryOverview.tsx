@@ -22,6 +22,9 @@ const EntryOverview: React.FC<EntryProps> = ({ title, company, startDate, endDat
       <p className="text-sm">
         {startDate} - {endDate}
       </p>
+      <p className="text-sm">
+        {location}
+      </p>
       <div className="flex flex-wrap gap-2 mt-2">
         {skills.map((skill, index) => (
           <span

@@ -1,126 +1,117 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { updateBlog } from "@/services/blogService";
-import { marked } from "marked";
-import { BlogEntry } from "@/models/BlogEntry";
-import FileWrapper from "./FileWrapper";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { type BlogEntry, BaseBlogEntry } from '@/models/BlogEntry';
+import MarkdownEditor from '@/components/MarkdownEditor';
+import { createBlogEntry, updateBlogEntry } from '@/services/blogService';
 
-export default function EditBlogEntry({ initialBlog }: { initialBlog: BlogEntry }) {
+interface Props {
+  initialData?: BlogEntry;
+}
+
+export default function EditBlogEntry({ initialData }: Props) {
   const router = useRouter();
-  const [title, setTitle] = useState(initialBlog.title);
-  const [excerpt, setExcerpt] = useState(initialBlog.excerpt);
-  const [body, setBody] = useState(initialBlog.body);
-  const [isDraft, setIsDraft] = useState(initialBlog.isDraft);
-  const [tags, setTags] = useState<string[]>(initialBlog.tags);
-  const [publishAt, setPublishAt] = useState<string | null>(
-    initialBlog.publishAt ? new Date(initialBlog.publishAt).toISOString().split("T")[0] : "null"
-  );
-  const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
+  const [formData, setFormData] = useState<BaseBlogEntry>({
+    title: initialData?.title || '',
+    body: initialData?.body || '',
+    excerpt: initialData?.excerpt || '',
+    tags: initialData?.tags || [],
+    isDraft: initialData?.isDraft ?? true,
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const blogData = { title, excerpt, body, isDraft, publishAt, tags };
-
     try {
-      await updateBlog(initialBlog._id, blogData);
-      router.push("/admin/blogs"); // ✅ Redirect to blog list after update
+      if (initialData?._id) {
+        await updateBlogEntry(initialData._id, formData);
+      } else {
+        const newBlog: Omit<BlogEntry, '_id' | 'createdAt' | 'updatedAt'> = {
+          ...formData,
+          link: '', // Will be generated on the backend
+        };
+        await createBlogEntry(newBlog);
+      }
+      router.push('/admin/blogs');
     } catch (err) {
-      setError((err as Error).message);
+      console.error('Failed to save blog entry:', err);
     }
   };
 
   return (
-    <>
-      <h1 className="text-2xl font-bold mb-4">Edit Blog Entry</h1>
-      {error && <p className="text-red-500">{error}</p>}
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+          Title
+        </label>
         <input
           type="text"
-          placeholder="Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full p-2 border rounded"
+          id="title"
+          value={formData.title}
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           required
         />
+      </div>
+
+      <div>
+        <label htmlFor="excerpt" className="block text-sm font-medium text-gray-700">
+          Excerpt
+        </label>
+        <textarea
+          id="excerpt"
+          value={formData.excerpt}
+          onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          rows={2}
+          required
+        />
+      </div>
+
+      <div>
+        <label htmlFor="body" className="block text-sm font-medium text-gray-700">
+          Content
+        </label>
+        <MarkdownEditor
+          value={formData.body}
+          onChange={(value: string) => setFormData({ ...formData, body: value })}
+        />
+      </div>
+
+      <div>
+        <label htmlFor="tags" className="block text-sm font-medium text-gray-700">
+          Tags (comma-separated)
+        </label>
         <input
           type="text"
-          placeholder="Excerpt"
-          value={excerpt}
-          onChange={(e) => setExcerpt(e.target.value)}
-          className="w-full p-2 border rounded"
-          required
+          id="tags"
+          value={formData.tags.join(', ')}
+          onChange={(e) => setFormData({ ...formData, tags: e.target.value.split(',').map(tag => tag.trim()) })}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
         />
+      </div>
 
-        {/* Tab Selector */}
-        <div className="flex border-b mb-2">
-          <button
-            type="button"
-            className={`p-2 ${activeTab === "edit" ? "border-b-2 border-blue-500 font-bold" : "text-gray-500"}`}
-            onClick={() => setActiveTab("edit")}
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            className={`p-2 ${activeTab === "preview" ? "border-b-2 border-blue-500 font-bold" : "text-gray-500"}`}
-            onClick={() => setActiveTab("preview")}
-          >
-            Preview
-          </button>
-        </div>
-
-        {/* Markdown Editor / Preview */}
-        {activeTab === "edit" ? (
-          <textarea
-            placeholder="Body (Markdown supported)"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            className="w-full p-2 border rounded h-40"
-            required
-          />
-        ) : (
-          <div
-            className="w-full p-2 border rounded h-40 bg-gray-100 overflow-auto prose max-w-none"
-            dangerouslySetInnerHTML={{ __html: marked.parse(body) }}
-          />
-        )}
-
-        <label className="block">
-          <input
-            type="checkbox"
-            checked={isDraft}
-            onChange={(e) => setIsDraft(e.target.checked)}
-            className="mr-2"
-          />
+      <div className="flex items-center">
+        <input
+          type="checkbox"
+          id="isDraft"
+          checked={formData.isDraft}
+          onChange={(e) => setFormData({ ...formData, isDraft: e.target.checked })}
+          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        />
+        <label htmlFor="isDraft" className="ml-2 block text-sm text-gray-900">
           Save as Draft
         </label>
-        <label className="block">
-          Publish Date:
-          <input
-            type="date"
-            value={publishAt || ""}
-            onChange={(e) => setPublishAt(e.target.value)}
-            className="w-full p-2 border rounded"
-          />
-        </label>
+      </div>
 
-        <input
-          type="text"
-          placeholder="Tags (comma-separated)"
-          value={tags.join(", ")}
-          onChange={(e) => setTags(e.target.value.split(",").map((t) => t.trim()))}
-          className="w-full p-2 border rounded"
-        />
-
-
-        { initialBlog._id && <FileWrapper entityId={initialBlog._id} context="blog" /> }
-        <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
-          Save Changes
+      <div className="flex justify-end">
+        <button
+          type="submit"
+          className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        >
+          {initialData ? 'Update' : 'Create'} Blog Entry
         </button>
-      </form>
-    </>
+      </div>
+    </form>
   );
 }

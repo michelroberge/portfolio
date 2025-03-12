@@ -58,7 +58,7 @@ export default function CommentManagement() {
   };
 
   if (!isAuthenticated) return <p>You are not authenticated.</p>;
-  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
+  if (!(user?.isAdmin)) return <p>Only admins can access this page.</p>;
 
   return (
     <div className="p-6">

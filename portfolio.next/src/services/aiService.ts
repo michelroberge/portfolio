@@ -10,7 +10,7 @@ export interface AIConfig {
     try {
       const res = await fetch(`${API_ENDPOINTS.providerConfig}/ai`, { credentials: "include" });
       if (!res.ok) {
-        // throw new Error("Failed to fetch AI configuration");
+        console.error("Failed to fetch AI configuration");
         return { provider: "ollama" };
       }
       return await res.json();
@@ -28,10 +28,59 @@ export interface AIConfig {
         credentials: "include",
         body: JSON.stringify(config),
       });
-      if (!res.ok) throw new Error("Failed to update AI configuration");
+      if (!res.ok) {
+        console.error("Failed to update AI configuration");
+        throw new Error("Failed to update AI configuration");
+      }
     } catch (error) {
       console.error(error);
       throw new Error("Error updating AI configuration");
     }
   }
-  
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface SearchResult {
+  title: string;
+  description: string;
+  type: 'blog' | 'project';
+  link: string;
+  score: number;
+}
+
+export async function searchContent(query: string): Promise<SearchResult[]> {
+  try {
+    const res = await fetch(`${API_ENDPOINTS.search}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+      credentials: 'include',
+    });
+
+    if (!res.ok) throw new Error('Search failed');
+    return await res.json();
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+}
+
+export async function chatWithAI(messages: ChatMessage[]): Promise<ChatMessage> {
+  try {
+    const res = await fetch(`${API_ENDPOINTS.chat}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages }),
+      credentials: 'include',
+    });
+
+    if (!res.ok) throw new Error('Chat request failed');
+    return await res.json();
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}

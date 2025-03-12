@@ -1,23 +1,44 @@
-import { redirect } from "next/navigation";
-import { getAuthUser } from "@/services/authService";
-import { getBlog } from "@/services/blogService";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import EditBlogEntry from "@/components/admin/EditBlogEntry";
+import { BlogEntry } from "@/models/BlogEntry";
+import { fetchBlogEntry } from "@/services/blogService";
 
-export default async function EditBlogPage({ params }: { params: Promise<{ id: string } >}) {
-  const {id} = await params;
-  const user = await getAuthUser();
-  
-  if ( !id){
-    return <p>Attempting to access blog without id?</p>
+export default function EditBlogPage() {
+  const router = useRouter();
+  const params = useParams() as { id?: string };
+  const [blog, setBlog] = useState<BlogEntry | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated, user } = useAuth();
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    async function loadBlog(id: string) {
+      try {
+        const data = await fetchBlogEntry(id);
+        setBlog(data);
+      } catch (err) {
+        console.error('Failed to fetch blog:', err);
+        setError('Failed to load blog');
+      }
+    }
+
+    if (params.id) {
+      loadBlog(params.id);
+    }
+  }, [params.id, isAuthenticated]);
+
+  if (!isAuthenticated || !(user?.isAdmin)) {
+    router.push('/auth/login');
+    return null;
   }
 
-  if (!user || !user.isAdmin) {
-    const baseAddress = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-    redirect(`${baseAddress}/admin/login?returnUrl=%2Fadmin%2Fblogs%2Fedit%2F${id}`); // ✅ Redirect unauthorized users
-  }
+  if (error) return <div>Error: {error}</div>;
+  if (!blog) return <div>Loading...</div>;
 
-  const blog = await getBlog(id);
-  if (!blog) redirect("/admin/blogs"); // ✅ Redirect if blog doesn't exist
-
-  return <EditBlogEntry initialBlog={blog} />;
+  return <EditBlogEntry initialData={blog} />;
 }
