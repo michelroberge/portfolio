@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { notFound } from "next/navigation";
 import { fetchBlogEntry } from "@/services/blogService";
 import BlogView from "@/components/blog/BlogView";
