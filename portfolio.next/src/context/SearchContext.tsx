@@ -1,5 +1,6 @@
 'use client';
 import { createContext, useContext, useState, ReactNode } from "react";
+import { API_ENDPOINTS } from "@/lib/constants";
 
 type SearchResult = {
   title: string;
@@ -25,7 +26,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   const handleSearch = async () => {
     if (!query.trim()) return;
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/search/projects`, {
+    const response = await fetch(`${API_ENDPOINTS.search}/projects`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query }),

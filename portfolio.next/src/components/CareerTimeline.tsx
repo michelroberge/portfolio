@@ -40,6 +40,7 @@ const CareerTimeline: React.FC = () => {
               startDate={formatDate(entry.startDate)}
               endDate={(entry.endDate && formatDate(entry.endDate)) || ""}
               location={entry.location || ""}
+              skills={entry.skills || []}
               onClick={() => setExpandedEntryId((expandedEntryId === entry._id ? null : entry._id)|| "" )}
             />
 

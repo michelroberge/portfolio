@@ -55,6 +55,10 @@ docs/2.b.development-plan.v2.md
 docs/2.c.development-plan.v3.md
 docs/jobs.html
 docs/prompts/default.md
+jenkins/Jenkinsfile.analysis
+jenkins/Jenkinsfile.build
+jenkins/Jenkinsfile.test
+jenkins/sonar-project.properties
 LICENSE
 portfolio.next/__tests__/apiServices.test.ts
 portfolio.next/__tests__/blogServices.test.ts
@@ -121,6 +125,7 @@ portfolio.next/src/components/Home.tsx
 portfolio.next/src/components/ProjectView.tsx
 portfolio.next/src/components/Search.tsx
 portfolio.next/src/components/SectionToggle.tsx
+portfolio.next/src/components/WarmUp.tsx
 portfolio.next/src/context/AuthContext.tsx
 portfolio.next/src/context/ChatContext.tsx
 portfolio.next/src/context/SearchContext.tsx
@@ -199,15 +204,19 @@ portfolio.node/src/services/commentService.js
 portfolio.node/src/services/counterService.js
 portfolio.node/src/services/embeddingService.js
 portfolio.node/src/services/fileService.js
+portfolio.node/src/services/llmService.js
 portfolio.node/src/services/ollamaService.js
 portfolio.node/src/services/pageService.js
 portfolio.node/src/services/projectService.js
 portfolio.node/src/services/promptService.js
 portfolio.node/src/services/providerConfigService.js
 portfolio.node/src/services/qdrantService.js
+portfolio.node/src/services/searchService.js
 portfolio.node/src/services/userService.js
+portfolio.node/src/services/warmUpService.js
 portfolio.node/src/services/wsChatService.js
 portfolio.node/src/tracing.js
+portfolio.node/src/utils/cache.js
 portfolio.node/src/utils/generatePrompt.js
 portfolio.node/src/validators/blogValidator.js
 README.md
@@ -2811,6 +2820,116 @@ You are an AI assistant helping showcase my portfolio. You ONLY use the provided
   ### AI Response:
 
 ================
+File: jenkins/Jenkinsfile.analysis
+================
+// Jenkinsfile.analysis (run SonarQube analysis)
+pipeline {
+    agent any
+    tools { nodejs "node" } 
+
+    stages {
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    def scannerHome = tool 'sonar-scanner'
+                    withSonarQubeEnv('local-sonarqube') {
+                        withCredentials([string(credentialsId: 'sonar-secret', variable: 'SONAR_TOKEN')]) {
+                            sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=portfolio-next -Dsonar.sources=portfolio.next -Dsonar.login=$SONAR_TOKEN"
+                            sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=portfolio-node -Dsonar.sources=portfolio.node -Dsonar.login=$SONAR_TOKEN"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+================
+File: jenkins/Jenkinsfile.build
+================
+pipeline {
+    agent any
+    tools { nodejs "node" } 
+
+    stages {
+        stage('Install Dependencies - Next.js') { 
+            steps {
+                dir('portfolio.next') {  // Ensure the context is inside portfolio.next
+                    sh 'npm install'
+                }
+            }
+        }
+        stage('Install Dependencies - Node Backend') { 
+            steps {
+                dir('portfolio.node') {  // Ensure the context is inside portfolio.node
+                    sh 'npm install'
+                }
+            }
+        }
+        stage('Build Application - Next.js') { 
+            steps {
+                dir('portfolio.next') {
+                    sh 'npm run build'
+                }
+            }
+        }
+    }
+}
+
+================
+File: jenkins/Jenkinsfile.test
+================
+// Jenkinsfile.test (run tests & coverage)
+pipeline {
+    agent any
+    tools { nodejs "node" } 
+
+    stages {
+        stage('Install dependencies') { 
+            steps {
+                dir('portfolio.next') {
+                    sh 'npm install'
+                }
+                dir('portfolio.node') {
+                    sh 'npm install'
+                }
+            }
+        }
+        stage('Run Tests') { 
+            steps {
+                dir('portfolio.next') {
+                    sh 'npm test'
+                }
+                dir('portfolio.node') {
+                    sh 'npm test'
+                }
+            }
+        }
+        stage('Run Test Coverage') { 
+            steps {
+                dir('portfolio.next') {
+                    sh 'npm run coverage'
+                }
+                dir('portfolio.node') {
+                    sh 'npm run coverage'
+                }
+            }
+        }
+    }
+}
+
+================
+File: jenkins/sonar-project.properties
+================
+sonar.projectKey=portfolio:sonar-quality-run
+# sonar.test.exclusions=**/*.test.js, build/**,node_modules/**, dist/**, dist-app/**, coverage/**
+# sonar.exclusions=**/*.test.js, build/**,.github/**,node_modules/**, dist/**, dist-app/**, coverage/**
+# sonar.javascript.lcov.reportPaths=./coverage/lcov.info
+
+sonar.exclusions=build/**,.github/**,node_modules/**,**/*.test.js,coverage/**,.npmrc, jenkinsfile.*, webpack.config.js, dist/**, dist-app/**,
+sonar.javascript.lcov.reportPaths=./coverage/lcov.info
+
+================
 File: LICENSE
 ================
 GNU GENERAL PUBLIC LICENSE
@@ -3859,18 +3978,19 @@ File: portfolio.next/src/app/[slug]/page.tsx
 import { notFound } from "next/navigation";
 import { marked } from "marked";
 
-interface PageProps {
-  params: { slug: string };
-}
-
 async function fetchPage(slug: string) {
   const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pages/${slug}`, { cache: "no-store" });
   if (!res.ok) return null;
   return res.json();
 }
 
-export default async function Page({ params }: PageProps) {
-  const page = await fetchPage(params.slug);
+export default async function Page({ params }: {params: Promise<{ slug: string }>}) {
+
+  const { slug } = await params;
+
+  if (!slug) return notFound();
+
+  const page = await fetchPage(slug);
 
   if (!page) {
     return notFound();
@@ -4119,19 +4239,7 @@ File: portfolio.next/src/app/admin/career/edit/[id]/page.tsx
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { fetchCareerEntry, saveCareerEntry, fetchCareerTimeline } from "@/services/careerService";
-
-interface CareerEntry {
-  _id?: string;
-  title: string;
-  company?: string;
-  startDate: string;
-  endDate?: string | null;
-  description?: string;
-  skills: string[];
-  linkedEntries: string[];
-  importedFromLinkedIn: boolean;
-}
+import { fetchCareerEntry, saveCareerEntry, fetchCareerTimeline, CareerEntry } from "@/services/careerService";
 
 export default function EditCareerEntry() {
   const router = useRouter();
@@ -4169,6 +4277,7 @@ export default function EditCareerEntry() {
         const allEntries = await fetchCareerTimeline();
         setTimelineEntries(allEntries);
       } catch (err) {
+        console.error(err);
         setError("Failed to load career timeline data.");
       }
     }
@@ -4182,6 +4291,7 @@ export default function EditCareerEntry() {
       await saveCareerEntry(entry);
       router.push("/admin/career");
     } catch (err) {
+      console.error(err);
       setError("Failed to save career entry.");
     }
   }
@@ -4281,6 +4391,7 @@ export default function CareerTimelineAdmin() {
       const jobs = await parseLinkedInHTMLBackend(rawHTML);
       setParsedJobs(jobs);
     } catch (err) {
+      console.error(err);
       setError("Failed to parse LinkedIn data.");
     }
   }
@@ -4292,6 +4403,7 @@ export default function CareerTimelineAdmin() {
       await saveParsedJobs(parsedJobs);
       alert("Career entries imported successfully!");
     } catch (err) {
+      console.error(err);
       setError("Failed to import LinkedIn data.");
     }
   }
@@ -4309,7 +4421,7 @@ export default function CareerTimelineAdmin() {
           <li>Right-click on the job list and select <strong>Inspect</strong>.</li>
           <li>Copy the HTML of the experience section.</li>
           <li>Paste it below.</li>
-          <li>Click "Parse & Import".</li>
+          <li>Click &quot;Parse & Import&quot;.</li>
         </ol>
 
         <textarea
@@ -4355,20 +4467,8 @@ File: portfolio.next/src/app/admin/career/page.tsx
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { fetchCareerTimeline, deleteCareerEntry } from "@/services/careerService";
+import { fetchCareerTimeline, deleteCareerEntry, CareerEntry } from "@/services/careerService";
 import Link from "next/link";
-
-
-interface CareerEntry {
-  _id: string;
-  title: string;
-  company?: string;
-  startDate: string;
-  endDate?: string | null;
-  skills: string[];
-  linkedEntries: string[];
-  importedFromLinkedIn: boolean;
-}
 
 export default function CareerTimelineAdmin() {
   const { isAuthenticated, user } = useAuth();
@@ -4382,6 +4482,7 @@ export default function CareerTimelineAdmin() {
         const data = await fetchCareerTimeline();
         setTimeline(data);
       } catch (err) {
+        console.error(err);
         setError("Failed to load career timeline.");
       } finally {
         setLoading(false);
@@ -4396,6 +4497,7 @@ export default function CareerTimelineAdmin() {
       await deleteCareerEntry(id);
       setTimeline((prev) => prev.filter((entry) => entry._id !== id)); // ✅ Remove from UI
     } catch (err) {
+      console.error(err);
       setError("Failed to delete entry.");
     }
   }
@@ -4449,7 +4551,7 @@ export default function CareerTimelineAdmin() {
                 <Link href={`/admin/career/edit/${entry._id}`} className="text-blue-500 hover:underline mr-4">
                   Edit
                 </Link>
-                <button onClick={() => handleDelete(entry._id)} className="text-red-500 hover:underline">
+                <button onClick={() => handleDelete(entry._id || "")} className="text-red-500 hover:underline">
                   Delete
                 </button>
               </td>
@@ -6448,7 +6550,7 @@ export default function RefreshEmbeddings() {
     setMessage("");
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/embeddings/initialize`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ai/initialize`, {
         method: "POST",
         credentials: "include",
       });
@@ -6458,7 +6560,8 @@ export default function RefreshEmbeddings() {
       }
 
       setMessage("Embeddings refreshed successfully!");
-    } catch (error) {
+    } catch (err) {
+      console.error(err);
       setMessage("Error refreshing embeddings.");
     } finally {
       setLoading(false);
@@ -6600,18 +6703,8 @@ File: portfolio.next/src/components/CareerTimeline.tsx
 "use client";
 import React, { useState, useEffect } from "react";
 import EntryOverview from "./EntryOverview";
-import { fetchCareerTimeline } from "@/services/careerService";
+import { fetchCareerTimeline, CareerEntry } from "@/services/careerService";
 import { marked } from "marked";
-
-interface CareerEntry {
-  _id: string;
-  title: string;
-  company: string;
-  startDate: string;
-  endDate: string | null;
-  location: string;
-  description: string;
-}
 
 const formatDate = (date: string | null) => {
   if (!date) return "Present";
@@ -6644,11 +6737,11 @@ const CareerTimeline: React.FC = () => {
             {/* Entry Overview */}
             <EntryOverview
               title={entry.title}
-              company={entry.company}
+              company={entry.company || ""}
               startDate={formatDate(entry.startDate)}
-              endDate={formatDate(entry.endDate)}
-              location={entry.location}
-              onClick={() => setExpandedEntryId(expandedEntryId === entry._id ? null : entry._id)}
+              endDate={(entry.endDate && formatDate(entry.endDate)) || ""}
+              location={entry.location || ""}
+              onClick={() => setExpandedEntryId((expandedEntryId === entry._id ? null : entry._id)|| "" )}
             />
 
             {/* Expanded Details (In-Place) */}
@@ -6958,7 +7051,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faAlignLeft, faCog, faContactCard, faParagraph, faPerson, faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+import { faAlignLeft, faCog, faContactCard, faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 import { usePathname } from "next/navigation";
 export default function Header() {
   const { isAdmin, isAuthenticated, refreshAuth } = useAuth();
@@ -7036,6 +7129,7 @@ File: portfolio.next/src/components/Home.tsx
 import { useState } from "react";
 import SectionToggle from "@/components/SectionToggle";
 import Image from "next/image";
+import WarmUp from "@/components/WarmUp";
 
 interface Project {
   _id: string;
@@ -7056,6 +7150,12 @@ interface BlogEntry {
 export default function Home({ blogs, projects }: { blogs: BlogEntry[]; projects: Project[] }) {
   const [activeSection, setActiveSection] = useState<"blogs" | "projects">("blogs");
 
+  const [isWarmupComplete, setWarmupComplete] = useState(false);
+
+  if (!isWarmupComplete) {
+    return <WarmUp onComplete={() => setWarmupComplete(true)} />;
+  }
+  
   return (
     <div className="flex flex-col min-h-screen">
       <SectionToggle activeSection={activeSection} setActiveSection={setActiveSection} />
@@ -7194,6 +7294,46 @@ export default function SectionToggle({ activeSection, setActiveSection }: Secti
 }
 
 ================
+File: portfolio.next/src/components/WarmUp.tsx
+================
+"use client";
+import { useEffect } from "react";
+
+export default function WarmUp({ onComplete }: { onComplete: () => void }) {
+
+  useEffect(() => {
+    const checkWarmupStatus = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/warmup-status`);
+        const data = await response.json();
+
+        if (data.warmupComplete) {
+          onComplete(); // Notify parent to show the main app
+        } else {
+          setTimeout(checkWarmupStatus, 2000); // Retry in 2 seconds
+        }
+      } catch (error) {
+        console.error("Failed to check warm-up status:", error);
+        setTimeout(checkWarmupStatus, 5000); // Retry slower if error
+      }
+    };
+
+    checkWarmupStatus();
+  }, [onComplete]);
+
+  return (
+    <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold">Warming Up...</h1>
+        <p className="text-gray-400">Fetching AI context and preparing chat...</p>
+        <div className="mt-6 flex items-center justify-center">
+        <div className="mt-4 animate-spin rounded-full h-10 w-10 border-t-2 border-blue-500 text-center"></div>        </div>
+      </div>
+    </div>
+  );
+}
+
+================
 File: portfolio.next/src/context/AuthContext.tsx
 ================
 // portfolio.next/src/context/AuthContext.tsx
@@ -7278,8 +7418,8 @@ export function useAuth() {
 ================
 File: portfolio.next/src/context/ChatContext.tsx
 ================
-'use client';
-import { createContext, useContext, useState, ReactNode } from "react";
+"use client";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 type ChatMessage = {
   role: "user" | "ai";
@@ -7295,10 +7435,30 @@ type ChatContextType = {
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export function ChatProvider({ children }: { children: ReactNode }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([{
-    role: "ai",
-    text: "Hello! Ask me anything about my projects or skills."
-  }]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+  // Fetch greeting and context when chat initializes
+  useEffect(() => {
+    async function fetchChatData() {
+      try {
+        const greetingRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/greeting`);
+        const { greeting } = await greetingRes.json();
+
+        const contextRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/context`);
+        const { context } = await contextRes.json();
+
+        setMessages([
+          { role: "ai", text: greeting },
+          { role: "ai", text: context }
+        ]);
+      } catch (error) {
+        console.error("Failed to fetch chat initialization data:", error);
+        setMessages([{ role: "ai", text: "Hello! Ask me anything about my projects or skills." }]);
+      }
+    }
+
+    fetchChatData();
+  }, []);
 
   const addMessage = (message: ChatMessage) => {
     setMessages((prev) => [...prev, message]);
@@ -7683,8 +7843,7 @@ import { BlogEntry } from "@/models/BlogEntry";
   
   export async function archiveBlog(id: string) {
     try {
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/blogs/${id}`;
-      const res = await fetch(`${url}/api/blogs/${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/blogs/${id}`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -7716,7 +7875,22 @@ import { BlogEntry } from "@/models/BlogEntry";
 ================
 File: portfolio.next/src/services/careerService.ts
 ================
+import { ParsedJob } from "@/models/ParsedJob";
+
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+export interface CareerEntry {
+  _id?: string;
+  title: string;
+  company?: string;
+  startDate: string;
+  endDate?: string | null;
+  location?: string;
+  description: string;
+  skills: string[];
+  linkedEntries: string[];
+  importedFromLinkedIn: boolean;
+}
 
 export async function fetchCareerTimeline() {
   const res = await fetch(`${apiUrl}/api/career/timeline`, { credentials: "include" });
@@ -7730,7 +7904,7 @@ export async function fetchCareerEntry(id: string) {
   return await res.json();
 }
 
-export async function saveCareerEntry(entry: any) {
+export async function saveCareerEntry(entry: CareerEntry) {
   const method = entry._id ? "PUT" : "POST";
   const url = entry._id ? `${apiUrl}/api/career/timeline/${entry._id}` : `${apiUrl}/api/career/timeline`;
   const res = await fetch(url, {
@@ -7772,7 +7946,7 @@ export async function parseLinkedInHTMLBackend(rawHTML: string) {
   return await res.json();
 }
 
-export async function saveParsedJobs(parsedJobs: any[]) {
+export async function saveParsedJobs(parsedJobs: ParsedJob[]) {
   const res = await fetch(`${apiUrl}/api/career/timeline/bulk`, {
     method: "POST",
     credentials: "include",
@@ -7884,6 +8058,12 @@ File: portfolio.next/src/services/pageService.ts
 ================
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
+export interface Page{
+  _id?: string,
+  title: string,
+  content: string
+}
+
 export async function fetchPages() {
     const res = await fetch(`${apiUrl}/api/pages`, { credentials: "include" });
     if (!res.ok) throw new Error("Failed to fetch pages");
@@ -7896,7 +8076,7 @@ export async function fetchPages() {
     return await res.json();
   }
   
-  export async function createPage(pageData: any) {
+  export async function createPage(pageData: Page) {
     const res = await fetch(`${apiUrl}/api/pages`, {
       method: "POST",
       credentials: "include",
@@ -7907,7 +8087,7 @@ export async function fetchPages() {
     return await res.json();
   }
   
-  export async function updatePage(id: string, pageData: any) {
+  export async function updatePage(id: string, pageData: Page) {
     const res = await fetch(`${apiUrl}/api/pages/${id}`, {
       method: "PUT",
       credentials: "include",
@@ -8607,7 +8787,7 @@ File: portfolio.node/package.json
     "passport-github": "^1.1.0",
     "passport-google-oauth20": "^2.0.0",
     "passport-microsoft": "^2.1.0",
-    "puppeteer": "^24.4.0",
+    "pdf-parse": "^1.1.1",
     "qdrant-client": "^0.0.1",
     "swagger-ui-express": "^5.0.1",
     "ws": "^8.18.1",
@@ -8640,6 +8820,7 @@ const cors = require("cors");
 
 const connectDB = require("./config/db");
 const { passport, setupStrategies } = require("./config/passport");
+const { warmupLLM } = require("./services/warmUpService");
 
 
 const authRoutes = require("./routes/authRoutes");
@@ -8659,30 +8840,20 @@ const pageRoutes = require("./routes/pageRoutes");
 const aiRoutes = require("./routes/aiRoutes");
 
 const { prepopulateDefaultConfigs } = require("./services/providerConfigService");
-const { initCollection } = require("./services/qdrantService");
 const metricsMiddleware = require("./middlewares/metrics");
 
 const { swaggerMiddleware, swaggerSetup } = require('./config/swagger');
 
-const { dropCollection } = require('./services/qdrantService');
 
 async function createApp() {
   // Connect to the database
   await connectDB();
 
-  try{
-
-    // await dropCollection();
-    await initCollection();
-  }
-  catch(err){
-    console.error("Cannot initialize collections", err);
-  }
   // default configuration population
   await prepopulateDefaultConfigs();
 
   const app = express();
-
+  
   app.use(cors({
     origin: process.env.ALLOW_CORS || "http://localhost:3000",
     credentials: true, // Allow cookies to be sent
@@ -8723,6 +8894,13 @@ setupStrategies()
   app.use("/api/pages", pageRoutes);  
   app.use("/api/ai", aiRoutes);  
 
+    // Warm-up LLM at startup
+    warmupLLM().then(() => {
+      console.log("🚀 Warm-up complete!");
+    }).catch(err => {
+      console.error("⚠️ Warm-up encountered an issue:", err);
+    });
+  
   return app;
 }
 
@@ -10239,6 +10417,7 @@ module.exports = mongoose.model("BlogEntry", BlogEntrySchema);
 File: portfolio.node/src/models/CareerTimeline.js
 ================
 const mongoose = require("mongoose");
+const counterService = require("../services/counterService");
 
 const CareerTimelineSchema = new mongoose.Schema({
   title: { type: String, required: true }, // Job title, role, or key milestone
@@ -10249,6 +10428,13 @@ const CareerTimelineSchema = new mongoose.Schema({
   skills: [{ type: String }], // List of skills used
   linkedEntries: [{ type: mongoose.Schema.Types.ObjectId, ref: "CareerTimeline" }], // Links to related events
   importedFromLinkedIn: { type: Boolean, default: false }, // Flag for LinkedIn imports
+  vectorId : {type: Number, unique: true },
+});
+
+// Generate slug and link from title.
+CareerTimelineSchema.pre('save', async function(next) {
+  this.vectorId = this.vectorId || await counterService.getNextVectorI("career_vectorid");
+  next();
 });
 
 module.exports = mongoose.model("CareerTimeline", CareerTimelineSchema);
@@ -10326,12 +10512,20 @@ module.exports = mongoose.model("Counter", CounterSchema);
 File: portfolio.node/src/models/Embedding.js
 ================
 const mongoose = require("mongoose");
+const counterService = require("../services/counterService");
 
 const EmbeddingSchema = new mongoose.Schema({
     filePath: { type: String, required: true },
     metadata: { type: Object, default: {} },
-    externalId: { type: Number, required: true}
+    externalId: { type: Number, required: true},
+    vectorId : {type: Number, unique: true },
+
 }, { timestamps: true });
+
+EmbeddingSchema.pre('save', async function(next) {
+  this.vectorId = this.vectorId || await counterService.getNextVectorI("embedding_vectorid");
+  next();
+});
 
 module.exports = mongoose.model("Embedding", EmbeddingSchema);
 
@@ -10349,6 +10543,7 @@ const MetadataSchema = new mongoose.Schema({
 File: portfolio.node/src/models/Page.js
 ================
 const mongoose = require("mongoose");
+const counterService = require("../services/counterService");
 
 const PageSchema = new mongoose.Schema(
   {
@@ -10356,9 +10551,15 @@ const PageSchema = new mongoose.Schema(
     slug: { type: String, required: true, unique: true }, // URL-friendly identifier
     content: { type: String, required: true }, // Markdown content
     tags: { type: [String], default: [] }, // Tags for categorization
+    vectorId : {type: Number, unique: true },
   },
   { timestamps: true }
 );
+
+PageSchema.pre('save', async function(next) {
+  this.vectorId = this.vectorId || await counterService.getNextVectorId("page_vectorid");
+  next();
+});
 
 module.exports = mongoose.model("Page", PageSchema);
 
@@ -10367,6 +10568,7 @@ File: portfolio.node/src/models/Project.js
 ================
 // portfolio.node/src/models/Project.js
 const mongoose = require("mongoose");
+const counterService = require("../services/counterService");
 
 const ProjectSchema = new mongoose.Schema({
   title: { type: String, required: true },
@@ -10380,6 +10582,11 @@ const ProjectSchema = new mongoose.Schema({
   industry: { type: String, default: "General" }, 
   vectorId : {type: Number, unique: true },
 }, { timestamps: true });
+
+ProjectSchema.pre('save', async function(next) {
+  this.vectorId = this.vectorId || await counterService.getNextVectorI("project_vectorid");
+  next();
+});
 
 module.exports = mongoose.model("Project", ProjectSchema);
 
@@ -10447,21 +10654,30 @@ File: portfolio.node/src/routes/aiRoutes.js
 const express = require("express");
 const isAuth = require("../middlewares/auth");
 const isAdmin = require("../middlewares/admin");
-const embeddingService = require("../services/embeddingService");
+
+const { initializeProjectEmbeddings } = require("../services/projectService");
+const { initializeBlogEmbeddings } = require("../services/blogService");
+const { initializePageEmbeddings } = require("../services/pageService");
+const { initializeFileEmbeddings } = require("../services/fileService");
 
 const router = express.Router();
 
 /**
- * 📌 Initialize Embeddings (Deletes & Rebuilds All Collections)
+ * 📌 Initialize All Embeddings (Calls Each Service)
  */
 router.post("/initialize", isAuth, isAdmin, async (req, res) => {
-  try {
-    await embeddingService.initializeEmbeddings();
-    res.json({ message: "Embeddings initialized successfully." });
-  } catch (error) {
-    console.error("Error initializing embeddings:", error);
-    res.status(500).json({ error: "Failed to initialize embeddings" });
-  }
+    try {
+        console.log("🔄 Starting global embedding initialization...");
+        await initializeProjectEmbeddings();
+        await initializeBlogEmbeddings();
+        await initializePageEmbeddings();
+        await initializeFileEmbeddings();
+        console.log("✅ All embeddings initialized successfully!");
+        res.json({ message: "Embeddings initialization complete." });
+    } catch (error) {
+        console.error("❌ Error initializing embeddings:", error);
+        res.status(500).json({ error: "Failed to initialize embeddings" });
+    }
 });
 
 module.exports = router;
@@ -10540,92 +10756,141 @@ module.exports = router;
 ================
 File: portfolio.node/src/routes/blogRoutes.js
 ================
-// portfolio.node/src/routes/blogRoutes.js
 const express = require("express");
-const isAuth = require("../middlewares/auth");
-const isAdmin = require("../middlewares/admin");
+const authMiddleware = require("../middlewares/auth");
+const adminAuth = require("../middlewares/admin");
 const blogService = require("../services/blogService");
-const authService = require("../services/authService");
+const BlogEntry = require("../models/BlogEntry"); // For dynamic search
+const { searchEntitiesHybrid } = require("../services/searchService");
+
 const router = express.Router();
-const validate = require("../middlewares/validate");
-const { createBlogSchema } = require("../validators/blogValidator");
 
-
-// Create a new blog entry using the service module
-router.post("/", isAuth, isAdmin, validate(createBlogSchema), async (req, res) => {
-  try {
-      const newEntry = await blogService.createBlogEntry(req.body);
-      res.status(201).json(newEntry);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+/**
+ * @route POST /api/blogs
+ * @desc Create a new blog post
+ * @access Admin
+ */
+router.post("/", authMiddleware, adminAuth, async (req, res) => {
+    try {
+        const newBlog = await blogService.createBlog(req.body);
+        res.status(201).json(newBlog);
+    } catch (error) {
+        console.error("❌ Error creating blog:", error.message);
+        res.status(500).json({ error: error.message });
+    }
 });
 
-// Get all blog entries using the service module
+/**
+ * @route GET /api/blogs
+ * @desc Retrieve all blog posts
+ * @access Public
+ */
 router.get("/", async (req, res) => {
-  try {
-    let filter = {};
-    try{
-      const token = req.cookies["auth-token"];
-      const decoded = authService.verifyToken(token);
-      req.user = decoded; // Attach user info to the request object
+    try {
+      let filter = {};
+      try{
+        const token = req.cookies["auth-token"];
+        const decoded = authService.verifyToken(token);
+        req.user = decoded; // Attach user info to the request object
+      }
+      catch (err){
+        // swallow error, user  is just not authenticated.
+      }
+  
+      // If no auth token, assume a public request.
+      if (!req.user?.isAdmin === true) {
+        filter = { 
+          isDraft: false, 
+          publishAt: { $lte: new Date() } // only posts scheduled for now or earlier
+        };
+      }
+      const blogs = await blogService.getAllBlogs(filter);
+      res.json(blogs);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
     }
-    catch (err){
-      // swallow error, user  is just not authenticated.
-    }
+  });
 
-    // If no auth token, assume a public request.
-    if (!req.user?.isAdmin === true) {
-      filter = { 
-        isDraft: false, 
-        publishAt: { $lte: new Date() } // only posts scheduled for now or earlier
-      };
-    }
-    const blogs = await blogService.getAllBlogEntries(filter);
-    res.json(blogs);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-
-// Get a single blog entry by ID using the service module
+/**
+ * @route GET /api/blogs/:id
+ * @desc Retrieve a single blog post by ID
+ * @access Public
+ */
 router.get("/:id", async (req, res) => {
-  try {
-    const blog = await blogService.getBlogEntryById(req.params.id);
-    if (!blog) return res.status(404).json({ error: "Entry not found" });
-    
-    // For public requests, ensure the post is published.
-    if (!req.cookies["auth-token"] && (blog.isDraft || (blog.publishAt && blog.publishAt > new Date()))) {
-      return res.status(404).json({ error: "Entry not found" });
+    try {
+        const blog = await blogService.getBlogById(req.params.id);
+        if (!blog) return res.status(404).json({ error: "Blog not found" });
+        res.json(blog);
+    } catch (error) {
+        console.error("❌ Error fetching blog:", error.message);
+        res.status(500).json({ error: error.message });
     }
-    res.json(blog);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
 });
 
-
-// Update a blog entry by ID using the service module
-router.put("/:id", isAuth, isAdmin, validate(createBlogSchema), async (req, res) => {
-  try {
-    const updatedEntry = await blogService.updateBlogEntry(req.params.id, req.body);
-    if (!updatedEntry) return res.status(404).json({ error: "Entry not found" });
-    res.json(updatedEntry);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+/**
+ * @route PUT /api/blogs/:id
+ * @desc Update a blog post by ID
+ * @access Admin
+ */
+router.put("/:id", authMiddleware, adminAuth, async (req, res) => {
+    try {
+        const updatedBlog = await blogService.updateBlog(req.params.id, req.body);
+        if (!updatedBlog) return res.status(404).json({ error: "Blog not found" });
+        res.json(updatedBlog);
+    } catch (error) {
+        console.error("❌ Error updating blog:", error.message);
+        res.status(500).json({ error: error.message });
+    }
 });
 
-// Delete a blog entry by ID using the service module
-router.delete("/:id", isAuth, isAdmin, async (req, res) => {
-  try {
-    const deletedEntry = await blogService.deleteBlogEntry(req.params.id);
-    if (!deletedEntry) return res.status(404).json({ error: "Entry not found" });
-    res.json({ message: "Entry deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+/**
+ * @route DELETE /api/blogs/:id
+ * @desc Delete a blog post by ID
+ * @access Admin
+ */
+router.delete("/:id", authMiddleware, adminAuth, async (req, res) => {
+    try {
+        const deleted = await blogService.deleteBlog(req.params.id);
+        if (!deleted) return res.status(404).json({ error: "Blog not found" });
+        res.json({ message: "Blog deleted successfully" });
+    } catch (error) {
+        console.error("❌ Error deleting blog:", error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @route POST /api/blogs/generate-embeddings
+ * @desc Refresh blog embeddings (delta or full)
+ * @access Admin
+ */
+router.post("/generate-embeddings", authMiddleware, adminAuth, async (req, res) => {
+    try {
+        const { fullRefresh = false } = req.body;
+        const result = await blogService.refreshBlogEmbeddings(fullRefresh);
+        res.json(result);
+    } catch (error) {
+        console.error("❌ Error generating blog embeddings:", error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @route POST /api/blogs/search
+ * @desc Perform a hybrid search (full-text + vector)
+ * @access Public
+ */
+router.post("/search", async (req, res) => {
+    try {
+        const { query, limit, minScore } = req.body;
+        if (!query) return res.status(400).json({ error: "Query is required" });
+
+        const results = await searchEntitiesHybrid(BlogEntry, query, limit, minScore);
+        res.json(results);
+    } catch (error) {
+        console.error("❌ Error searching blogs:", error.message);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 module.exports = router;
@@ -10795,7 +11060,8 @@ File: portfolio.node/src/routes/chatRoutes.js
 // portfolio.node/src/routes/chatRoutes.js
 const express = require("express");
 const router = express.Router();
-const { processChat, getChatHistory } = require("../services/chatService");
+const { processChat, getChatHistory, getRandomGreeting, getChatStartingContext } = require("../services/chatService");
+const { isWarmupComplete } = require("../services/warmUpService");
 
 /**
  * @route POST /api/chat
@@ -10831,6 +11097,47 @@ router.get("/", async (req, res) => {
     return res.status(500).json({ error: "Internal server error." });
   }
 });
+
+/**
+ * @route GET /api/chat/greeting
+ * @desc Returns a random AI-generated greeting
+ */
+router.get("/greeting", async (req, res) => {
+  try {
+      const greeting = await getRandomGreeting();
+
+    console.log(`greeting`, greeting);
+
+      res.json({ greeting });
+  } catch (error) {
+      console.error("Error fetching greeting:", error);
+      res.status(500).json({ error: "Failed to fetch greeting" });
+  }
+});
+
+/**
+ * @route GET /api/chat/context
+ * @desc Returns the precomputed starting context for chat
+ */
+router.get("/context", async (req, res) => {
+  try {
+      const context = await getChatStartingContext();
+      res.json({ context });
+  } catch (error) {
+      console.error("Error fetching chat context:", error);
+      res.status(500).json({ error: "Failed to fetch chat context" });
+  }
+});
+
+
+/**
+ * @route GET /api/chat/warmup-status
+ * @desc Returns whether the warm-up process is complete
+ */
+router.get("/warmup-status", (req, res) => {
+  res.json({ warmupComplete: isWarmupComplete() });
+});
+
 
 module.exports = router;
 
@@ -10935,213 +11242,206 @@ File: portfolio.node/src/routes/embeddingRoutes.js
 ================
 const express = require("express");
 const {
-    parseLocalDirectory,
-    updateEmbedding,
-    initializeEmbeddings,
-    listEmbeddings
-} = require("../services/embeddingService");  //
+    generateEmbeddings
+} = require("../services/embeddingService");
+const {
+    storeEmbedding,
+    deleteEmbedding,
+    searchQdrant,
+    dropCollection
+} = require("../services/qdrantService");
 const isAdmin = require("../middlewares/admin");
 
 const router = express.Router();
 
 /**
- * @route POST /api/embeddings/local-directory
- * @desc Parse a local directory and generate embeddings
+ * @route POST /api/embeddings/generate
+ * @desc Generate embeddings for a given text (without storing)
  * @access Admin
  */
-router.post("/local-directory", isAdmin, async (req, res) => {
+router.post("/generate", isAdmin, async (req, res) => {
     try {
-        const { directoryPath, includeExtensions, metadata } = req.body;
-        const result = await parseLocalDirectory(directoryPath, includeExtensions, metadata);
-        res.status(200).json(result);
+        const { text } = req.body;
+        if (!text) return res.status(400).json({ error: "Text is required" });
+
+        const embedding = await generateEmbeddings(text);
+        res.status(200).json({ embedding });
     } catch (error) {
-        console.error("❌ Error in embedding route:", error.message);
+        console.error("❌ Error generating embedding:", error.message);
         res.status(500).json({ error: error.message });
     }
 });
 
 /**
- * @route PUT /api/embeddings/:id/metadata
- * @desc Update metadata for a specific embedding
- * @access Admin
- */
-router.put("/:id/metadata", isAdmin, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { metadata } = req.body;
-        const result = await updateEmbeddingMetadata({id, metadata});
-        res.status(200).json(result);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * @route GET /api/embeddings/list
- * @desc Retrieve a list of all embeddings
- * @access Admin
- */
-router.get("/list", isAdmin, async (req, res) => {
-    try {
-        const embeddings = await listEmbeddings();
-        res.status(200).json(embeddings);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * @route POST /api/embeddings
- * @desc Store a new embedding for a document
+ * @route POST /api/embeddings/store
+ * @desc Generate embeddings and store them in Qdrant
  * @access Admin
  */
 router.post("/", isAdmin, async (req, res) => {
     try {
-        const { filePath, content, metadata } = req.body;
-        const result = await storeEmbedding(filePath, content, metadata);
-        res.status(201).json(result);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * @route DELETE /api/embeddings/:id
- * @desc Delete an embedding by ID
- * @access Admin
- */
-router.delete("/:id", isAdmin, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const success = await deleteEmbedding(id);
-        if (success) {
-            res.status(200).json({ message: "Embedding deleted successfully." });
-        } else {
-            res.status(404).json({ error: "Embedding not found." });
+        const { collection, id, text, metadata } = req.body;
+        if (!collection || !id || !text) {
+            return res.status(400).json({ error: "Collection, ID, and text are required" });
         }
+
+        const embedding = await generateEmbeddings(text);
+        if (!embedding) throw new Error("Failed to generate embedding");
+
+        await storeEmbedding(collection, id, embedding, metadata);
+        res.status(201).json({ message: "Embedding stored successfully" });
     } catch (error) {
+        console.error("❌ Error storing embedding:", error.message);
         res.status(500).json({ error: error.message });
     }
 });
 
 /**
  * @route POST /api/embeddings/search
- * @desc Perform a similarity search in Qdrant
+ * @desc Perform a vector search in Qdrant
  * @access Public
  */
 router.post("/search", async (req, res) => {
     try {
-        const { queryVector, topK, minScore } = req.body;
-        const results = await searchQdrant(queryVector, COLLECTION_NAME, topK, minScore);
+        const { query, collection, limit = 5, minScore = 0.5 } = req.body;
+        if (!query || !collection) return res.status(400).json({ error: "Query and collection are required" });
+
+        const queryVector = await generateEmbeddings(query);
+        if (!queryVector) return res.status(500).json({ error: "Failed to generate query embedding" });
+
+        const results = await searchQdrant(queryVector, collection, limit, minScore);
         res.status(200).json(results);
     } catch (error) {
+        console.error("❌ Error performing embedding search:", error.message);
         res.status(500).json({ error: error.message });
     }
 });
 
-router.post("/initialize", async (req, res) => {
+/**
+ * @route DELETE /api/embeddings/:collection/:id
+ * @desc Delete an embedding by ID
+ * @access Admin
+ */
+router.delete("/:collection/:id", isAdmin, async (req, res) => {
     try {
-      await initializeEmbeddings();
-      res.json({ message: "Embeddings initialized successfully." });
+        const { collection, id } = req.params;
+        const success = await deleteEmbedding(collection, id);
+        if (!success) return res.status(404).json({ error: "Embedding not found" });
+
+        res.status(200).json({ message: "Embedding deleted successfully" });
     } catch (error) {
-      console.error("Error initializing embeddings:", error);
-      res.status(500).json({ error: "Failed to initialize embeddings" });
+        console.error("❌ Error deleting embedding:", error.message);
+        res.status(500).json({ error: error.message });
     }
-  });
-  
+});
+
+/**
+ * @route DELETE /api/embeddings/collection/:collection
+ * @desc Drop an entire Qdrant collection
+ * @access Admin
+ */
+router.delete("/collection/:collection", isAdmin, async (req, res) => {
+    try {
+        const { collection } = req.params;
+        await dropCollection(collection);
+        res.status(200).json({ message: `Collection "${collection}" dropped successfully.` });
+    } catch (error) {
+        console.error("❌ Error dropping collection:", error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;
 
 ================
 File: portfolio.node/src/routes/fileRoutes.js
 ================
 const express = require("express");
-const isAuth = require("../middlewares/auth");
-const isAdmin = require("../middlewares/admin");
+const authMiddleware = require("../middlewares/auth");
+const adminAuth = require("../middlewares/admin");
 const fileService = require("../services/fileService");
+const mongoose = require("mongoose");
 
 const router = express.Router();
 
 /**
- * 📌 Upload a file (Admins Only)
+ * @route POST /api/files
+ * @desc Upload a new file to GridFS
+ * @access Admin
  */
-router.post("/upload", isAuth, isAdmin, async (req, res) => {
+router.post("/", authMiddleware, adminAuth, async (req, res) => {
   try {
-    const { entityId, context, isPublic } = req.query;
-    const uploadedFile = await fileService.uploadFile(req, entityId, context, isPublic);
-    res.status(201).json(uploadedFile);
+    const { entityId, context, isPublic } = req.body;
+    const newFile = await fileService.uploadFile(req, entityId, context, isPublic);
+    res.status(201).json(newFile);
   } catch (error) {
-    console.error("File upload failed:", error);
-    res.status(500).json({ error: "File upload failed" });
+    console.error("❌ Error uploading file:", error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 
 /**
- * 📌 Get File Metadata
+ * @route GET /api/files
+ * @desc Retrieve all file metadata
+ * @access Admin
  */
-router.get("/:id", async (req, res) => {
+router.get("/", authMiddleware, adminAuth, async (req, res) => {
+  try {
+    const files = await fileService.getAllFiles();
+    res.json(files);
+  } catch (error) {
+    console.error("❌ Error fetching files:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * @route GET /api/files/:id
+ * @desc Retrieve file metadata by ID
+ * @access Admin
+ */
+router.get("/:id", authMiddleware, adminAuth, async (req, res) => {
   try {
     const file = await fileService.getFileMetadata(req.params.id);
     if (!file) return res.status(404).json({ error: "File not found" });
     res.json(file);
   } catch (error) {
-    res.status(500).json({ error: "Error retrieving file" });
+    console.error("❌ Error fetching file metadata:", error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 
 /**
- * 📌 Serve Public Files (No Auth)
+ * @route GET /api/files/download/:id
+ * @desc Download a file from GridFS
+ * @access Admin
  */
-router.get("/public/:id", async (req, res) => {
+router.get("/download/:id", authMiddleware, adminAuth, async (req, res) => {
   try {
-    const stream = await fileService.getPublicFile(req.params.id);
-    if (!stream) return res.status(403).json({ error: "Unauthorized or file not found" });
+    const file = await fileService.getFileMetadata(req.params.id);
+    if (!file) return res.status(404).json({ error: "File not found" });
 
-    res.set("Content-Type", stream.metadata.contentType);
-    stream.pipe(res);
+    res.setHeader("Content-Disposition", `attachment; filename="${file.filename}"`);
+    res.setHeader("Content-Type", file.metadata.contentType);
+    fileService.getPublicFile(req.params.id).pipe(res);
   } catch (error) {
-    res.status(500).json({ error: "Error retrieving file" });
+    console.error("❌ Error downloading file:", error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 
 /**
- * 📌 Serve Private Files (Admins Only)
+ * @route DELETE /api/files/:id
+ * @desc Delete a file from GridFS
+ * @access Admin
  */
-router.get("/private/:id", isAuth, isAdmin, async (req, res) => {
+router.delete("/:id", authMiddleware, adminAuth, async (req, res) => {
   try {
-    const stream = await fileService.getPrivateFile(req.params.id);
-    if (!stream) return res.status(404).json({ error: "File not found" });
-
-    res.set("Content-Type", stream.metadata.contentType);
-    stream.pipe(res);
-  } catch (error) {
-    res.status(500).json({ error: "Error retrieving file" });
-  }
-});
-
-/**
- * 📌 Delete a File (Admins Only)
- */
-router.delete("/:id", isAuth, isAdmin, async (req, res) => {
-  try {
-    await fileService.deleteFile(req.params.id);
+    const deleted = await fileService.deleteFile(req.params.id);
+    if (!deleted) return res.status(404).json({ error: "File not found" });
     res.json({ message: "File deleted successfully" });
   } catch (error) {
-    res.status(500).json({ error: "Error deleting file" });
-  }
-});
-
-/**
- * 📌 Get Files by Reference ID & Context
- */
-router.get("/", async (req, res) => {
-  try {
-    const { entityId, context } = req.query;
-    if (!entityId || !context) return res.status(400).json({ error: "Missing entityId or context" });
-
-    const files = await fileService.getFilesByContext(entityId, context);
-    res.json(files);
-  } catch (error) {
-    res.status(500).json({ error: "Error retrieving files" });
+    console.error("❌ Error deleting file:", error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -11279,66 +11579,140 @@ module.exports = router;
 File: portfolio.node/src/routes/pageRoutes.js
 ================
 const express = require("express");
-const Page = require("../models/Page");
+const authMiddleware = require("../middlewares/auth");
+const adminAuth = require("../middlewares/admin");
+const pageService = require("../services/pageService");
+const Page = require("../models/Page"); // For dynamic search
+const { searchEntitiesHybrid } = require("../services/searchService");
+
 const router = express.Router();
-const isAdmin = require("../middlewares/admin");
-const isAuth = require("../middlewares/auth");
 
-// Fetch all pages
+/**
+ * @route POST /api/pages
+ * @desc Create a new page
+ * @access Admin
+ */
+router.post("/", authMiddleware, adminAuth, async (req, res) => {
+    try {
+        const newPage = await pageService.createPage(req.body);
+        res.status(201).json(newPage);
+    } catch (error) {
+        console.error("❌ Error creating page:", error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @route GET /api/pages
+ * @desc Retrieve all pages
+ * @access Public
+ */
 router.get("/", async (req, res) => {
-  try {
-    const pages = await Page.find().sort({ createdAt: -1 });
-    res.json(pages);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to load pages" });
-  }
+    try {
+        const pages = await pageService.getAllPages();
+        res.json(pages);
+    } catch (error) {
+        console.error("❌ Error fetching pages:", error.message);
+        res.status(500).json({ error: error.message });
+    }
 });
 
-// Fetch a single page by slug
-router.get("/:slug", async (req, res) => {
-  try {
-    const page = await Page.findOne({ slug: req.params.slug });
-    if (!page) return res.status(404).json({ error: "Page not found" });
-    res.json(page);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch page" });
-  }
+/**
+ * @route GET /api/pages/:id
+ * @desc Retrieve a single page by ID
+ * @access Public
+ */
+router.get("/:id", async (req, res) => {
+    try {
+        const page = await pageService.getPageById(req.params.id);
+        if (!page) return res.status(404).json({ error: "Page not found" });
+        res.json(page);
+    } catch (error) {
+        console.error("❌ Error fetching page:", error.message);
+        res.status(500).json({ error: error.message });
+    }
 });
 
-// Create a new page (Admin only)
-router.post("/", isAuth, isAdmin, async (req, res) => {
-  try {
-    const { title, slug, content, tags } = req.body;
-    const newPage = await Page.create({ title, slug, content, tags });
-    res.status(201).json(newPage);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to create page" });
-  }
+/**
+ * @route GET /api/pages/slug/:slug
+ * @desc Retrieve a single page by slug
+ * @access Public
+ */
+router.get("/slug/:slug", async (req, res) => {
+    try {
+        const page = await pageService.getPageBySlug(req.params.slug);
+        if (!page) return res.status(404).json({ error: "Page not found" });
+        res.json(page);
+    } catch (error) {
+        console.error("❌ Error fetching page by slug:", error.message);
+        res.status(500).json({ error: error.message });
+    }
 });
 
-// Update a page (Admin only)
-router.put("/:id", isAuth, isAdmin, async (req, res) => {
-  try {
-    const { title, slug, content, tags } = req.body;
-    const updatedPage = await Page.findByIdAndUpdate(
-      req.params.id,
-      { title, slug, content, tags },
-      { new: true }
-    );
-    res.json(updatedPage);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to update page" });
-  }
+/**
+ * @route PUT /api/pages/:id
+ * @desc Update a page by ID
+ * @access Admin
+ */
+router.put("/:id", authMiddleware, adminAuth, async (req, res) => {
+    try {
+        const updatedPage = await pageService.updatePage(req.params.id, req.body);
+        if (!updatedPage) return res.status(404).json({ error: "Page not found" });
+        res.json(updatedPage);
+    } catch (error) {
+        console.error("❌ Error updating page:", error.message);
+        res.status(500).json({ error: error.message });
+    }
 });
 
-// Delete a page (Admin only)
-router.delete("/:id", isAuth, isAdmin, async (req, res) => {
-  try {
-    await Page.findByIdAndDelete(req.params.id);
-    res.json({ message: "Page deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to delete page" });
-  }
+/**
+ * @route DELETE /api/pages/:id
+ * @desc Delete a page by ID
+ * @access Admin
+ */
+router.delete("/:id", authMiddleware, adminAuth, async (req, res) => {
+    try {
+        const deleted = await pageService.deletePage(req.params.id);
+        if (!deleted) return res.status(404).json({ error: "Page not found" });
+        res.json({ message: "Page deleted successfully" });
+    } catch (error) {
+        console.error("❌ Error deleting page:", error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @route POST /api/pages/generate-embeddings
+ * @desc Refresh page embeddings (delta or full)
+ * @access Admin
+ */
+router.post("/generate-embeddings", authMiddleware, adminAuth, async (req, res) => {
+    try {
+        const { fullRefresh = false } = req.body;
+        const result = await pageService.refreshPageEmbeddings(fullRefresh);
+        res.json(result);
+    } catch (error) {
+        console.error("❌ Error generating page embeddings:", error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @route POST /api/pages/search
+ * @desc Perform a hybrid search (full-text + vector)
+ * @access Public
+ */
+router.post("/search", async (req, res) => {
+    try {
+        const { query, limit, minScore } = req.body;
+        if (!query) return res.status(400).json({ error: "Query is required" });
+
+        const results = await searchEntitiesHybrid(Page, query, limit, minScore);
+        res.json(results);
+    } catch (error) {
+        console.error("❌ Error searching pages:", error.message);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 module.exports = router;
@@ -11350,91 +11724,126 @@ const express = require("express");
 const authMiddleware = require("../middlewares/auth");
 const adminAuth = require("../middlewares/admin");
 const projectService = require("../services/projectService");
-const Project = require("../models/Project");
-const { generateEmbeddings } = require("../services/embeddingService");
+const Project = require("../models/Project"); // For dynamic search
+const { searchEntitiesHybrid } = require("../services/searchService");
 
 const router = express.Router();
 
-// Create a new project using the service module
+/**
+ * @route POST /api/projects
+ * @desc Create a new project
+ * @access Admin
+ */
 router.post("/", authMiddleware, adminAuth, async (req, res) => {
-  try {
-    const newProject = await projectService.createProject(req.body);
-    res.status(201).json(newProject);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get all projects using the service module
-router.get("/", async (req, res) => {
-  try {
-    let filter = {};
-    if (!req.cookies["auth-token"]) {
-      filter = { 
-        isDraft: false, 
-        publishAt: { $lte: new Date() }
-      };
+    try {
+        const newProject = await projectService.createProject(req.body);
+        res.status(201).json(newProject);
+    } catch (error) {
+        console.error("❌ Error creating project:", error.message);
+        res.status(500).json({ error: error.message });
     }
-    const projects = await projectService.getAllProjects(filter);
-    res.json(projects);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
 });
 
-// Get a single project by ID using the service module
+/**
+ * @route GET /api/projects
+ * @desc Retrieve all projects
+ * @access Public
+ */
+router.get("/", async (req, res) => {
+    try {
+        let filter = {};
+        if (!req.cookies["auth-token"]) {
+            filter = { isDraft: false, publishAt: { $lte: new Date() } }; // Public filter
+        }
+        const projects = await projectService.getAllProjects(filter);
+        res.json(projects);
+    } catch (error) {
+        console.error("❌ Error fetching projects:", error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @route GET /api/projects/:id
+ * @desc Retrieve a single project by ID
+ * @access Public
+ */
 router.get("/:id", async (req, res) => {
-  try {
-    const project = await projectService.getProjectById(req.params.id);
-    if (!project) return res.status(404).json({ error: "Project not found" });
-    res.json(project);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+    try {
+        const project = await projectService.getProjectById(req.params.id);
+        if (!project) return res.status(404).json({ error: "Project not found" });
+        res.json(project);
+    } catch (error) {
+        console.error("❌ Error fetching project:", error.message);
+        res.status(500).json({ error: error.message });
+    }
 });
 
-// Update a project by ID using the service module
+/**
+ * @route PUT /api/projects/:id
+ * @desc Update a project by ID
+ * @access Admin
+ */
 router.put("/:id", authMiddleware, adminAuth, async (req, res) => {
-  try {
-    const updatedProject = await projectService.updateProject(req.params.id, req.body);
-    if (!updatedProject) return res.status(404).json({ error: "Project not found" });
-    res.json(updatedProject);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+    try {
+        const updatedProject = await projectService.updateProject(req.params.id, req.body);
+        if (!updatedProject) return res.status(404).json({ error: "Project not found" });
+        res.json(updatedProject);
+    } catch (error) {
+        console.error("❌ Error updating project:", error.message);
+        res.status(500).json({ error: error.message });
+    }
 });
 
-// Delete a project by ID using the service module
+/**
+ * @route DELETE /api/projects/:id
+ * @desc Delete a project by ID
+ * @access Admin
+ */
 router.delete("/:id", authMiddleware, adminAuth, async (req, res) => {
-  try {
-    const deletedProject = await projectService.deleteProject(req.params.id);
-    if (!deletedProject) return res.status(404).json({ error: "Project not found" });
-    res.json({ message: "Project deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+    try {
+        const deleted = await projectService.deleteProject(req.params.id);
+        if (!deleted) return res.status(404).json({ error: "Project not found" });
+        res.json({ message: "Project deleted successfully" });
+    } catch (error) {
+        console.error("❌ Error deleting project:", error.message);
+        res.status(500).json({ error: error.message });
+    }
 });
 
+/**
+ * @route POST /api/projects/generate-embeddings
+ * @desc Refresh project embeddings (delta or full)
+ * @access Admin
+ */
 router.post("/generate-embeddings", authMiddleware, adminAuth, async (req, res) => {
-  const projects = await Project.find();
-  for (const project of projects) {
-    await projectService.generateEmbeddingsAndStore(project);
-  }
-  res.json({ message: "Embeddings generated for all projects." });
+    try {
+        const { fullRefresh = false } = req.body; // If `true`, refresh all embeddings
+        const result = await projectService.refreshProjectEmbeddings(fullRefresh);
+        res.json(result);
+    } catch (error) {
+        console.error("❌ Error generating embeddings:", error.message);
+        res.status(500).json({ error: error.message });
+    }
 });
 
+/**
+ * @route POST /api/projects/search
+ * @desc Perform a hybrid search (full-text + vector)
+ * @access Public
+ */
 router.post("/search", async (req, res) => {
-  const { query } = req.body;
+    try {
+        const { query, limit, minScore } = req.body;
+        if (!query) return res.status(400).json({ error: "Query is required" });
 
-  if (!query) return res.status(400).json({ message: "Query is required" });
-
-  const embedding = await generateEmbeddings(query);
-  if (!embedding) return res.status(500).json({ message: "Failed to generate query embedding" });
-
-  const results = await searchProjects(embedding);
-  res.json(results);
+        const results = await searchEntitiesHybrid(Project, query, limit, minScore);
+        res.json(results);
+    } catch (error) {
+        console.error("❌ Error searching projects:", error.message);
+        res.status(500).json({ error: error.message });
+    }
 });
-
 
 module.exports = router;
 
@@ -11841,77 +12250,165 @@ module.exports = {
 ================
 File: portfolio.node/src/services/blogService.js
 ================
-// portfolio.node/src/services/blogService.js
 const BlogEntry = require("../models/BlogEntry");
-const counterService = require("../services/counterService");
-
-const { addToCache, clearCache } = require("../cache");
+const { generateEmbeddings } = require("./embeddingService");
+const { storeEmbedding, deleteEmbedding, initCollection } = require("./qdrantService");
+const { searchEntitiesHybrid } = require("./searchService");
 
 /**
- * Creates a new blog entry and adds it to the cache.
- * @param {Object} data - Blog entry data.
- * @returns {Promise<Object>} - The saved blog entry.
+ * Create a new blog post and store its embedding.
+ * @param {Object} data - Blog data
+ * @returns {Promise<Object>} Created blog entry
  */
-async function createBlogEntry(data) {
-  try{
-    const newEntry = new BlogEntry(data);
-    await newEntry.save();
-    addToCache("blogs", newEntry);
-    return newEntry;
-  }
-  catch (err){
-    console.error(err);
-  }
+async function createBlog(data) {
+    const blog = new BlogEntry(data);
+    await blog.save();
+    // Generate and store embeddings
+    await updateBlogEmbeddings(blog);
+
+    return blog;
 }
 
 /**
- * Retrieves all blog entries sorted by creation date.
- * @returns {Promise<Array>} - Array of blog entries.
+ * Update an existing blog post and optionally refresh embeddings.
+ * @param {string} id - Blog ID
+ * @param {Object} updates - Fields to update
+ * @returns {Promise<Object|null>} Updated blog
  */
-async function getAllBlogEntries(filter = {}) {
-  const blogs = await BlogEntry.find(filter).sort({ createdAt: -1 });
-  return blogs;
+async function updateBlog(id, updates) {
+    const blog = await BlogEntry.findByIdAndUpdate(id, updates, { new: true });
+    if (!blog) return null;
+
+    // If content/title changes, regenerate embeddings
+    if (updates.title || updates.content) {
+        await updateBlogEmbeddings(blog);
+    }
+
+    return blog;
 }
 
 /**
- * Retrieves a single blog entry by its ID.
- * @param {string} id - The blog entry ID.
- * @returns {Promise<Object|null>} - The found blog entry or null.
+ * Delete a blog post and remove its embedding from Qdrant.
+ * @param {string} id - Blog ID
+ * @returns {Promise<boolean>} True if deleted, false otherwise
  */
-async function getBlogEntryById(id) {
-  const blog = await BlogEntry.findById(id);
-  return blog;
+async function deleteBlog(id) {
+    const blog = await BlogEntry.findByIdAndDelete(id);
+    if (!blog) return false;
+
+    await deleteEmbedding("blogs", id);
+    return true;
 }
 
 /**
- * Updates a blog entry by its ID.
- * @param {string} id - The blog entry ID.
- * @param {Object} data - Data to update.
- * @returns {Promise<Object|null>} - The updated blog entry or null.
+ * Retrieve a single blog post by ID.
+ * @param {string} id - Blog ID
+ * @returns {Promise<Object|null>} Blog object
  */
-async function updateBlogEntry(id, data) {
-  const updatedEntry = await BlogEntry.findByIdAndUpdate(id, data, { new: true });
-  updatedEntry.save();
-  return updatedEntry;
+async function getBlogById(id) {
+    return BlogEntry.findById(id);
 }
 
 /**
- * Deletes a blog entry by its ID and clears the related cache.
- * @param {string} id - The blog entry ID.
- * @returns {Promise<Object|null>} - The deleted blog entry or null.
+ * Retrieve all blog posts with optional filters.
+ * @param {Object} [filter={}] - MongoDB filter object
+ * @returns {Promise<Array>} List of blogs
  */
-async function deleteBlogEntry(id) {
-  const deletedEntry = await BlogEntry.findByIdAndDelete(id);
-  clearCache("blogs");
-  return deletedEntry;
+async function getAllBlogs(filter = {}) {
+    return BlogEntry.find(filter);
+}
+
+/**
+ * Generate embeddings for a single blog post and store them in Qdrant.
+ * @param {Object} blog - Blog object
+ */
+async function updateBlogEmbeddings(blog) {
+    const text = `${blog.title} ${blog.content}`;
+
+    const embedding = await generateEmbeddings(text);
+    if (!embedding) throw new Error(`Failed to generate embedding for blog: ${blog._id}`);
+
+    await storeEmbedding("blogs", blog._id, embedding, {
+        title: blog.title,
+        tags: blog.tags || [],
+        author: blog.author || "",
+    });
+}
+
+/**
+ * Refresh all or only changed blog embeddings.
+ * @param {boolean} fullRefresh - If true, refresh all embeddings; otherwise, only update modified blogs.
+ */
+async function refreshBlogEmbeddings(fullRefresh = false) {
+    const filter = fullRefresh ? {} : { updatedAt: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) } }; // Last 24h updates
+    const blogs = await getAllBlogs(filter);
+
+    for (const blog of blogs) {
+        await updateBlogEmbeddings(blog);
+    }
+
+    return { message: `Refreshed ${blogs.length} blog embeddings.` };
+}
+
+/**
+ * Search blogs using semantic vector search.
+ * @param {string} query - User's search query
+ * @returns {Promise<Array>} List of matching blogs
+ */
+async function searchBlogs(query) {
+    return searchEntitiesHybrid(BlogEntry, query);
+}
+
+/**
+ * Initializes embeddings for the BlogEntry model.
+ */
+async function initializeBlogEmbeddings() {
+    const collectionName = BlogEntry.collection.collectionName; // Use MongoDB model's collection name
+    console.log(`🔄 Initializing embeddings for "${collectionName}"...`);
+
+    // 1️⃣ Ensure Qdrant collection exists
+    await initCollection(collectionName);
+
+    // 2️⃣ Fetch all documents from MongoDB
+    const documents = await BlogEntry.find({});
+    if (!documents.length) {
+        console.log(`⚠️ No documents found in "${collectionName}", skipping.`);
+        return;
+    }
+
+    // 3️⃣ Generate & Store Embeddings
+    for (const doc of documents) {
+        const text = `${doc.title} ${doc.content || ""}`;
+        if (!text.trim()) continue;
+
+        if ( !doc.vectorId){
+            await doc.save();
+        }
+        const embedding = await generateEmbeddings(text);
+        if (!embedding) {
+            console.error(`❌ Failed to generate embedding for ${collectionName}: ${doc._id}`);
+            continue;
+        }
+
+        await storeEmbedding(collectionName, doc.vectorId, embedding, {
+            title: doc.title,
+            tags: doc.tags || [],
+        });
+
+        console.log(`✅ Stored embedding for "${collectionName}" -> ${doc.title}`);
+    }
 }
 
 module.exports = {
-  createBlogEntry,
-  getAllBlogEntries,
-  getBlogEntryById,
-  updateBlogEntry,
-  deleteBlogEntry,
+    createBlog,
+    updateBlog,
+    deleteBlog,
+    getBlogById,
+    getAllBlogs,
+    updateBlogEmbeddings,
+    refreshBlogEmbeddings,
+    searchBlogs,
+    initializeBlogEmbeddings,
 };
 
 ================
@@ -11919,10 +12416,11 @@ File: portfolio.node/src/services/chatService.js
 ================
 // portfolio.node/src/services/chatService.js
 const ChatMessage = require("../models/ChatMessage");
-const {searchQdrant, generateEmbedding} = require("../services/qdrantService");
 const providerConfigService = require("../services/providerConfigService");
 const ollamaService = require("../services/ollamaService"); // AI Model Integration
 const generatePrompt = require("../utils/generatePrompt");
+const {queryLLM} = require("../services/llmService");
+const cache = require("../utils/cache");
 
 /**
  * Processes a user query using the AI model.
@@ -11988,7 +12486,28 @@ async function requestOpenAIResponse(query, history, clientId, clientSecret) {
 
   return response.data.choices[0].message.content;
 }
-module.exports = { processChat, getChatHistory };
+
+/**
+ * Returns a random pre-generated greeting from cache.
+ */
+async function getRandomGreeting() {
+
+  let greetings = cache.get("chat_greetings");
+   if (!greetings){
+    console.log('no greetings here');
+    greetings =  ["Hello! How can I assist you today?"];
+   }
+  return greetings[Math.floor(Math.random() * greetings.length)];
+}
+
+/**
+ * Returns the pre-generated starting context for chat.
+ */
+async function getChatStartingContext() {
+  return cache.get("chat_context") || "This is an AI assistant for answering questions about projects and skills.";
+}
+
+module.exports = { processChat, getChatHistory, getRandomGreeting, getChatStartingContext };
 
 ================
 File: portfolio.node/src/services/commentService.js
@@ -12104,193 +12623,107 @@ module.exports = { getNextVectorId };
 ================
 File: portfolio.node/src/services/embeddingService.js
 ================
-const qdrantService = require("./qdrantService");
-const {getAllBlogEntries} = require("./blogService");
-const {getAllProjects} = require("./projectService");
-const {getAllPages} = require("./pageService");
-const {getAllFiles, extractFileText} = require("./fileService");
+const fetch = require("node-fetch");
 
 const EMBEDDING_SERVICE = process.env.EMBEDDING_SERVICE?.toLowerCase() || "ollama"; // Default to Ollama
 const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || "mistral"; // Default model for Ollama
 const VECTOR_SIZE = parseInt(process.env.VECTOR_SIZE, 10) || (EMBEDDING_SERVICE === "openai" ? 1536 : 4096);
 const OLLAMA_API_URL = process.env.OLLAMA_API_URL || "http://10.0.0.42:11434";
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_API_URL = "https://api.openai.com/v1";
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY; // Ensure API key is set for OpenAI
 
+/**
+ * Generate embeddings for a given text using the configured embedding service.
+ * @param {string} text - Input text for embedding
+ * @returns {Promise<number[]>} Embedding vector
+ */
 async function generateEmbeddings(text) {
-  if (EMBEDDING_SERVICE === "openai") {
-    if (!OPENAI_API_KEY) {
-      throw new Error("OpenAI API key is missing. Set OPENAI_API_KEY in your .env file.");
-    }
-    return generateOpenAIEmbeddings(text);
-  }
-  return generateOllamaEmbeddings(text); // Default to Ollama
+    if (!text || text.trim().length === 0) throw new Error("Text input is required for embedding.");
+
+    return EMBEDDING_SERVICE === "openai" ? generateOpenAIEmbeddings(text) : generateOllamaEmbeddings(text);
 }
 
+/**
+ * Generate embeddings using Ollama API.
+ * @param {string} text - Input text for embedding
+ * @returns {Promise<number[]>} Embedding vector
+ */
 async function generateOllamaEmbeddings(text) {
-  try {
+    try {
+        const response = await fetch(`${OLLAMA_API_URL}/api/embeddings`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ model: EMBEDDING_MODEL, prompt: text }),
+        });
 
-    // console.log(`ollama endpoint`, `${OLLAMA_API_URL}/api/embeddings`);
-    // console.log(`ollama payload`, 
-    //   {model: EMBEDDING_MODEL, // Dynamically set from .env
-    //   prompt: text,
-    // });
-    
-    const response = await fetch(`${OLLAMA_API_URL}/api/embeddings`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: EMBEDDING_MODEL, // Dynamically set from .env
-        prompt: text,
-      }),
-    });
+        if (!response.ok) throw new Error(`Ollama API Error: ${response.statusText}`);
 
-    if (!response.ok) {
-      throw new Error(`Ollama API Error: ${response.statusText}`);
+        const data = await response.json();
+        if (!data.embedding || data.embedding.length !== VECTOR_SIZE) {
+            throw new Error(`Expected vector size ${VECTOR_SIZE}, but got ${data.embedding?.length}`);
+        }
+
+        return data.embedding;
+    } catch (error) {
+        console.error("❌ Error generating embeddings with Ollama:", error.message);
+        throw new Error("Failed to generate embeddings with Ollama.");
     }
-
-    const data = await response.json();
-    if (data.embedding.length !== VECTOR_SIZE) {
-      throw new Error(`Expected vector size ${VECTOR_SIZE}, but got ${data.embedding.length}`);
-    }
-    return data.embedding;
-  } catch (error) {
-    console.error("Error generating embeddings with Ollama:", error);
-    throw new Error("Failed to generate embeddings with Ollama.");
-  }
 }
 
+/**
+ * Generate embeddings using OpenAI API.
+ * @param {string} text - Input text for embedding
+ * @returns {Promise<number[]>} Embedding vector
+ */
 async function generateOpenAIEmbeddings(text) {
-  try {
-    const response = await fetch(`${OPENAI_API_URL}/embeddings`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "text-embedding-ada-002", // Ensure correct OpenAI model
-        input: text,
-      }),
-    });
+    if (!OPENAI_API_KEY) throw new Error("OpenAI API key is missing. Set OPENAI_API_KEY in your .env file.");
 
-    if (!response.ok) {
-      throw new Error(`OpenAI API Error: ${response.statusText}`);
+    try {
+        const response = await fetch(`${OPENAI_API_URL}/embeddings`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${OPENAI_API_KEY}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ model: "text-embedding-ada-002", input: text }),
+        });
+
+        if (!response.ok) throw new Error(`OpenAI API Error: ${response.statusText}`);
+
+        const data = await response.json();
+        if (!data.data || !data.data[0].embedding || data.data[0].embedding.length !== VECTOR_SIZE) {
+            throw new Error(`Expected vector size ${VECTOR_SIZE}, but got ${data.data[0].embedding?.length}`);
+        }
+
+        return data.data[0].embedding;
+    } catch (error) {
+        console.error("❌ Error generating embeddings with OpenAI:", error.message);
+        throw new Error("Failed to generate embeddings with OpenAI.");
     }
-
-    const data = await response.json();
-    if (data.data[0].embedding.length !== VECTOR_SIZE) {
-      throw new Error(`Expected vector size ${VECTOR_SIZE}, but got ${data.data[0].embedding.length}`);
-    }
-    return data.data[0].embedding;
-  } catch (error) {
-    console.error("Error generating embeddings with OpenAI:", error);
-    throw new Error("Failed to generate embeddings with OpenAI.");
-  }
 }
 
-async function initializeEmbeddings() {
-  console.log("Initializing embeddings...");
-
-  // Step 1: Remove all collections in Qdrant
-
-  // Step 2: Recreate collections
-  const collections = ["pages", "blogs", "projects", "files"];
-  for (const collection of collections) {
-    await qdrantService.dropCollection(collection);
-    await qdrantService.initCollection(collection);
-    console.log(`Collection '${collection}' (re)created.`);
-  }
-
-  // Step 3: Generate embeddings for different entities
-  await generateEmbeddingsForEntities("pages", getAllPages, formatPageForEmbedding);
-  await generateEmbeddingsForEntities("blogs", getAllBlogEntries, formatBlogForEmbedding);
-  if ( getAllProjects){
-    await generateEmbeddingsForEntities("projects", getAllProjects, formatProjectForEmbedding);
-  }else{
-    console.log(`getAllProjects does not link...`);
-  }
-  await generateEmbeddingsForEntities("files", getAllFiles, formatFileForEmbedding);
-
-  console.log("Embeddings initialization complete.");
-}
-
-async function defaultFormatter(entity){
-  let content = entity.content || entity.description || entity.excerpt || "";
-  if (collectionName === "files") {
-    content = await extractFileText(entity);
-  }
-  else{
-    content = entity.body || entity.content || entity.description || entity.excerpt || "";
-  }
-  return content;
-}
-async function generateEmbeddingsForEntities(collectionName, fetchFunction, formatFunction) {
-  const entities = await fetchFunction();
-  console.log(`generating ${entities.length} '${collectionName}' embeddings`);
-  for (const entity of entities) {
-    const metadata = {
-      id: entity._id,
-      title: entity.title,
-      tags: entity.tags || [],
-      type: collectionName,
-    };
-
-    // Extract content to embed
-    let content = formatFunction ? await formatFunction(entity) : defaultFormatter(entity);
-
-    if (!content) continue;
-
-    // Generate embedding
-    const embeddings = await generateEmbeddings(content);
-    await qdrantService.storeEmbedding(collectionName, entity._id, embeddings, metadata);
-  }
-}
-
-function formatBlogForEmbedding(blog) {
-  return `
-    Title: ${blog.title}
-    Tags: ${blog.tags?.join(", ") || "None"}
-    Published: ${new Date(blog.createdAt).toLocaleDateString()}
-    
-    ${blog.content}
-  `.trim();
-}
-
-function formatProjectForEmbedding(project) {
-  return `
-    Project: ${project.title}
-    Tags: ${project.tags?.join(", ") || "None"}
-    Description: ${project.description || "No description available"}
-    Link: ${project.link || "No link"}
-  `.trim();
-}
-
-function formatPageForEmbedding(page) {
-  return `
-    Page Title: ${page.title}
-    Tags: ${page.tags?.join(", ") || "None"}
-    
-    ${page.content}
-  `.trim();
-}
-
-async function formatFileForEmbedding(file) {
-  return await extractFileText(file);
-}
-
-
-
-module.exports = {
-  generateEmbeddings,
-  initializeEmbeddings 
-};
+module.exports = { generateEmbeddings };
 
 ================
 File: portfolio.node/src/services/fileService.js
 ================
 const mongoose = require("mongoose");
 const Grid = require("gridfs-stream");
+const { generateEmbeddings } = require("./embeddingService");
+const { storeEmbedding, deleteEmbedding, initCollection } = require("./qdrantService");
+const { searchEntitiesHybrid } = require("./searchService");
+const pdfParse = require("pdf-parse");
+const counterService = require("./counterService");
+
+const ALLOWED_TEXT_EXTENSIONS = [".txt", ".md", ".csv", ".json", ".html", ".xml", ".yaml", ".yml"];
+
+function getFileExtension(filename){
+  return filename.split(".").pop().toLowerCase();
+}
+function isTextBasedFile(filename) {
+  const ext = getFileExtension(filename);
+    return ALLOWED_TEXT_EXTENSIONS.includes(`.${ext}`);
+}
 
 const conn = mongoose.connection;
 let gfs, gridFSBucket;
@@ -12302,7 +12735,7 @@ conn.once("open", () => {
 });
 
 /**
- * Upload a file to GridFS
+ * Upload a file to GridFS and process embeddings if applicable.
  */
 async function uploadFile(req, entityId, context, isPublic) {
   return new Promise((resolve, reject) => {
@@ -12321,13 +12754,17 @@ async function uploadFile(req, entityId, context, isPublic) {
         isPublic: isPublic === "true",
         entityId,
         context,
-        size
+        size,
       },
     });
 
     req.pipe(uploadStream);
 
-    uploadStream.on("finish", () => {
+    uploadStream.on("finish", async (file) => {
+      // Process embeddings for text-based files
+      if (contentType.startsWith("text/") || contentType === "application/pdf") {
+        await updateFileEmbeddings(file._id, filename, contentType);
+      }
       resolve({ message: "File uploaded successfully", filename });
     });
 
@@ -12336,14 +12773,51 @@ async function uploadFile(req, entityId, context, isPublic) {
 }
 
 /**
- * Get file metadata by ID
+ * Extract text content from a file for embedding processing.
+ */
+async function extractFileText(fileId, ext) {
+  try {
+    const downloadStream = gridFSBucket.openDownloadStream(new mongoose.Types.ObjectId(fileId));
+    const chunks = [];
+    for await (const chunk of downloadStream) {
+      chunks.push(chunk);
+    }
+    const fileBuffer = Buffer.concat(chunks);
+
+    if (ext === "pdf") {
+      const pdfData = await pdfParse(fileBuffer);
+      return pdfData.text;
+    }
+    return fileBuffer.toString("utf8");
+  } catch (error) {
+    console.error(`❌ Error extracting text from file ID: ${fileId}`, error);
+    return "";
+  }
+}
+
+/**
+ * Generate embeddings for a stored file in GridFS.
+ */
+async function updateFileEmbeddings(fileId, filename, contentType) {
+  const ext = getFileExtension(filename);
+  const text = await extractFileText(fileId, ext);
+  if (!text) return;
+
+  const embedding = await generateEmbeddings(text);
+  if (!embedding) throw new Error(`Failed to generate embedding for file: ${fileId}`);
+
+  await storeEmbedding("files", fileId.toString(), embedding, { filename });
+}
+
+/**
+ * Get file metadata by ID.
  */
 async function getFileMetadata(id) {
   return await gfs.files.findOne({ _id: new mongoose.Types.ObjectId(id) });
 }
 
 /**
- * Serve public files
+ * Serve public files.
  */
 async function getPublicFile(id) {
   const file = await getFileMetadata(id);
@@ -12352,7 +12826,7 @@ async function getPublicFile(id) {
 }
 
 /**
- * Serve private files (Admins Only)
+ * Serve private files (Admins Only).
  */
 async function getPrivateFile(id) {
   const file = await getFileMetadata(id);
@@ -12361,41 +12835,145 @@ async function getPrivateFile(id) {
 }
 
 /**
- * Delete a file
+ * Delete a file and remove its embedding.
  */
 async function deleteFile(id) {
-  await gridFSBucket.delete(new mongoose.Types.ObjectId(id));
+  try {
+    await gridFSBucket.delete(new mongoose.Types.ObjectId(id));
+    await deleteEmbedding("files", id.toString());
+    return true;
+  } catch (error) {
+    console.error(`❌ Error deleting file ID: ${id}`, error);
+    return false;
+  }
 }
 
 /**
- * Get files by entity reference & context
+ * Get files by entity reference & context.
  */
 async function getFilesByContext(entityId, context) {
   return await gfs.files.find({ "metadata.entityId": entityId, "metadata.context": context }).toArray();
 }
 
+/**
+ * Retrieve all file metadata, filtering out media files.
+ */
 async function getAllFiles() {
-    const mediaTypes = ["image/", "video/", "audio/"]; // Exclude media files
-    const files = await gfs.files.find().toArray();
-  
-    return files
-      .filter(file => !mediaTypes.some(type => file.metadata.contentType.startsWith(type)))
-      .map(file => ({
-        _id: file._id,
-        filename: file.filename,
-        contentType: file.metadata.contentType,
-        entityId: file.metadata.entityId,
-        context: file.metadata.context,
-        tags: file.metadata.tags || [],
-      }));
-  }
+  const mediaTypes = ["image/", "video/", "audio/"]; // Exclude media files
+  const files = await gfs.files.find().toArray();
+
+  return files
+    .filter(file => !mediaTypes.some(type => file.metadata.contentType.startsWith(type)))
+    .map(file => ({
+      _id: file._id,
+      filename: file.filename,
+      contentType: file.metadata.contentType,
+      entityId: file.metadata.entityId,
+      context: file.metadata.context,
+      tags: file.metadata.tags || [],
+      metadata: file.metadata
+    }));
+}
 
 /**
- * Extract text from files for embedding processing
+ * Search files using hybrid search (full-text + vector).
  */
-async function extractFileText(file) {
-  // Placeholder: Implement text extraction logic here
-  return `Extracted text from ${file.filename}`;
+async function searchFiles(query) {
+  return searchEntitiesHybrid(gfs.files, query);
+}
+
+async function updateFileMetadata(fileId, metadata) {
+  const db = mongoose.connection.db;
+  const bucketFiles = db.collection("uploads.files"); // GridFS files collection
+
+  try {
+      const result = await bucketFiles.updateOne(
+          { _id: new mongoose.Types.ObjectId(fileId) },
+          { $set: { metadata: metadata } }  // ✅ Updates metadata
+      );
+
+      if (result.matchedCount === 0) {
+          throw new Error(`File with ID ${fileId} not found`);
+      }
+
+      console.log(`✅ Updated metadata for file: ${fileId}`);
+  } catch (error) {
+      console.error(`❌ Error updating file metadata:`, error.message);
+  }
+}
+
+async function ensureFileVectorId(fileId) {
+  const db = mongoose.connection.db;
+  const bucketFiles = db.collection("uploads.files"); // GridFS metadata collection
+
+  const file = await bucketFiles.findOne({ _id: new mongoose.Types.ObjectId(fileId) });
+  if (!file) {
+      console.error(`❌ File with ID ${fileId} not found`);
+      return;
+  }
+
+  if (!file.metadata || !file.metadata.vectorId) {
+      console.log(`🔄 Assigning vectorId for file: ${file.filename}`);
+      const vectorId = await counterService.getNextVectorId("file_vectorid");
+
+      await updateFileMetadata(fileId, {
+          ...file.metadata,  // Preserve existing metadata
+          vectorId: vectorId
+      });
+
+      console.log(`✅ Assigned vectorId: ${vectorId} to file: ${file.filename}`);
+      return vectorId;
+  }
+
+  return file.metadata.vectorId; // Return existing vectorId if already set
+}
+
+/**
+ * Initializes embeddings for files stored in GridFS.
+ */
+async function initializeFileEmbeddings() {
+  const collectionName = "uploads"; // GridFS bucket name
+  console.log(`🔄 Initializing embeddings for "${collectionName}"...`);
+
+  // 1️⃣ Ensure Qdrant collection exists
+  await initCollection(collectionName);
+
+  // 2️⃣ Fetch all files from GridFS
+  const files = await gfs.files.find().toArray();
+  if (!files.length) {
+      console.log(`⚠️ No files found in "${collectionName}", skipping.`);
+      return;
+  }
+
+  // 3️⃣ Generate & Store Embeddings for text-based files
+  for (const file of files) {
+
+      if (!file.metadata || !file.metadata.contentType) continue;
+
+      if (!isTextBasedFile(file.filename)) {
+        console.log(`⚠️ Skipping non-text file: ${file.filename}`);
+        return;
+    }
+
+    const ext = getFileExtension(file.filename);
+
+      const text = await extractFileText(file._id, ext);
+      if (!text.trim()) continue;
+
+      const embedding = await generateEmbeddings(text);
+      if (!embedding) {
+          console.error(`❌ Failed to generate embedding for file: ${file._id}`);
+          continue;
+      }
+
+      const vectorId = await ensureFileVectorId(file._id);
+      await storeEmbedding(collectionName, vectorId, embedding, {
+          filename: file.filename,
+          contentType: file.metadata.contentType,
+      });
+
+      console.log(`✅ Stored embedding for "${collectionName}" -> ${file.filename}`);
+  }
 }
 
 module.exports = {
@@ -12406,8 +12984,46 @@ module.exports = {
   deleteFile,
   getFilesByContext,
   getAllFiles,
-  extractFileText,
+  searchFiles,
+  initializeFileEmbeddings
 };
+
+================
+File: portfolio.node/src/services/llmService.js
+================
+// portfolio.node/src/services/llmService.js
+const { generateResponse } = require("./ollamaService"); // Assuming aiService handles both providers
+
+/**
+ * Calls the configured LLM with a given prompt and expected JSON output.
+ * @param {string} systemRole - The role of the LLM (e.g., "Search Assistant", "Chat Assistant").
+ * @param {string} userQuery - The user input or instruction.
+ * @param {object} extraParams - Any additional data for context (e.g., available collections).
+ * @returns {Promise<object>} - The LLM response as JSON.
+ */
+async function queryLLM(systemRole, userQuery, extraParams = {}) {
+    const promptObject  = {
+        role: systemRole,
+        task: userQuery,
+        context: extraParams,
+        output_format: "JSON"
+    };
+
+    const formattedPrompt = `You are an AI assistant. 
+    Please respond in JSON format. 
+    Here is the task:\n${JSON.stringify(promptObject, null, 2)}`;
+
+    try {
+        // Choose the AI provider dynamically
+        const llmResponse =await generateResponse(formattedPrompt);
+        return JSON.parse(llmResponse.response); // Ensure response is parsed into JSON
+    } catch (error) {
+        console.error("LLM query failed:", error);
+        return null;
+    }
+}
+
+module.exports = { queryLLM };
 
 ================
 File: portfolio.node/src/services/ollamaService.js
@@ -12528,164 +13144,343 @@ module.exports = { generateResponse, generateResponseStream };
 File: portfolio.node/src/services/pageService.js
 ================
 const Page = require("../models/Page");
+const { generateEmbeddings } = require("./embeddingService");
+const { storeEmbedding, deleteEmbedding, initCollection } = require("./qdrantService");
+const { searchEntitiesHybrid } = require("./searchService");
 
 /**
- * Fetch all pages
- */
-async function getAllPages() {
-  return await Page.find({});
-}
-
-/**
- * Fetch a single page by slug
- */
-async function getPageBySlug(slug) {
-  return await Page.findOne({ slug });
-}
-
-/**
- * Create a new page
+ * Create a new page and store its embedding.
+ * @param {Object} data - Page data
+ * @returns {Promise<Object>} Created page
  */
 async function createPage(data) {
-  const page = new Page(data);
-  return await page.save();
+    const page = new Page(data);
+    await page.save();
+
+    // Generate and store embeddings
+    await updatePageEmbeddings(page);
+
+    return page;
 }
 
 /**
- * Update an existing page
+ * Update an existing page and optionally refresh embeddings.
+ * @param {string} id - Page ID
+ * @param {Object} updates - Fields to update
+ * @returns {Promise<Object|null>} Updated page
  */
-async function updatePage(id, data) {
-  return await Page.findByIdAndUpdate(id, data, { new: true });
+async function updatePage(id, updates) {
+    const page = await Page.findByIdAndUpdate(id, updates, { new: true });
+    if (!page) return null;
+
+    // If content/title changes, regenerate embeddings
+    if (updates.title || updates.content) {
+        await updatePageEmbeddings(page);
+    }
+
+    return page;
 }
 
 /**
- * Delete a page
+ * Delete a page and remove its embedding from Qdrant.
+ * @param {string} id - Page ID
+ * @returns {Promise<boolean>} True if deleted, false otherwise
  */
 async function deletePage(id) {
-  return await Page.findByIdAndDelete(id);
+    const page = await Page.findByIdAndDelete(id);
+    if (!page) return false;
+
+    await deleteEmbedding("pages", id);
+    return true;
+}
+
+/**
+ * Retrieve a single page by ID.
+ * @param {string} id - Page ID
+ * @returns {Promise<Object|null>} Page object
+ */
+async function getPageById(id) {
+    return Page.findById(id);
+}
+
+/**
+ * Retrieve a single page by slug.
+ * @param {string} slug - Page slug
+ * @returns {Promise<Object|null>} Page object
+ */
+async function getPageBySlug(slug) {
+    return Page.findOne({ slug });
+}
+
+/**
+ * Retrieve all pages with optional filters.
+ * @param {Object} [filter={}] - MongoDB filter object
+ * @returns {Promise<Array>} List of pages
+ */
+async function getAllPages(filter = {}) {
+    return Page.find(filter);
+}
+
+/**
+ * Generate embeddings for a single page and store them in Qdrant.
+ * @param {Object} page - Page object
+ */
+async function updatePageEmbeddings(page) {
+    const text = `${page.title} ${page.content}`;
+
+    const embedding = await generateEmbeddings(text);
+    if (!embedding) throw new Error(`Failed to generate embedding for page: ${page._id}`);
+
+    await storeEmbedding("pages", page._id, embedding, {
+        title: page.title,
+        tags: page.tags || [],
+    });
+}
+
+/**
+ * Refresh all or only changed page embeddings.
+ * @param {boolean} fullRefresh - If true, refresh all embeddings; otherwise, only update modified pages.
+ */
+async function refreshPageEmbeddings(fullRefresh = false) {
+    const filter = fullRefresh ? {} : { updatedAt: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) } }; // Last 24h updates
+    const pages = await getAllPages(filter);
+
+    for (const page of pages) {
+        await updatePageEmbeddings(page);
+    }
+
+    return { message: `Refreshed ${pages.length} page embeddings.` };
+}
+
+/**
+ * Search pages using semantic vector search.
+ * @param {string} query - User's search query
+ * @returns {Promise<Array>} List of matching pages
+ */
+async function searchPages(query) {
+    return searchEntitiesHybrid(Page, query);
+}
+
+/**
+ * Initializes embeddings for the Page model.
+ */
+async function initializePageEmbeddings() {
+    const collectionName = Page.collection.collectionName; // Use MongoDB model's collection name
+    console.log(`🔄 Initializing embeddings for "${collectionName}"...`);
+
+    // 1️⃣ Ensure Qdrant collection exists
+    await initCollection(collectionName);
+
+    // 2️⃣ Fetch all documents from MongoDB
+    const documents = await Page.find({});
+    if (!documents.length) {
+        console.log(`⚠️ No documents found in "${collectionName}", skipping.`);
+        return;
+    }
+
+    // 3️⃣ Generate & Store Embeddings
+    for (const doc of documents) {
+
+        if ( !doc.vectorId){
+            // trigger vector generation
+            await doc.save();
+        }
+
+        const text = `${doc.title} ${doc.content || ""}`;
+        if (!text.trim()) continue;
+
+        const embedding = await generateEmbeddings(text);
+        if (!embedding) {
+            console.error(`❌ Failed to generate embedding for ${collectionName}: ${doc._id}`);
+            continue;
+        }
+
+        await storeEmbedding(collectionName, doc.vectorId, embedding, {
+            title: doc.title,
+            tags: doc.tags || [],
+        });
+
+        console.log(`✅ Stored embedding for "${collectionName}" -> ${doc.title}`);
+    }
 }
 
 module.exports = {
-  getAllPages,
-  getPageBySlug,
-  createPage,
-  updatePage,
-  deletePage,
+    createPage,
+    updatePage,
+    deletePage,
+    getPageById,
+    getPageBySlug,
+    getAllPages,
+    updatePageEmbeddings,
+    refreshPageEmbeddings,
+    searchPages,
+    initializePageEmbeddings
 };
 
 ================
 File: portfolio.node/src/services/projectService.js
 ================
 const Project = require("../models/Project");
-const { storeEmbedding, searchQdrant } = require("../services/qdrantService");
-const {getNextVectorId} = require("../services/counterService");
 const { generateEmbeddings } = require("./embeddingService");
+const { storeEmbedding, deleteEmbedding, initCollection } = require("./qdrantService");
+const { searchEntitiesHybrid } = require("./searchService");
 
 /**
- * Creates a new project.
- * @param {Object} data - Project data.
- * @returns {Promise<Object>} - The created project.
+ * Create a new project and store its embedding.
+ * @param {Object} data - Project data
+ * @returns {Promise<Object>} Created project
  */
 async function createProject(data) {
-  const project = new Project(data);
-  await project.save();
+    const project = new Project(data);
+    await project.save();
 
-  const textToEmbed = `${project.title} ${project.description} ${project.tags.join(" ")} ${project.industry}`;
-  const embedding = await generateEmbeddings(textToEmbed);
+    // Generate and store embedding
+    await updateProjectEmbeddings(project);
 
-  if (embedding) {
-    await storeEmbedding(project._id, textToEmbed, embedding);
-  }
-
-  return project;
+    return project;
 }
 
 /**
- * Retrieves all projects.
- * @returns {Promise<Array>} - Array of projects.
+ * Update an existing project and optionally refresh embeddings.
+ * @param {string} id - Project ID
+ * @param {Object} updates - Fields to update
+ * @returns {Promise<Object|null>} Updated project
  */
+async function updateProject(id, updates) {
+    const project = await Project.findByIdAndUpdate(id, updates, { new: true });
+    if (!project) return null;
 
-async function getAllProjects(filter = {}) {
-  const projects = await Project.find(filter).sort({ createdAt: -1 });
-  return projects;
-}
+    // If description/title/tags change, regenerate embeddings
+    if (updates.title || updates.description || updates.tags) {
+        await updateProjectEmbeddings(project);
+    }
 
-
-/**
- * Retrieves a project by its ID.
- * @param {string} id - The project ID.
- * @returns {Promise<Object|null>} - The found project or null.
- */
-async function getProjectById(id) {
-  return Project.findById(id);
+    return project;
 }
 
 /**
- * Updates a project by its ID.
- * @param {string} id - The project ID.
- * @param {Object} data - Data to update.
- * @returns {Promise<Object|null>} - The updated project or null.
- */
-async function updateProject(id, data) {
-  return Project.findByIdAndUpdate(id, data, { new: true });
-}
-
-/**
- * Deletes a project by its ID.
- * @param {string} id - The project ID.
- * @returns {Promise<Object|null>} - The deleted project or null.
+ * Delete a project and remove its embedding from Qdrant.
+ * @param {string} id - Project ID
+ * @returns {Promise<boolean>} True if deleted, false otherwise
  */
 async function deleteProject(id) {
-  return Project.findByIdAndDelete(id);
-}
+    const project = await Project.findByIdAndDelete(id);
+    if (!project) return false;
 
-
-async function generateEmbeddingsAndStore(project) {
-  const text = `${project.title} ${project.description} ${project.tags.join(" ")} ${project.industry}`;
-  
-  if (!project.vectorId) {
-    project.vectorId = await getNextVectorId("vectorId");  // ✅ Assign unique, thread-safe Qdrant ID
-    await project.save();
-  }
-
-  // 1️⃣ Generate the embedding vector
-  const vector = await generateEmbeddings(text);
-  
-  if (!vector) {
-    console.error(`❌ Failed to generate embedding for project: ${project._id}`);
-    return;
-  }
-
-  // 2️⃣ Store the embedding in Qdrant
-  await storeEmbedding(project.vectorId, text, vector);  
+    await deleteEmbedding("projects", project._id);
+    return true;
 }
 
 /**
- * Search the project collection
- * @param {string} search - search text
- * @returns {Promise<Object|null>} - The search response
+ * Retrieve a single project by ID.
+ * @param {string} id - Project ID
+ * @returns {Promise<Object|null>} Project object
  */
-async function searchProjects(search) {
-  const { query } = req.body;
-
-  if (!query) return res.status(400).json({ message: "Query is required" });
-
-  const embedding = await generateEmbeddings(query);
-  if (!embedding) return res.status(500).json({ message: "Failed to generate query embedding" });
-
-  const results = await searchQdrant(embedding, "projects");  // ✅ Always searches in "projects"
-  res.json(results);
+async function getProjectById(id) {
+    return Project.findById(id);
 }
 
+/**
+ * Retrieve all projects with optional filters.
+ * @param {Object} [filter={}] - MongoDB filter object
+ * @returns {Promise<Array>} List of projects
+ */
+async function getAllProjects(filter = {}) {
+    return Project.find(filter);
+}
+
+/**
+ * Generate embeddings for a single project and store them in Qdrant.
+ * @param {Object} project - Project object
+ */
+async function updateProjectEmbeddings(project) {
+    const text = `${project.title} ${project.description} ${project.tags?.join(" ")} ${project.industry || ""}`;
+    
+    const embedding = await generateEmbeddings(text);
+    if (!embedding) throw new Error(`Failed to generate embedding for project: ${project._id}`);
+
+    await storeEmbedding("projects", project._id, embedding, {
+        title: project.title,
+        tags: project.tags || [],
+        industry: project.industry || "",
+    });
+}
+
+/**
+ * Refresh all or only changed embeddings.
+ * @param {boolean} fullRefresh - If true, refresh all embeddings; otherwise, only update modified projects.
+ */
+async function refreshProjectEmbeddings(fullRefresh = false) {
+    const filter = fullRefresh ? {} : { updatedAt: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) } }; // Last 24h updates
+    const projects = await getAllProjects(filter);
+
+    for (const project of projects) {
+        await updateProjectEmbeddings(project);
+    }
+
+    return { message: `Refreshed ${projects.length} project embeddings.` };
+}
+
+/**
+ * Search projects using semantic vector search.
+ * @param {string} query - User's search query
+ * @returns {Promise<Array>} List of matching projects
+ */
+async function searchProjects(query) {
+  return searchEntitiesHybrid(Project, query);
+}
+
+/**
+ * Initializes embeddings for the Project model.
+ */
+async function initializeProjectEmbeddings() {
+    const collectionName = Project.collection.collectionName; // Use MongoDB model's collection name
+    console.log(`🔄 Initializing embeddings for "${collectionName}"...`);
+
+    // 1️⃣ Ensure Qdrant collection exists
+    await initCollection(collectionName);
+
+    // 2️⃣ Fetch all documents from MongoDB
+    const documents = await Project.find({});
+    if (!documents.length) {
+        console.log(`⚠️ No documents found in "${collectionName}", skipping.`);
+        return;
+    }
+
+    // 3️⃣ Generate & Store Embeddings
+    for (const doc of documents) {
+        if ( !doc.vectorId){
+            // trigger vector generation
+            await doc.save();
+        }
+        const text = `${doc.title} ${doc.description || ""}`;
+        if (!text.trim()) continue;
+
+        const embedding = await generateEmbeddings(text);
+        if (!embedding) {
+            console.error(`❌ Failed to generate embedding for ${collectionName}: ${doc._id}`);
+            continue;
+        }
+
+        await storeEmbedding(collectionName, doc.vectorId, embedding, {
+            title: doc.title,
+            tags: doc.tags || [],
+        });
+
+        console.log(`✅ Stored embedding for "${collectionName}" -> ${doc.title}`);
+    }
+}
 
 module.exports = {
-  createProject,
-  getAllProjects,
-  getProjectById,
-  updateProject,
-  deleteProject,
-  generateEmbeddingsAndStore,
-  searchProjects
+    createProject,
+    updateProject,
+    deleteProject,
+    getProjectById,
+    getAllProjects,
+    updateProjectEmbeddings,
+    refreshProjectEmbeddings,
+    searchProjects,
+    initializeProjectEmbeddings
 };
 
 ================
@@ -12841,217 +13636,96 @@ module.exports = {
 ================
 File: portfolio.node/src/services/qdrantService.js
 ================
-require("dotenv").config();
 const { QdrantClient } = require("@qdrant/js-client-rest");
-const Embedding = require("../models/Embedding");
-const NodeCache = require("node-cache");
-const searchCache = new NodeCache({ stdTTL: 300 });
-const counterService = require("../services/counterService");
 const QDRANT_URL = process.env.QDRANT_URL || "http://10.0.0.42:6333";
 const QDRANT_API_KEY = process.env.QDRANT_API_KEY || "";
-const COLLECTION_NAME = "projects";
-const VECTOR_SIZE = parseInt(process.env.VECTOR_SIZE, 10) || 4096; // Default to OpenAI size if not set
+const EMBEDDING_SERVICE = process.env.EMBEDDING_SERVICE?.toLowerCase() || "ollama"; // Default to Ollama
+const VECTOR_SIZE = parseInt(process.env.VECTOR_SIZE, 10) || (EMBEDDING_SERVICE === "openai" ? 1536 : 4096);
 
 const qdrantClient = new QdrantClient({
     url: QDRANT_URL,
     apiKey: QDRANT_API_KEY,
 });
-  
+
 /**
- * Initializes the Qdrant collection if it does not exist.
+ * Initialize a Qdrant collection if it does not exist.
+ * @param {string} collection - Collection name
  */
 async function initCollection(collection) {
     try {
-        await qdrantClient.getCollection(collection);
-        console.log(`✅ Qdrant collection "${collection}" already exists.`);
+        console.log(`🗑️ Dropping existing Qdrant collection: "${collection}"...`);
+        await qdrantClient.deleteCollection(collection); // ✅ Drop collection before reinitialization
+        console.log(`✅ Collection "${collection}" dropped successfully.`);
     } catch (error) {
-        console.log(`⚠️ Qdrant collection "${collection}" not found. Creating...`);
+        console.log(`⚠️ Collection "${collection}" did not exist, proceeding with initialization.`);
+    }
 
+    try {
+        console.log(`📌 Creating new Qdrant collection: "${collection}"...`);
         await qdrantClient.createCollection(collection, {
-            vectors: {
-                size: VECTOR_SIZE, 
-                distance: "Cosine"
-            }
+            vectors: { size: VECTOR_SIZE, distance: "Cosine" },
         });
-
-        console.log(`✅ Qdrant collection "${collection}" created.`);
-    }
-}
-
-/**
- * Stores an embedding in Qdrant and MongoDB.
- * @param {string} filePath - Path of the file being embedded.
- * @param {string} content - File content for embedding generation.
- * @param {object} metadata - Additional metadata related to the embedding.
- */
-async function storeEmbedding(collectionName, filePath, vectors, metadata = {}) {
-    try {
-        // Validate vector
-        if (!Array.isArray(vectors) || vectors.length !== VECTOR_SIZE) {
-            throw new Error(`Invalid embedding vector received.`);
-        }
-
-        // Store in MongoDB
-        const id = await counterService.getNextVectorId(`${collectionName}VectorId`);
-        const embeddingEntry = await Embedding.create({ filePath, metadata, externalId: id });
-
-        // Store in Qdrant
-        await qdrantClient.upsert(collectionName, {
-            points: [
-                {
-                    id: id,
-                    vectors,
-                    payload: { filePath, metadata },
-                },
-            ],
-        });
-
-        console.log(`✅ Stored '${collectionName}' embedding ${id}`);
-        return embeddingEntry;
+        console.log(`✅ Collection "${collection}" reinitialized.`);
     } catch (error) {
+        console.error(`❌ Error creating collection "${collection}":`, error.message);
         console.error(error);
-        // console.error(`❌ Qdrant Error:`, error.message);
-        return null;
     }
 }
 
 /**
- * Updates metadata for an embedding entry in MongoDB and Qdrant.
- * @param {object} payload - The embedding document by id or name and the metadata.
+ * Store an embedding in Qdrant.
+ * @param {string} collection - Collection name
+ * @param {string} id - Unique document ID
+ * @param {number[]} vectors - Embedding vector
+ * @param {object} metadata - Metadata associated with the document
  */
-async function updateEmbeddingMetadata({ id = null, filePath = null, metadata }) {
-    try {
-        let embeddings;
+async function storeEmbedding(collection, id, vectors, metadata = {}) {
 
-        if (id) {
-            // ✅ Update a single embedding by ID
-            embeddings = await Embedding.find({ externalId: id });
-            if (embeddings.length === 0) throw new Error("Embedding not found.");
-        } else if (filePath) {
-            // ✅ Update all embeddings for a filePath
-            embeddings = await Embedding.find({ filePath });
-            if (embeddings.length === 0) throw new Error("No embeddings found for file.");
-        } else {
-            throw new Error("Either id or filePath must be provided.");
-        }
-
-        // ✅ Update metadata in MongoDB
-        await Embedding.updateMany({ _id: { $in: embeddings.map(e => e._id) } }, { metadata });
-
-        // ✅ Update in Qdrant
-        await qdrantClient.updatePayload(COLLECTION_NAME, {
-            points: embeddings.map(e => e.externalId), // Ensure IDs are updated correctly
-            payload: { metadata },
-        });
-
-        console.log(`✅ Updated metadata for ${embeddings.length} embeddings.`);
-        return embeddings;
-    } catch (error) {
-        console.error(`❌ Error updating metadata:`, error.message);
-        return null;
+    if (!Array.isArray(vectors) || vectors.length !== VECTOR_SIZE) {
+        throw new Error(`❌ Invalid embedding vector: expected ${VECTOR_SIZE} dimensions.`);
     }
-}
 
-async function updateEmbedding(filePath, newVectors, metadata) {
     try {
-        // ✅ Find existing embedding by filePath
-        const embedding = await Embedding.findOne({ filePath });
-        if (!embedding) {
-            throw new Error("Embedding not found for file.");
-        }
-
-        // ✅ Validate vector
-        if (!Array.isArray(newVectors) || newVectors.length !== VECTOR_SIZE || newVectors.some(isNaN)) {
-            throw new Error("Invalid embedding vector.");
-        }
-
-        // ✅ Update vector + metadata in Qdrant
-        await qdrantClient.upsert(COLLECTION_NAME, {
+        await qdrantClient.upsert(collection, {
             points: [
                 {
-                    id: embedding.externalId, // Keep the same ID
-                    vector: newVectors, // ✅ Overwrite vector
-                    payload: { filePath, metadata }, // ✅ Overwrite metadata
+                    id,
+                    vectors,
+                    payload: metadata,
                 },
             ],
         });
-
-        // ✅ Update metadata in MongoDB
-        await Embedding.updateOne({ filePath }, { metadata });
-
-        console.log(`✅ Updated embedding & metadata for file: ${filePath}`);
-        return embedding;
     } catch (error) {
-        console.error(`❌ Error updating embedding:`, error.message);
-        return null;
-    }
-}
-
-
-/**
- * Retrieves all stored embeddings from MongoDB.
- */
-async function listEmbeddings() {
-    try {
-        return await Embedding.find();
-    } catch (error) {
-        console.error("❌ Error fetching embeddings:", error.message);
-        return [];
+        console.error(`❌ Error storing embedding in Qdrant:`, error.message);
     }
 }
 
 /**
- * Search across all collections and return the most relevant results.
- * @param {number[]} queryVector - The embedding vector to search with.
- * @param {number} limit - Maximum number of results to return.
- * @param {number} threshold - Minimum similarity score to consider.
+ * Perform a semantic search in Qdrant.
+ * @param {number[]} queryVector - The query embedding vector
+ * @param {string} collection - Collection name
+ * @param {number} [limit=5] - Max number of results
+ * @param {number} [minScore=0.5] - Minimum similarity score
+ * @returns {Promise<object[]>} - List of matching documents
  */
-async function searchAcrossCollections(queryVector, limit = 10, threshold = 0.3) {
-    const collections = ["pages", "blogs", "projects", "files"];
-    let allResults = [];
-  
-    for (const collection of collections) {
-      try {
-        const results = await searchQdrant(queryVector, collection, limit, threshold)
-        allResults = allResults.concat(results);
-      } catch (error) {
-        console.warn(`Error searching ${collection}:`, error.message);
-      }
-    }
-  
-    // Sort results by highest similarity score
-    allResults.sort((a, b) => b.score - a.score);
-  
-    // Limit final results
-    return allResults.slice(0, limit);
-  }
-  
-/**
- * Performs a semantic search in Qdrant.
- * @param {number[]} queryVector - The query embedding.
- * @param {string} collection - The collection to search.
- * @param {number} topK - Number of results to retrieve.
- * @param {number} minScore - filter out if score is below this value.
- * @returns {Promise<object[]>} - List of matching projects.
- */
-async function searchQdrant(queryVector, collection = "projects", topK = 5, minScore = 0.5, useCache = false) {
+async function searchQdrant(queryVector, collection, limit = 5, minScore = 0.3) {
     try {
 
-        const cacheKey = `${collection}:${queryVector.slice(0, 5).join(",")}:${topK}:${minScore}`;
-        const cachedResults = useCache ? searchCache.get(cacheKey) : null;
-        if (cachedResults) {
-            console.log(`🔄 Returning cached search results for query.`);
-            return cachedResults;
+        if ( !queryVector || queryVector.length != VECTOR_SIZE){
+            console.error("invalid vector received in searchQdrant");
+            return [];
         }
+        console.log(`📡 Searching Qdrant in collection "${collection}"...`);
+        console.log(`collection: ${collection}`);
+        console.log(`vector count: ${queryVector.length}`);
+        console.log(`limit: ${limit}`);
+        console.log(`min score: ${minScore}`);
 
-        console.log(`📡 Searching Qdrant in collection "${collection}" with topK=${topK}`);
-
-        // Perform vector search in Qdrant
         const response = await qdrantClient.search(collection, {
             vector: queryVector,
-            limit: topK * 2, // Retrieve extra results to allow filtering
+            limit,
             with_payload: true,
-            score_threshold: minScore, // Ignore low-score results
+            score_threshold: minScore,
         });
 
         if (!response || response.length === 0) {
@@ -13059,48 +13733,39 @@ async function searchQdrant(queryVector, collection = "projects", topK = 5, minS
             return [];
         }
 
-        // Sort results by score (descending) and take only the top K results
-        const sortedResults = response
-            .filter(doc => doc.score >= minScore) // Remove low-quality matches
-            .sort((a, b) => b.score - a.score) // Sort by highest relevance
-            .slice(0, topK); // Limit to top K results
-
-        searchCache.set(cacheKey, sortedResults); // Store results in cache
-
-        console.log(`✅ Retrieved ${sortedResults.length} relevant results from Qdrant.`);
-        return sortedResults;
+        return response
+            .filter(doc => doc.score >= minScore)
+            .sort((a, b) => b.score - a.score)
+            .map(doc => ({
+                id: doc.id,
+                score: doc.score,
+                metadata: doc.payload,
+            }));
     } catch (error) {
         console.error(`❌ Qdrant Search Error: ${error.message}`);
         return [];
     }
 }
 
-async function deleteEmbedding(filePath) {
+/**
+ * Delete an embedding from Qdrant.
+ * @param {string} collection - Collection name
+ * @param {string} id - Document ID to delete
+ */
+async function deleteEmbedding(collection, id) {
     try {
-        const embedding = await Embedding.findOne({ filePath });
-        if (!embedding) {
-            throw new Error("Embedding not found.");
-        }
-
-        // ✅ Remove from Qdrant
-        await qdrantClient.delete(COLLECTION_NAME, {
-            points: [embedding.externalId],
+        await qdrantClient.delete(collection, {
+            points: [id],
         });
-
-        // ✅ Remove from MongoDB
-        await Embedding.deleteOne({ filePath });
-
-        console.log(`✅ Deleted embedding for file: ${filePath}`);
-        return true;
+        console.log(`✅ Deleted embedding for document ID: ${id} in collection '${collection}'`);
     } catch (error) {
         console.error(`❌ Error deleting embedding:`, error.message);
-        return false;
     }
 }
 
-
 /**
- * Deletes the entire Qdrant collection.
+ * Drop an entire Qdrant collection.
+ * @param {string} collection - Collection name
  */
 async function dropCollection(collection) {
     try {
@@ -13114,13 +13779,131 @@ async function dropCollection(collection) {
 module.exports = {
     initCollection,
     storeEmbedding,
-    updateEmbeddingMetadata,
-    updateEmbedding,
-    listEmbeddings,
+    searchQdrant,
     deleteEmbedding,
     dropCollection,
-    searchAcrossCollections
 };
+
+================
+File: portfolio.node/src/services/searchService.js
+================
+const Project = require("../models/Project");
+const BlogEntry = require("../models/BlogEntry");
+const Page = require("../models/Page");
+const { searchQdrant } = require("../services/qdrantService");
+const { generateEmbeddings } = require("../services/embeddingService");
+const { convertToText } = require('../utils/generatePrompt');
+const { queryLLM } = require("./llmService");
+const cache = require("../utils/cache");
+
+/**
+ * Extracts schema definitions from a Mongoose model with caching.
+ * @param {string} modelName - The collection name.
+ * @param {object} model - The Mongoose model.
+ * @returns {object} - A schema definition object with field names and types.
+ */
+function extractSchema(modelName, model) {
+    const cacheKey = `schema_${modelName}`;
+    let schema = cache.get(cacheKey);
+
+    if (!schema) {
+        schema = {};
+        Object.entries(model.schema.paths).forEach(([key, value]) => {
+            schema[key] = value.instance; // Extract field type (String, Number, etc.)
+        });
+
+        cache.set(cacheKey, schema); // Store schema in cache
+    }
+
+    return schema;
+}
+
+
+/**
+ * Perform a hybrid search and return enriched documents
+ * @param {string} query - The search query
+ * @returns {Promise<{ sources: Array, context: string }>}
+ */
+async function performSearch(query) {
+    const queryEmbedding = await generateEmbeddings(query);
+    if (!queryEmbedding) throw new Error("Failed to generate query embedding.");
+
+    // Define available collections
+    const collectionMappings = {
+        "projects": { model: Project, collectionName: Project.collection.collectionName, limit: 3 },
+        "blogs": { model: BlogEntry, collectionName: BlogEntry.collection.collectionName, limit: 3 },
+        "pages": { model: Page, collectionName: Page.collection.collectionName, limit: 2 },
+    };
+
+    const availableCollections = Object.keys(collectionMappings);
+
+    // 1️⃣ Use LLM to determine most relevant collections
+    const sortedCollections = await sortCollectionsByRelevance(query, availableCollections);
+
+    // 2️⃣ Search Qdrant for relevant vector matches in order of LLM's ranking
+    const searchResults = {};
+    for (const collection of sortedCollections) {
+        const { model, collectionName, limit } = collectionMappings[collection];
+        searchResults[collection] = await searchQdrant(queryEmbedding, collectionName, limit);
+    }
+
+    // 3️⃣ Fetch full MongoDB documents using vectorId
+    const projects = await fetchMongoDocs(Project, searchResults["projects"] || []);
+    const blogs = await fetchMongoDocs(BlogEntry, searchResults["blogs"] || []);
+    const pages = await fetchMongoDocs(Page, searchResults["pages"] || []);
+
+    // 4️⃣ Merge results with type labels
+    const sources = [
+        ...projects.map(p => ({ ...p, type: "Project" })),
+        ...blogs.map(b => ({ ...b, type: "BlogEntry" })),
+        ...pages.map(p => ({ ...p, type: "Page" })),
+    ];
+
+    // 5️⃣ Convert sources to structured text
+    const context = sources.map(convertToText).join("\n\n");
+
+    return { sources, context };
+}
+
+/**
+ * Fetches full MongoDB documents for search results from Qdrant
+ */
+async function fetchMongoDocs(model, qdrantResults) {
+    const vectorIds = qdrantResults.map(doc => doc.id);
+    if (vectorIds.length === 0) return [];
+
+    const documents = await model.find({ vectorId: { $in: vectorIds } }).lean();
+    return documents.map(doc => {
+        const qdrantMatch = qdrantResults.find(q => q.id === doc.vectorId);
+        return { ...doc, score: qdrantMatch?.score || 0 };
+    });
+}
+
+/**
+ * Determines the most relevant collections to query for a given user prompt.
+ * @param {string} userQuery - The search query.
+ * @param {string[]} availableCollections - List of available collections.
+ * @returns {Promise<string[]>} - The collections sorted by relevance.
+ */
+async function sortCollectionsByRelevance(userQuery, availableCollections) {
+    // Get schema definitions from cache or DB
+    const schemaDefinitions = {
+        projects: extractSchema("projects", Project),
+        blogs: extractSchema("blogs", BlogEntry),
+        pages: extractSchema("pages", Page),
+    };
+
+    // Query LLM with schema details
+    const response = await queryLLM(
+        "AI Search Assistant",
+        `Given the user query: "${userQuery}", rank these collections by relevance based on the following schema definitions. Each collection contains documents with the specified fields and types. Consider this when ranking the collections.`,
+        { availableCollections, schemaDefinitions }
+    );
+
+    return response?.sorted_collections || availableCollections; // Fallback to default order
+}
+
+module.exports = { performSearch };
 
 ================
 File: portfolio.node/src/services/userService.js
@@ -13199,57 +13982,162 @@ module.exports = {
 };
 
 ================
+File: portfolio.node/src/services/warmUpService.js
+================
+const cache = require("../utils/cache");
+const { queryLLM } = require("./llmService");
+
+/**
+ * Generates and caches warm-up data on backend start.
+ */
+async function warmupLLM() {
+    cache.set("warmup_complete", false); // Set warm-up as "not ready"
+
+    console.log("🔄 Running initial LLM Warm-up...");
+
+    try {
+        await refreshGreetings(); // Refresh greetings immediately at startup
+        await refreshChatContext(); // Cache chat context once at startup
+        console.log("✅ Warm-up complete.");
+    } catch (error) {
+        console.error("🔥 Warm-up failed:", error);
+    }
+
+    cache.set("warmup_complete", true); // Set warm-up as "not ready"
+
+}
+
+/**
+ * Refreshes the cached AI-generated greetings every 4 hours.
+ */
+async function refreshGreetings() {
+    console.log("🔄 Refreshing cached greetings...");
+
+    try {
+        const greetingResponse = await queryLLM(
+            "AI Chat Assistant",
+            `Generate 10 unique and friendly greetings. Format as a JSON array like
+             {"greetings" : [  "Hi, how are you?", 
+                "Welcome!",
+              ]
+             }`,
+            {}
+        );
+        const greetings = greetingResponse?.greetings || ["Hello! How can I assist you today?"];
+        cache.set("chat_greetings", greetings, 14400); // Cache for 4 hours
+        console.log(`✅ Cached ${greetings.length} greetings.`);
+
+    } catch (error) {
+        console.error("❌ Failed to refresh greetings:", error);
+    }
+}
+
+/**
+ * Generates and caches the default chat context once every 24 hours.
+ */
+async function refreshChatContext() {
+    console.log("🔄 Generating default chat context...");
+
+    try {
+        const contextResponse = await queryLLM(
+            "AI Knowledge Assistant",
+            "Provide a detailed general knowledge base for answering user questions about projects, skills, and technology. Keep it structured and useful as a starting point.",
+            {}
+        );
+
+        const defaultContext = contextResponse?.context || "This is an AI assistant for answering questions about projects and skills.";
+        cache.set("chat_context", defaultContext, 86400); // Cache for 24 hours
+
+        console.log("✅ Cached default chat context.");
+    } catch (error) {
+        console.error("❌ Failed to generate chat context:", error);
+    }
+}
+
+function isWarmupComplete() {
+    return cache.get("warmup_complete") || false;
+}
+
+module.exports = { warmupLLM, refreshGreetings, isWarmupComplete };
+
+================
 File: portfolio.node/src/services/wsChatService.js
 ================
 const WebSocket = require("ws");
 const ChatMessage = require("../models/ChatMessage");
 const { generatePrompt } = require("../utils/generatePrompt");
+const { performSearch } = require("../services/searchService");
 const ollamaService = require("../services/ollamaService");
+const { queryLLM } = require("./llmService");
 
 const setupWebSocketServer = (server) => {
     const wss = new WebSocket.Server({ server });
 
     wss.on("connection", (ws) => {
-        console.log("New WebSocket connection established.");
+        console.log("✅ New WebSocket connection established.");
 
         ws.on("message", async (message) => {
             try {
-                const { sessionId, query, history, webContext } = JSON.parse(message);
+                const { sessionId, query, history } = JSON.parse(message);
                 if (!sessionId || !query) {
                     ws.send(JSON.stringify({ error: "sessionId and query are required." }));
                     return;
                 }
 
-                // Generate AI prompt
-                const { formattedPrompt, sources } = await generatePrompt(query, history, webContext);
+                console.log(`📡 Received query: "${query}" - Starting search`);
 
-                // Stream AI response
+                // 1️⃣ Notify user that search is starting
+                ws.send(JSON.stringify({ response: "⏳ Searching for relevant information..." }));
+
+                // 2️⃣ Perform the search (Qdrant + MongoDB)
+                const { sources, context } = await performSearch(query);
+                console.log(`🔎 Search complete - Found ${sources.length} relevant documents.`);
+
+                // 3️⃣ Notify user that AI is generating a response
+                ws.send(JSON.stringify({ response: "✨ Found useful information! Generating a response..." }));
+
+                // 4️⃣ Generate AI prompt
+                const { formattedPrompt } = await generatePrompt(query, history, context);
+
+                // 5️⃣ Stream AI response
                 const responseStream = await ollamaService.generateResponseStream(formattedPrompt);
-
-                // Send streamed data
                 for await (const chunk of responseStream) {
                     ws.send(JSON.stringify({ response: chunk }));
                 }
 
                 ws.send(JSON.stringify({ done: true }));
 
-                // Store messages in database
+                // 6️⃣ Store chat messages in database
                 await ChatMessage.create({ sessionId, role: "user", text: query });
                 await ChatMessage.create({ sessionId, role: "ai", text: formattedPrompt });
 
             } catch (error) {
-                console.error("WebSocket error:", error);
+                console.error("❌ WebSocket error:", error);
                 ws.send(JSON.stringify({ error: "An error occurred while processing your request." }));
             }
         });
 
         ws.on("close", () => {
-            console.log("WebSocket connection closed.");
+            console.log("❌ WebSocket connection closed.");
         });
     });
 
     return wss;
 };
+
+/**
+ * Generates a random greeting message.
+ * @returns {Promise<string>} - A friendly AI-generated greeting.
+ */
+async function generateRandomGreeting() {
+    const response = await queryLLM(
+        "AI Chat Assistant",
+        "Generate a friendly greeting for a user who just started a conversation.",
+        {}
+    );
+
+    return response?.greeting || "Hello! How can I assist you today?";
+}
 
 module.exports = { setupWebSocketServer };
 
@@ -13298,117 +14186,105 @@ process.on('SIGTERM', () => {
 });
 
 ================
+File: portfolio.node/src/utils/cache.js
+================
+const NodeCache = require("node-cache");
+
+// Ensure a single cache instance shared across all modules
+const cache = new NodeCache({ stdTTL: 0, checkperiod: 600 });
+
+module.exports = cache;
+
+================
 File: portfolio.node/src/utils/generatePrompt.js
 ================
 const Prompt = require("../models/Prompt");
-const { searchAcrossCollections } = require("../services/qdrantService");
-const projectService = require("../services/projectService");
-const blogService = require("../services/blogService");
-const { generateEmbeddings } = require("../services/embeddingService");
 
 /**
- * Generates a structured AI prompt based on user input, retrieved context, and history.
- * @param {string} query - The user's question.
- * @param {array} history - Previous chat messages.
- * @param {string} webContext - Extracted web page content.
- * @returns {Promise<{ formattedPrompt: string, sources: string[] }>} - AI prompt and sources.
+ * Generates an AI prompt based on search results and user history
  */
-async function generatePrompt(query, history = [], webContext = "") {
+async function generatePrompt(query, history = [], context = "") {
     try {
-        // Fetch the AI prompt template dynamically
         const promptEntry = await Prompt.findOne({ name: "default_chat" });
         let promptTemplate = promptEntry ? promptEntry.template : getDefaultTemplate();
 
-        // Generate embeddings and search for relevant documents
-        const vectors = await generateEmbeddings(query);
-        const relatedDocs = await searchAcrossCollections(vectors, 10, 0.5);
-
-        // Format context from retrieved documents
-        let context = "";
-        let sources = [];
-        let projectContext = "";
-        let blogEntries = "";
-
-        if (relatedDocs.length > 0) {
-            context = relatedDocs.map((doc) => doc.payload.text).join("\n");
-            sources = relatedDocs.map((doc) => doc.source || "Unknown source");
-        } else {
-
-            const projects = await projectService.getAllProjects();
-            const blogs = await blogService.getAllBlogEntries();
-
-            projectContext = JSON.stringify(projects);
-            blogEntries = JSON.stringify(blogs);
-
-            console.log(`⚠️ No relevant documents found for query: "${query}".`);
-            context = "No directly related documents were found, but I'll still do my best to help.";
-        }
-
-        // Format WebContext for AI, if available
-        const formattedWebContext = webContext
-            ? `If the web context is provided, this is what the user currently sees, and can be used if the prompt is related:\n${webContext}`
-            : "";
-
-        // Replace placeholders in the prompt
         const formattedPrompt = promptTemplate
             .replace("{{query}}", query)
             .replace("{{history}}", formatChatHistory(history))
-            .replace("{{webContext}}", formattedWebContext)
-            .replace("{{context}}", context)
-            .replace("{{projects}}", projectContext)
-            .replace("{{blogs}}", blogEntries);
+            .replace("{{context}}", context);
 
-        return { formattedPrompt, sources };
+        return { formattedPrompt };
     } catch (error) {
         console.error(`❌ Error generating AI prompt:`, error.message);
-        return { formattedPrompt: "Sorry, an error occurred while generating the prompt.", sources: [] };
+        return { formattedPrompt: "Sorry, an error occurred while generating the prompt." };
     }
 }
 
 /**
- * Formats the chat history into a structured string.
- * @param {array} history - Array of past chat messages.
- * @returns {string} - Formatted chat history.
+ * Formats chat history into a structured string
  */
 function formatChatHistory(history) {
-    if (!history || history.length === 0) return "";
     return history.map(msg => `${msg.role === "user" ? "User" : "AI"}: ${msg.text}`).join("\n");
 }
 
-function getDefaultTemplate(){
-    return  `
+/**
+ * Converts different entity types into a structured text format
+ */
+function convertToText(entity) {
+    if (!entity) return "";
+
+    switch (entity.type) {
+        case "Project":
+            return `Project: ${entity.title}\nDescription: ${entity.description || "No description available"}\nTags: ${entity.tags?.join(", ") || "None"}\nPublished: ${entity.publishAt || "Unknown date"}`;
+
+        case "BlogEntry":
+            return `Blog: ${entity.title}\nContent: ${entity.content || "No content available"}\nTags: ${entity.tags?.join(", ") || "None"}\nPublished: ${entity.publishAt || "Unknown date"}`;
+
+        case "Page":
+            return `Page: ${entity.title}\nContent: ${entity.content || "No content available"}`;
+
+        case "FileEntry":
+            return `File: ${entity.filename}\nExtracted Text: ${entity.extractedText || "No extracted text available"}`;
+
+        default:
+            return `Unknown Type: ${JSON.stringify(entity)}`;
+    }
+}
+
+/**
+ * Returns the default AI prompt template for structured responses.
+ */
+function getDefaultTemplate() {
+    return `
     # AI Role
-    AI assistant helping showcase a developer's portfolio. 
-    The user is someone accessing the developer's site who is interested in that developer knowledge, skill and/or backgroudn.
-    The AI ONLY use the provided context to answer questions.
-    If a question is about projects, focus specifically on projects in the provided context.
-    If the question is unrelated to context, you can answer unless:
-    - it is illegal
-    - dangerous
-    - is outside the concept of the portfolio showcasing a developer's background and skills.
+    You are an AI assistant designed to showcase a developer's portfolio. Your primary goal is to **provide accurate and relevant answers** based only on the provided context.
+
+    **DO NOT invent answers or respond with information outside the given context.**
+    If the user asks something unrelated to the portfolio, politely redirect them.
+
+    ## Guidelines:
+    - **Projects:** Focus only on projects listed in the context. Summarize their key aspects but do not assume unlisted details.
+    - **Blogs:** If relevant blog entries exist, use them to provide insights. Do not generalize beyond their content.
+    - **Web Context:** If web context is provided, it represents what the user currently sees. Use it only if it applies to their query.
+    - **Search Ranking:** Prioritize projects first, then blog posts, then other context.
+    - **Out of Scope:** If a request is about unrelated topics (e.g., politics, personal finance, or non-tech topics), **politely decline**.
+
+    ---
     
-    ### Context:
+    ## Context:
     {{context}}
 
-    ### Projects:
-    {{projects}}
-
-    ### Blogs:
-    {{blogs}}
-
-    ### WebContext:
-    {{webContext}} 
-
-    ### Discussion History:
+    ## Previous Conversation:
     {{history}}
 
-    ### User Question:
+    ## User Question:
     {{query}}
-    
-    ### AI Response:
+
+    ## AI Response:
     `.trim();
 }
-module.exports = { generatePrompt };
+
+module.exports = { generatePrompt, convertToText, getDefaultTemplate };
 
 ================
 File: portfolio.node/src/validators/blogValidator.js

@@ -1,5 +1,6 @@
 // portfolio.next/src/services/blogService.ts
 import { BlogEntry } from "@/models/BlogEntry";
+import { API_ENDPOINTS } from "@/lib/constants";
   /**
    * Fetches a single blog entry by its ID.
    * @param id - The blog entry identifier.
@@ -7,7 +8,7 @@ import { BlogEntry } from "@/models/BlogEntry";
    */
   export async function getBlog(id: string): Promise<BlogEntry | null> {
     try {
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/blogs/${id}`;
+      const url = `${API_ENDPOINTS.blog}/${id}`;
       const response = await fetch(url);
       if (!response.ok) return null;
       const data: BlogEntry = await response.json();
@@ -24,7 +25,7 @@ import { BlogEntry } from "@/models/BlogEntry";
   
   export async function getBlogs(): Promise<BlogEntry[]> {
     try {
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/blogs`;
+      const url = `${API_ENDPOINTS.blog}`;
       const res = await fetch(url, {
         method: "GET",
         credentials: "include",
@@ -41,7 +42,7 @@ import { BlogEntry } from "@/models/BlogEntry";
   
   export async function archiveBlog(id: string) {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/blogs/${id}`, {
+      const res = await fetch(`${API_ENDPOINTS.blog}/${id}`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -55,7 +56,7 @@ import { BlogEntry } from "@/models/BlogEntry";
 
   export async function updateBlog(id: string, blogData: Partial<BlogEntry>) {
     try {
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/blogs/${id}`;
+      const url = `${API_ENDPOINTS.blog}/${id}`;
       const res = await fetch(url, {
         method: "PUT",
         credentials: "include",

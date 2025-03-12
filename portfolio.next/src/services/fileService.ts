@@ -1,7 +1,6 @@
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
+import { API_ENDPOINTS } from "@/lib/constants";
 export async function fetchFiles(entityId?: string, context?: string) {
-    const url = new URL(`${process.env.NEXT_PUBLIC_API_URL}/api/files`);
+    const url = new URL(`${API_ENDPOINTS.file}`);
     if (entityId && context) {
       url.searchParams.append("entityId", entityId);
       url.searchParams.append("context", context);
@@ -22,7 +21,7 @@ export async function fetchFiles(entityId?: string, context?: string) {
     const formData = new FormData();
     formData.append("file", file); // Send raw file data
   
-    const url = new URL(`${process.env.NEXT_PUBLIC_API_URL}/api/files/upload`);
+    const url = new URL(`${API_ENDPOINTS.file}/upload`);
     url.searchParams.append("entityId", entityId);
     url.searchParams.append("context", context);
     url.searchParams.append("isPublic", isPublic.toString());
@@ -45,16 +44,14 @@ export async function fetchFiles(entityId?: string, context?: string) {
   }
   
 
-export async function deleteFile(fileId : string) {
-  try {
-    const res = await fetch(`${apiUrl}/api/files/${fileId}`, {
+  export async function deleteFile(fileId: string): Promise<void> {
+    const res = await fetch(`${API_ENDPOINTS.file}/${fileId}`, {
       method: "DELETE",
       credentials: "include",
     });
-    if (!res.ok) throw new Error("Failed to delete file");
-    return await res.json();
-  } catch (error) {
-    console.error(error);
-    throw error;
+  
+    if (!res.ok) {
+      throw new Error("Failed to delete");
+    }
   }
-}
+  

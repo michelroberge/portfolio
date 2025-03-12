@@ -2,6 +2,7 @@
 "use client";
 import { createContext, useContext, useState } from "react";
 import { useRouter } from "next/navigation"; 
+import { API_ENDPOINTS } from "@/lib/constants";
 
 interface AuthContextType {
   isAdmin: boolean;
@@ -29,9 +30,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function refreshAuth() {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/check`, {
+      const res = await fetch(`${API_ENDPOINTS.auth}/check`, {
         credentials: "include",
       });
+      
+
+      if (!res || !res.ok) {
+        console.error("Login request failed", res);
+        return;
+      }
+      
       const data = await res.json();
       if ( data.setupRequired){
         router.push("/admin/setup"); // Redirect to setup page
@@ -47,13 +55,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function login(username : string, password : string) : Promise<boolean>  {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+    const res = await fetch(`${API_ENDPOINTS.auth}/login`, {
       method: "POST",
       credentials: "include", // Ensures the auth-token cookie is stored
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
 
+    if (!res || !res.ok) {
+      console.error("Login request failed", res);
+      return false;
+    }
+    
     if (res.ok) {
       await refreshAuth();
       setIsAuthenticated(true);

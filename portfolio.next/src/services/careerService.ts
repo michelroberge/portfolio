@@ -1,6 +1,5 @@
 import { ParsedJob } from "@/models/ParsedJob";
-
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import { API_ENDPOINTS } from "@/lib/constants";
 
 export interface CareerEntry {
   _id?: string;
@@ -16,32 +15,32 @@ export interface CareerEntry {
 }
 
 export async function fetchCareerTimeline() {
-  const res = await fetch(`${apiUrl}/api/career/timeline`, { credentials: "include" });
+  const res = await fetch(`${API_ENDPOINTS.career}/timeline`, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch timeline data");
   return await res.json();
 }
 
 export async function fetchCareerEntry(id: string) {
-  const res = await fetch(`${apiUrl}/api/career/timeline/${id}`, { credentials: "include" });
+  const res = await fetch(`${API_ENDPOINTS.career}/timeline/${id}`, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch entry");
   return await res.json();
 }
 
 export async function saveCareerEntry(entry: CareerEntry) {
   const method = entry._id ? "PUT" : "POST";
-  const url = entry._id ? `${apiUrl}/api/career/timeline/${entry._id}` : `${apiUrl}/api/career/timeline`;
+  const url = entry._id ? `${API_ENDPOINTS.career}/timeline/${entry._id}` : `${API_ENDPOINTS.career}/timeline`;
   const res = await fetch(url, {
     method,
     credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(entry),
   });
-  if (!res.ok) throw new Error("Failed to save entry");
+  if (!res || !res.ok) throw new Error("Failed to save entry");
   return await res.json();
 }
 
 export async function deleteCareerEntry(id: string) {
-  const res = await fetch(`${apiUrl}/api/career/timeline/${id}`, {
+  const res = await fetch(`${API_ENDPOINTS.career}/timeline/${id}`, {
     method: "DELETE",
     credentials: "include",
   });
@@ -49,7 +48,7 @@ export async function deleteCareerEntry(id: string) {
 }
 
 export async function linkEntries(id: string, linkedIds: string[]) {
-  const res = await fetch(`${apiUrl}/api/career/timeline/${id}/link`, {
+  const res = await fetch(`${API_ENDPOINTS.career}/timeline/${id}/link`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -59,7 +58,7 @@ export async function linkEntries(id: string, linkedIds: string[]) {
 }
 
 export async function parseLinkedInHTMLBackend(rawHTML: string) {
-  const res = await fetch(`${apiUrl}/api/career/parse-linkedin`, {
+  const res = await fetch(`${API_ENDPOINTS.career}/parse-linkedin`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -70,7 +69,7 @@ export async function parseLinkedInHTMLBackend(rawHTML: string) {
 }
 
 export async function saveParsedJobs(parsedJobs: ParsedJob[]) {
-  const res = await fetch(`${apiUrl}/api/career/timeline/bulk`, {
+  const res = await fetch(`${API_ENDPOINTS.career}/timeline/bulk`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },

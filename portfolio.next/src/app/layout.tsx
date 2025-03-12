@@ -33,19 +33,19 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Suspense>
-      <AuthProvider>
-        <ChatProvider>
-        <SearchProvider>
-        <Header />
-        <main className="p-6 mx-auto w-full max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-7xl">
-        <Search />
-        {children}
-        </main>
-        <Footer />
-        <ChatWrapper />
-        </SearchProvider>
-        </ChatProvider>
-        </AuthProvider>
+          <AuthProvider>
+            <ChatProvider>
+              <SearchProvider>
+                <Header />
+                <main className="p-6 mx-auto w-full max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-7xl">
+                  <Search />
+                  {children}
+                </main>
+                <Footer />
+                <ChatWrapper />
+              </SearchProvider>
+            </ChatProvider>
+          </AuthProvider>
         </Suspense>
       </body>
     </html>
