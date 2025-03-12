@@ -72,3 +72,9 @@ Guiding Principle for Fixes and Improvements
 - Will this fix create unexpected side effects in related components?
 - Can this be refactored into a more elegant and reusable solution?
 - Always prioritize long-term clarity and maintainability over short-term convenience.
+
+Testing
+- When writting unit tests, always check the component implementation that is being tested.
+- The tests should always use the appropriate props and dependencies (i.e. mock services, hooks, etc.)
+- Use jest.mock() for mocking dependencies.
+- Use waitFor() for async operations.

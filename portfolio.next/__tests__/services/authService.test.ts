@@ -1,71 +1,151 @@
-import { getAuthUser } from "@/services/authService";
+import { getAuthUser, checkAuthStatus, AuthResponse } from '@/services/authService';
+import { API_ENDPOINTS } from '@/lib/constants';
+import { User } from '@/models/User';
 
-// Mock next/headers for cookies
-jest.mock("next/headers", () => ({
-  cookies: jest.fn(),
-}));
+// Mock the global fetch function
+const mockFetch = jest.fn();
+global.fetch = mockFetch;
 
-import { cookies } from "next/headers";
+// Mock console.error and console.log to prevent logging during tests
+console.error = jest.fn();
+console.log = jest.fn();
 
-describe("Auth Service", () => {
+describe('authService', () => {
+  const mockUser: User = {
+    _id: '123',
+    username: 'testuser',
+    isAdmin: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  const mockAuthResponse: AuthResponse = {
+    authenticated: true,
+    user: mockUser,
+    message: 'authenticated'
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
-    global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
   });
 
-  it("should return authenticated user on success", async () => {
-    // Mock cookies to return a token
-    (cookies as jest.Mock).mockReturnValue({
-      get: jest.fn().mockReturnValue({ value: "mock-token" }),
+  describe('getAuthUser', () => {
+    it('should return authenticated user when auth check succeeds', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockAuthResponse)
+      });
+
+      const result = await getAuthUser();
+
+      expect(mockFetch).toHaveBeenCalledWith(`${API_ENDPOINTS.auth}/check`, {
+        method: 'GET',
+        credentials: 'include',
+        cache: 'no-store'
+      });
+      expect(result).toEqual(mockAuthResponse);
     });
 
-    // Mock fetch response
-    const mockUser = { id: "123", isAdmin: true, authenticated: true, user: { id: "123", isAdmin: true } };
-    (fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockUser,
-    } as Response);
+    it('should return unauthenticated response when fetch fails', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false
+      });
 
-    const user = await getAuthUser();
-    expect(user).toEqual({ id: "123", isAdmin: true, message: "should be good" });
-    expect(fetch).toHaveBeenCalledWith(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/check`, {
-      method: "GET",
-      headers: { Authorization: "Bearer mock-token" },
-      credentials: "include",
+      const result = await getAuthUser();
+
+      expect(result).toEqual({
+        authenticated: false,
+        user: null,
+        message: `${API_ENDPOINTS.auth}/admin/login`
+      });
+      expect(console.log).toHaveBeenCalledWith('Authentication failed');
+    });
+
+    it('should return unauthenticated response when user data is missing', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ authenticated: false })
+      });
+
+      const result = await getAuthUser();
+
+      expect(result).toEqual({
+        authenticated: false,
+        user: null,
+        message: 'Authentication failed'
+      });
+    });
+
+    it('should handle network errors gracefully', async () => {
+      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+      const result = await getAuthUser();
+
+      expect(result).toEqual({
+        authenticated: false,
+        user: null,
+        message: 'Auth check failed'
+      });
+      expect(console.error).toHaveBeenCalled();
     });
   });
 
-  it("should return default unauthenticated user if no token is found", async () => {
-    (cookies as jest.Mock).mockReturnValue({
-      get: jest.fn().mockReturnValue(null),
+  describe('checkAuthStatus', () => {
+    it('should return authenticated user when auth check succeeds', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockAuthResponse)
+      });
+
+      const result = await checkAuthStatus();
+
+      expect(mockFetch).toHaveBeenCalledWith(`${API_ENDPOINTS.auth}/check`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      expect(result).toEqual(mockAuthResponse);
     });
 
-    const user = await getAuthUser();
-    expect(user).toEqual({ id: "0", isAdmin: false, message: "no cookie found" });
-  });
+    it('should return unauthenticated response when fetch fails', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false
+      });
 
-  it("should return default unauthenticated user if authentication fails", async () => {
-    (cookies as jest.Mock).mockReturnValue({
-      get: jest.fn().mockReturnValue({ value: "mock-token" }),
+      const result = await checkAuthStatus();
+
+      expect(result).toEqual({
+        authenticated: false,
+        user: null,
+        message: 'Authentication failed'
+      });
     });
 
-    (fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
-      ok: false,
-      statusText: "Unauthorized",
-    } as Response);
+    it('should return unauthenticated response when user data is missing', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ authenticated: false })
+      });
 
-    const user = await getAuthUser();
-    expect(user).toEqual({ id: "0", isAdmin: false, message: `${process.env.NEXT_PUBLIC_API_URL}/api/auth/admin/login` });
-  });
+      const result = await checkAuthStatus();
 
-  it("should return null on fetch error", async () => {
-    (cookies as jest.Mock).mockReturnValue({
-      get: jest.fn().mockReturnValue({ value: "mock-token" }),
+      expect(result).toEqual({
+        authenticated: false,
+        user: null,
+        message: 'Authentication failed'
+      });
     });
 
-    (fetch as jest.MockedFunction<typeof fetch>).mockRejectedValueOnce(new Error("Network error"));
+    it('should handle network errors gracefully', async () => {
+      mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-    const user = await getAuthUser();
-    expect(user).toBeNull();
+      const result = await checkAuthStatus();
+
+      expect(result).toEqual({
+        authenticated: false,
+        user: null,
+        message: 'Auth check failed'
+      });
+      expect(console.error).toHaveBeenCalled();
+    });
   });
 });
