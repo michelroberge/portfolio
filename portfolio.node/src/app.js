@@ -13,6 +13,7 @@ const connectDB = require("./config/db");
 const { passport, setupStrategies } = require("./config/passport");
 const { warmupLLM } = require("./services/warmUpService");
 
+const requestLogger = require("./middlewares/requestLogger");
 
 const authRoutes = require("./routes/authRoutes");
 const projectRoutes = require("./routes/projectRoutes");
@@ -50,6 +51,10 @@ async function createApp() {
     credentials: true, // Allow cookies to be sent
   }));
   
+  if ( process.env.LOG_HTTP_REQUESTS==="true"){
+    app.use(requestLogger);
+  }
+
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
   app.use(cookieParser());
