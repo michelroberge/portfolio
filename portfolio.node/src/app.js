@@ -46,10 +46,12 @@ async function createApp() {
 
   const app = express();
   
-  app.use(cors({
-    origin: process.env.ALLOW_CORS || "http://localhost:3000",
-    credentials: true, // Allow cookies to be sent
-  }));
+  if ( process.env.ALLOW_CORS){
+    app.use(cors({
+      origin: process.env.ALLOW_CORS || "http://localhost:3000",
+      credentials: true, // Allow cookies to be sent
+    }));
+  }
   
   if ( process.env.LOG_HTTP_REQUESTS==="true"){
     app.use(requestLogger);

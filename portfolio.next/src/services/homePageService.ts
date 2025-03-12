@@ -14,12 +14,14 @@ export async function getHomePageData(): Promise<{ blogEntries: BlogEntry[]; pro
       fetch(`${API_ENDPOINTS.blog}`, {
         headers: {
           'User-Agent': 'NextJS-SSR',
-        }
+        },
+        credentials: 'include'
       }),
       fetch(`${API_ENDPOINTS.project}`, {
         headers: {
           'User-Agent': 'NextJS-SSR',
-        }
+        },
+        credentials: 'include'
       })
     ]);
 
