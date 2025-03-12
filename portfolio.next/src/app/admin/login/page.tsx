@@ -41,8 +41,7 @@ export default function AdminLogin() {
         <h2 className="text-2xl font-semibold mb-4 text-center">Admin Login</h2>
         {error && <p className="text-red-500 mb-4">{error}</p>}
         <input
-          type="email"
-          placeholder="Email"
+          placeholder="Username or email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="border p-2 w-full mb-2"
