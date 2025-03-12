@@ -5,7 +5,7 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 # Copy necessary files
-COPY package.json package-lock.json tsconfig.json next.config.ts ./
+COPY package.json package-lock.json tsconfig.json next.config.js ./
 COPY .env.production ./ 
 COPY .env.production ./.env
 # Install dependencies
