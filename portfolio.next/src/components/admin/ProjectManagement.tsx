@@ -1,15 +1,18 @@
 import { Project } from '@/models/Project';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { archiveProject, getProjects } from '@/services/projectService';
 import Link from 'next/link';
 
-interface ProjectManagementProps {
-  initialProjects: Project[];
-}
-
-export default function ProjectManagement({ initialProjects }: ProjectManagementProps) {
-  const [projects, setProjects] = useState<Project[]>(initialProjects);
+export default function ProjectManagement() {
+  const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Following memory rule: Components should handle their own data fetching
+  useEffect(() => {
+    refreshProjects();
+  }, []);
+
 
   async function handleArchive(id: string) {
     try {
@@ -23,13 +26,24 @@ export default function ProjectManagement({ initialProjects }: ProjectManagement
 
   async function refreshProjects() {
     try {
+      setLoading(true);
       const updatedProjects = await getProjects();
       setProjects(updatedProjects);
       setError(null);
     } catch (err) {
       console.error(err);
       setError('Failed to refresh projects');
+    } finally {
+      setLoading(false);
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-gray-900"></div>
+      </div>
+    );
   }
 
   return (
