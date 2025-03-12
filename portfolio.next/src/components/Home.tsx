@@ -104,7 +104,7 @@ export default function Home({ blogEntries, projects }: HomeProps) {
                   <div className="p-6">
                     <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">
                       <Link 
-                        href={`/projects/${project._id}`} 
+                        href={`${project.link}`} 
                         className="hover:text-blue-500 transition-colors focus:outline-none focus:text-blue-500"
                       >
                         {project.title}
