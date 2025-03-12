@@ -13,13 +13,14 @@ export default function AdminLogin() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get("returnUrl") || "/admin";
-  const { isAuthenticated, login } = useAuth();
+  const { isAuthenticated, login, refreshAuth } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     try {
       await login(email, password);
+      await refreshAuth();
       if (returnUrl) {
         router.push(returnUrl);
       }

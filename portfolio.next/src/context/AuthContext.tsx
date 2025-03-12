@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      setUser(data.user);
+      await refreshAuth(); // Use refreshAuth instead of directly setting user
     } catch (err) {
       console.error('Failed to login:', err);
       setError("Login failed");
