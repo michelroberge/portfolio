@@ -1,12 +1,10 @@
-import { redirect } from "next/navigation";
-import { getAuthUser } from "@/services/authService";
+import { useAuth } from "@/context/AuthContext";
 import RefreshEmbeddings from "@/components/admin/RefreshEmbeddings";
 
-export default async function AdminEmbeddingsPage() {
-  const { authenticated, user } = await getAuthUser();
-
-  if (!authenticated || !user?.isAdmin) {
-    redirect("/admin/login");
+export default async function EmbeddingsManagement() {
+  const { isAuthenticated, user } = await useAuth();
+  if (!isAuthenticated || !user || !user.isAdmin) {
+    return <p>You are not authorized to view this page.</p>;
   }
 
   return (

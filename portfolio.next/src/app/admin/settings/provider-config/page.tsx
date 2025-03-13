@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { ProviderConfig } from "@/models/ProviderConfig";
-import { getProviderConfigs, updateProviderConfig } from "@/services/providerConfigService";
+import { fetchProviderConfigs, updateProviderConfig } from "@/services/providerConfigService";
 
 export default function ProviderConfigPage() {
   const router = useRouter();
@@ -15,7 +15,7 @@ export default function ProviderConfigPage() {
   useEffect(() => {
     async function loadConfigs() {
       try {
-        const data = await getProviderConfigs();
+        const data = await fetchProviderConfigs();
         setConfigs(data);
       } catch (err) {
         console.error('Failed to fetch provider configs:', err);
@@ -36,7 +36,7 @@ export default function ProviderConfigPage() {
   const handleUpdate = async (id: string, config: Partial<ProviderConfig>) => {
     try {
       await updateProviderConfig(id, config);
-      const updatedConfigs = await getProviderConfigs();
+      const updatedConfigs = await fetchProviderConfigs();
       setConfigs(updatedConfigs);
     } catch (err) {
       console.error('Failed to update provider config:', err);

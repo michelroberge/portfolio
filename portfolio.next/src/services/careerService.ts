@@ -1,151 +1,174 @@
-import { type CareerEntry, type CareerEntryCreate, createCareerEntryFromLinkedIn } from "@/models/CareerEntry";
-import { API_ENDPOINTS } from "@/lib/constants";
+import { PUBLIC_API, ADMIN_API } from '@/lib/constants';
+import { CareerEntry } from '@/models/CareerEntry';
 
 /**
- * Fetches the career timeline data from the API.
- * 
- * @returns A promise that resolves to an array of CareerEntry objects.
- */
-export async function fetchCareerTimeline(): Promise<CareerEntry[]> {
-  const res = await fetch(`${API_ENDPOINTS.career}/timeline`, { credentials: "include" });
-  if (!res.ok) throw new Error("Failed to fetch timeline data");
-  return await res.json();
-}
-
-/**
- * Fetches a single career entry by ID from the API.
- * 
- * @param id The ID of the career entry to fetch.
- * @returns A promise that resolves to a CareerEntry object.
- */
-export async function fetchCareerEntry(id: string): Promise<CareerEntry> {
-  const res = await fetch(`${API_ENDPOINTS.career}/timeline/${id}`, { credentials: "include" });
-  if (!res.ok) throw new Error("Failed to fetch entry");
-  return await res.json();
-}
-
-/**
- * Saves a career entry to the API.
- * 
- * If the entry has an _id property, it will be updated via a PUT request.
- * Otherwise, it will be created via a POST request.
- * 
- * @param entry The career entry to save.
- * @returns A promise that resolves to the saved CareerEntry object.
- */
-export async function saveCareerEntry(entry: CareerEntryCreate | (CareerEntry & { _id: string })): Promise<CareerEntry> {
-  const method = '_id' in entry ? "PUT" : "POST";
-  const url = '_id' in entry ? `${API_ENDPOINTS.career}/timeline/${entry._id}` : `${API_ENDPOINTS.career}/timeline`;
-  const res = await fetch(url, {
-    method,
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(entry),
-  });
-  if (!res || !res.ok) throw new Error("Failed to save entry");
-  return await res.json();
-}
-
-/**
- * Deletes a career entry by ID from the API.
- * 
- * @param id The ID of the career entry to delete.
- */
-export async function deleteCareerEntry(id: string): Promise<void> {
-  const res = await fetch(`${API_ENDPOINTS.career}/timeline/${id}`, {
-    method: "DELETE",
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("Failed to delete entry");
-}
-
-/**
- * Links multiple career entries together.
- * 
- * @param id The ID of the career entry to link to.
- * @param linkedIds The IDs of the career entries to link.
- */
-export async function linkEntries(id: string, linkedIds: string[]): Promise<void> {
-  const res = await fetch(`${API_ENDPOINTS.career}/timeline/${id}/link`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ linkedEntries: linkedIds }),
-  });
-  if (!res.ok) throw new Error("Failed to link entries");
-}
-
-/**
- * Interface for data parsed from LinkedIn HTML.
+ * Interface for LinkedIn parse result
  */
 export interface LinkedInParseResult {
-  /**
-   * The title of the job.
-   */
-  title: string;
-  /**
-   * The company name.
-   */
-  company: string;
-  /**
-   * The location of the job.
-   */
-  location: string;
-  /**
-   * The start date of the job.
-   */
-  startDate: string;
-  /**
-   * The end date of the job, or null if it's still ongoing.
-   */
-  endDate: string | null;
-  /**
-   * The job description.
-   */
-  description: string;
-  /**
-   * The skills required for the job.
-   */
-  skills: string[];
-  /**
-   * The URL of the LinkedIn job posting, if available.
-   */
-  linkedInUrl?: string;
+    title: string;
+    company: string;
+    location: string;
+    startDate: string;
+    endDate: string | null;
+    description: string;
 }
 
 /**
- * Parses LinkedIn HTML data on the backend.
- * 
- * @param rawHTML The raw HTML data from LinkedIn.
- * @returns A promise that resolves to an array of LinkedInParseResult objects.
+ * Fetch all career entries
+ */
+export async function fetchCareerTimeline(): Promise<CareerEntry[]> {
+    try {
+        const res = await fetch(PUBLIC_API.career.list, {
+            credentials: "include",
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || "Failed to fetch career timeline");
+        }
+
+        return res.json();
+    } catch (error) {
+        console.error("Failed to fetch career timeline:", error);
+        throw error;
+    }
+}
+
+/**
+ * Fetch a career entry by ID
+ */
+export async function fetchCareerEntry(id: string): Promise<CareerEntry> {
+    try {
+        const res = await fetch(PUBLIC_API.career.get(id), {
+            credentials: "include",
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || "Failed to fetch career entry");
+        }
+
+        return res.json();
+    } catch (error) {
+        console.error("Failed to fetch career entry:", error);
+        throw error;
+    }
+}
+
+/**
+ * Save (create or update) a career entry
+ */
+export async function saveCareerEntry(entry: Partial<CareerEntry> & { _id?: string }): Promise<CareerEntry> {
+    try {
+        if (entry._id) {
+            // Update existing entry
+            const res = await fetch(ADMIN_API.career.update(entry._id), {
+                method: "PUT",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(entry),
+            });
+
+            if (!res.ok) {
+                const error = await res.json();
+                throw new Error(error.message || "Failed to update career entry");
+            }
+
+            return res.json();
+        } else {
+            // Create new entry
+            const res = await fetch(ADMIN_API.career.create, {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(entry),
+            });
+
+            if (!res.ok) {
+                const error = await res.json();
+                throw new Error(error.message || "Failed to create career entry");
+            }
+
+            return res.json();
+        }
+    } catch (error) {
+        console.error("Failed to save career entry:", error);
+        throw error;
+    }
+}
+
+/**
+ * Delete a career entry
+ */
+export async function deleteCareerEntry(id: string): Promise<void> {
+    try {
+        const res = await fetch(ADMIN_API.career.delete(id), {
+            method: "DELETE",
+            credentials: "include",
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || "Failed to delete career entry");
+        }
+    } catch (error) {
+        console.error("Failed to delete career entry:", error);
+        throw error;
+    }
+}
+
+/**
+ * Parse LinkedIn HTML data on the backend
  */
 export async function parseLinkedInHTMLBackend(rawHTML: string): Promise<LinkedInParseResult[]> {
-  const res = await fetch(`${API_ENDPOINTS.career}/parse-linkedin`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ rawHTML }),
-  });
-  if (!res.ok) throw new Error("Failed to parse LinkedIn data.");
-  return await res.json();
+    try {
+        const res = await fetch(ADMIN_API.career.parseLinkedIn, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ rawHTML }),
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || "Failed to parse LinkedIn data");
+        }
+
+        return res.json();
+    } catch (error) {
+        console.error("Failed to parse LinkedIn data:", error);
+        throw error;
+    }
 }
 
 /**
- * Saves parsed LinkedIn jobs to the API.
- * 
- * @param parsedJobs The parsed LinkedIn jobs to save.
- * @returns A promise that resolves to an array of CareerEntry objects.
+ * Save parsed LinkedIn jobs to the backend
  */
-export async function saveParsedJobs(parsedJobs: LinkedInParseResult[]): Promise<CareerEntry[]> {
-  // Convert LinkedIn data directly to CareerEntries
-  const careerEntries = parsedJobs.map(createCareerEntryFromLinkedIn);
-  
-  const res = await fetch(`${API_ENDPOINTS.career}/timeline/bulk`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(careerEntries),
-  });
-  if (!res.ok) throw new Error("Failed to save parsed jobs.");
-  return await res.json();
+export async function saveParsedJobs(jobs: LinkedInParseResult[]): Promise<CareerEntry[]> {
+    try {
+        const res = await fetch(ADMIN_API.career.bulkImport, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(jobs),
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || "Failed to save parsed jobs");
+        }
+
+        return res.json();
+    } catch (error) {
+        console.error("Failed to save parsed jobs:", error);
+        throw error;
+    }
 }

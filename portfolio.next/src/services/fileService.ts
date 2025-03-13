@@ -1,63 +1,112 @@
+import { PUBLIC_API, ADMIN_API } from '@/lib/constants';
 import { FileInfo } from '@/models/FileInfo';
-import { API_ENDPOINTS } from '@/lib/constants';
 
+/**
+ * Fetch files with optional filtering
+ */
 export async function fetchFiles(entityId?: string, context?: string): Promise<FileInfo[]> {
-  try {
-    const url = new URL(`${API_ENDPOINTS.file}`);
-    if (entityId && context) {
-      url.searchParams.append("entityId", entityId);
-      url.searchParams.append("context", context);
-    }
+    try {
+        const url = new URL(PUBLIC_API.file.list);
+        if (entityId) url.searchParams.append("entityId", entityId);
+        if (context) url.searchParams.append("context", context);
 
-    const res = await fetch(url.toString(), { credentials: "include" });
-    if (!res.ok) throw new Error("Failed to fetch files");
-    return await res.json();
-  } catch (error) {
-    console.error(error);
-    return [];
-  }
+        const res = await fetch(url.toString(), {
+            credentials: "include", // Include for potential admin access
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || "Failed to fetch files");
+        }
+
+        return res.json();
+    } catch (error) {
+        console.error("Failed to fetch files:", error);
+        throw error;
+    }
 }
 
-export async function uploadFile(file: File, entityId: string, context: string, isPublic: boolean): Promise<FileInfo> {
-  try {
-    const formData = new FormData();
-    formData.append("file", file); 
-    formData.append("context", context);
-    formData.append("entityId", entityId);
-    formData.append("isPublic", isPublic.toString());
+/**
+ * Upload a file with metadata
+ */
+export async function uploadFile(
+    file: File,
+    entityId: string,
+    context: string,
+    isPublic: boolean = false
+): Promise<FileInfo> {
+    try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("entityId", entityId);
+        formData.append("context", context);
+        formData.append("isPublic", isPublic.toString());
 
-    const url = new URL(`${API_ENDPOINTS.file}/upload`);
-    url.searchParams.append("entityId", entityId);
-    url.searchParams.append("context", context);
-    url.searchParams.append("isPublic", isPublic.toString());
+        const url = new URL(ADMIN_API.file.upload);
+        url.searchParams.append("entityId", entityId);
+        url.searchParams.append("context", context);
+        url.searchParams.append("isPublic", isPublic.toString());
 
-    const res = await fetch(url.toString(), {
-      method: "POST",
-      credentials: "include",
-      headers: { "content-type" : "multipart/form-data", "x-filename" : file.name},
-      body: formData, 
-    });
+        const res = await fetch(url.toString(), {
+            method: "POST",
+            credentials: "include",
+            body: formData,
+        });
 
-    if (!res.ok) throw new Error("Upload failed");
-    return await res.json();
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || "Failed to upload file");
+        }
+
+        return res.json();
+    } catch (error) {
+        console.error("Failed to upload file:", error);
+        throw error;
+    }
 }
 
-export async function deleteFile(fileId: string): Promise<void> {
-  try {
-    const res = await fetch(`${API_ENDPOINTS.file}/${fileId}`, {
-      method: "DELETE",
-      credentials: "include",
-    });
+/**
+ * Update file metadata
+ */
+export async function updateFile(id: string, metadata: Partial<FileInfo>): Promise<FileInfo> {
+    try {
+        const res = await fetch(ADMIN_API.file.update(id), {
+            method: "PUT",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(metadata),
+        });
 
-    if (!res.ok) {
-      throw new Error("Failed to delete");
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || "Failed to update file");
+        }
+
+        return res.json();
+    } catch (error) {
+        console.error("Failed to update file:", error);
+        throw error;
     }
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
+}
+
+/**
+ * Delete a file
+ */
+export async function deleteFile(id: string): Promise<void> {
+    try {
+        const res = await fetch(ADMIN_API.file.delete(id), {
+            method: "DELETE",
+            credentials: "include",
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || "Failed to delete file");
+        }
+    } catch (error) {
+        console.error("Failed to delete file:", error);
+        throw error;
+    }
 }

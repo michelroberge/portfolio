@@ -2,12 +2,7 @@
 
 import { useState } from "react";
 import { updateAIConfig } from "@/services/aiService";
-
-interface AIConfig {
-  provider: "ollama" | "openai";
-  clientId?: string;
-  clientSecret?: string;
-}
+import { AIConfig } from "@/models/AI";
 
 export default function AIModelSettings({ initialConfig }: { initialConfig: AIConfig }) {
   const [aiConfig, setAIConfig] = useState<AIConfig>(initialConfig);
@@ -18,7 +13,11 @@ export default function AIModelSettings({ initialConfig }: { initialConfig: AICo
       await updateAIConfig(aiConfig);
       alert("AI Model Updated Successfully");
     } catch (err) {
-      setError((err as Error).message);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to update AI configuration");
+      }
     }
   };
 

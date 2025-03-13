@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ADMIN_API } from "@/lib/constants";
 
 export default function RefreshEmbeddings() {
   const [loading, setLoading] = useState(false);
@@ -11,18 +12,19 @@ export default function RefreshEmbeddings() {
     setMessage("");
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ai/initialize`, {
+      const response = await fetch(ADMIN_API.ai.initialize, {
         method: "POST",
         credentials: "include",
       });
 
       if (!response.ok) {
-        throw new Error("Failed to refresh embeddings");
+        const error = await response.json();
+        throw new Error(error.message || "Failed to refresh embeddings");
       }
 
       setMessage("Embeddings refreshed successfully!");
     } catch (err) {
-      console.error(err);
+      console.error("Failed to refresh embeddings:", err);
       setMessage("Error refreshing embeddings.");
     } finally {
       setLoading(false);

@@ -1,16 +1,18 @@
-import { redirect } from "next/navigation";
-import { getAIConfig } from "@/services/aiService";
+import { useAuth } from "@/context/AuthContext";
 import AIModelSettings from "@/components/admin/AIModelSettings";
-import { getAuthUser } from "@/services/authService";
+import { getAIConfig } from "@/services/aiService";
 
-export default async function AIModelSettingsPage() {
-  const { authenticated, user } = await getAuthUser();
-  if (!authenticated || !user || !user.isAdmin) {
-    const baseAddress = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-    redirect(`${baseAddress}/admin/login?returnUrl=%2Fadmin%2Fsettings%2Fai-model`);
+export default async function AiModelSettings() {
+  const { isAuthenticated, user } = await useAuth();
+  if (!isAuthenticated || !user || !user.isAdmin) {
+    return <p>You are not authorized to view this page.</p>;
   }
-  else{
-    const aiConfig = await getAIConfig();
-    return <AIModelSettings initialConfig={aiConfig} />;
-  }
+
+  const aiConfig = await getAIConfig();
+  return (
+    <div className="p-8 max-w-2xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6">AI Model Settings</h1>
+      <AIModelSettings initialConfig={aiConfig} />
+    </div>
+  );
 }

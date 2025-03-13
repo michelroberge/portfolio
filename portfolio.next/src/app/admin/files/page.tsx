@@ -1,10 +1,11 @@
-import { getAuthUser } from "@/services/authService";
+import { useAuth } from "@/context/AuthContext";
+
 import FileWrapper from "@/components/admin/FileWrapper";
 
 export default async function FileManagement() {
 
-  const { authenticated, user } = await getAuthUser();
-  if (!authenticated || !user || !user.isAdmin) {
+  const { isAuthenticated, user } = await useAuth();
+  if (!isAuthenticated || !user || !user.isAdmin) {
     return <p>You are not authorized to view this page.</p>;
   }
 

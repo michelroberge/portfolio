@@ -2,7 +2,7 @@
 "use client";
 import { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation"; 
-import { API_ENDPOINTS } from "@/lib/constants";
+import { AUTH_API, APP_ROUTES } from "@/lib/constants";
 import { User } from '@/models/User';
 import { checkAuthStatus } from '@/services/authService';
 
@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null);
 
     try {
-      const res = await fetch(`${API_ENDPOINTS.auth}/login`, {
+      const res = await fetch(AUTH_API.auth.login, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function logout(): Promise<void> {
     try {
-      await fetch(`${API_ENDPOINTS.auth}/logout`, {
+      await fetch(AUTH_API.auth.logout, {
         method: "POST",
         credentials: "include",
       });
@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Failed to logout:', err);
     } finally {
       setUser(null);
-      router.push("/login");
+      router.push(APP_ROUTES.auth.login);
     }
   }
 

@@ -1,58 +1,25 @@
 // services/homePageService.ts
 import { BlogEntry } from '@/models/BlogEntry';
 import { Project } from '@/models/Project';
-import { API_ENDPOINTS } from '@/lib/constants';
+import { PUBLIC_API } from '@/lib/constants';
 
+/**
+ * Get home page data including blogs and projects
+ */
 export async function getHomePageData(): Promise<{ blogEntries: BlogEntry[]; projects: Project[] }> {
-  console.log('='.repeat(80));
-  console.log('🔍 [DEBUG] API_ENDPOINTS:', {
-    blog: API_ENDPOINTS.blog,
-    project: API_ENDPOINTS.project,
-    REMOTE_URL: process.env.NEXT_PUBLIC_API_URL,
-    NODE_ENV: process.env.NODE_ENV
-  });
-
   try {
-    console.log('📝 [SSR getHomePageData] Starting fetch', {
-      blogUrl: API_ENDPOINTS.blog,
-      projectUrl: API_ENDPOINTS.project
-    });
-
     const [blogsRes, projectsRes] = await Promise.all([
-      fetch(`${API_ENDPOINTS.blog}`, {
-        headers: {
-          'User-Agent': 'NextJS-SSR',
-        },
-        credentials: 'include'
+      fetch(PUBLIC_API.blog.list, {
+        credentials: "include",
       }),
-      fetch(`${API_ENDPOINTS.project}`, {
-        headers: {
-          'User-Agent': 'NextJS-SSR',
-        },
-        credentials: 'include'
+      fetch(PUBLIC_API.project.list, {
+        credentials: "include",
       })
     ]);
 
-    // Log response status
-    console.log('📝 [SSR getHomePageData] Fetch responses', {
-      blogsStatus: blogsRes.status,
-      projectsStatus: projectsRes.status,
-      blogsStatusText: blogsRes.statusText,
-      projectsStatusText: projectsRes.statusText
-    });
-
     if (!blogsRes.ok || !projectsRes.ok) {
-      // Log error details if responses aren't ok
-      const blogsText = !blogsRes.ok ? await blogsRes.text() : 'OK';
-      const projectsText = !projectsRes.ok ? await projectsRes.text() : 'OK';
-      
-      console.error('❌ [SSR getHomePageData] Fetch failed', {
-        blogsStatus: blogsRes.status,
-        projectsStatus: projectsRes.status,
-        blogsError: blogsText,
-        projectsError: projectsText
-      });
-      throw new Error('Failed to fetch homepage data');
+      const error = !blogsRes.ok ? await blogsRes.json() : await projectsRes.json();
+      throw new Error(error.message || "Failed to fetch homepage data");
     }
 
     const [blogEntries, projects] = await Promise.all([
@@ -60,17 +27,9 @@ export async function getHomePageData(): Promise<{ blogEntries: BlogEntry[]; pro
       projectsRes.json()
     ]);
 
-    console.log('📝 [SSR getHomePageData] Successfully fetched data', {
-      blogsCount: blogEntries.length,
-      projectsCount: projects.length
-    });
-
     return { blogEntries, projects };
   } catch (error) {
-    console.error('❌ [SSR getHomePageData] Error:', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
-    });
-    return { blogEntries: [], projects: [] }; // Fallback to avoid breaking the page
+    console.error("Failed to fetch homepage data:", error);
+    throw error;
   }
 }

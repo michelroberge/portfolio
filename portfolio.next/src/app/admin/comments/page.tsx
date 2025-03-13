@@ -1,64 +1,52 @@
-// portfolio.next/src/app/admin/comments/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
-
-interface Comment {
-  _id: string;
-  author: string;
-  text: string;
-  createdAt: string;
-  redacted: boolean;
-  replies: Comment[];
-}
+import { APP_ROUTES } from "@/lib/constants";
+import { Comment } from "@/models/Comment";
+import { fetchAllComments, redactComment } from "@/services/commentService";
 
 export default function CommentManagement() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, user } = useAuth();
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   useEffect(() => {
-    async function fetchComments() {
+    async function loadComments() {
       try {
-        const res = await fetch(`${apiUrl}/api/comments/all`, {
-          credentials: "include",
-        });
-        if (!res.ok) throw new Error("Failed to fetch comments");
-        const data = await res.json();
+        const data = await fetchAllComments();
         setComments(data);
-      } catch (err: unknown) { // ✅ Use unknown instead of any
+      } catch (err) {
         if (err instanceof Error) {
           setError(err.message);
+        } else {
+          setError("Failed to fetch comments");
         }
       }
     }
-    if (isAuthenticated) fetchComments();
-  }, [isAuthenticated, apiUrl]);
+    if (isAuthenticated) loadComments();
+  }, [isAuthenticated]);
 
   const handleRedact = async (id: string) => {
     if (!confirm("Mark this comment as redacted?")) return;
     try {
-      const res = await fetch(`${apiUrl}/api/comments/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Redaction failed");
-      // Update the local state to mark the comment as redacted.
+      await redactComment(id);
+      // Update the local state to mark the comment as redacted
       setComments(prev =>
         prev.map(c => (c._id === id ? { ...c, redacted: true } : c))
       );
-    } catch (err: unknown) { // ✅ Use unknown instead of any
+    } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
+      } else {
+        setError("Failed to redact comment");
       }
     }
   };
 
   if (!isAuthenticated) return <p>You are not authenticated.</p>;
-  if (!(user?.isAdmin)) return <p>Only admins can access this page.</p>;
+  if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
 
   return (
     <div className="p-6">
@@ -99,7 +87,7 @@ export default function CommentManagement() {
           ))}
         </tbody>
       </table>
-      <Link href="/admin" className="text-blue-500 underline mt-4 inline-block">
+      <Link href={APP_ROUTES.admin.home} className="text-blue-500 underline mt-4 inline-block">
         Back to Dashboard
       </Link>
     </div>

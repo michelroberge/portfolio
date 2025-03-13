@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { API_ENDPOINTS } from "@/lib/constants";
+import { AUTH_API } from "@/lib/constants";
+
 type ChatMessage = {
   role: "user" | "ai";
   text: string;
@@ -21,16 +22,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function fetchChatData() {
       try {
-        const greetingRes = await fetch(`${API_ENDPOINTS.chat}/greeting`);
-        const { greeting } = await greetingRes.json();
+        const greeting = await loadContext();
 
-        const contextRes = await fetch(`${API_ENDPOINTS.chat}/context`);
-        const { context } = await contextRes.json();
-
-        setMessages([
-          { role: "ai", text: greeting },
-          { role: "ai", text: context }
-        ]);
+        if (greeting) {
+          setMessages([
+            { role: "ai", text: greeting },
+          ]);
+        } else {
+          setMessages([{ role: "ai", text: "Hello! Ask me anything about my projects or skills." }]);
+        }
       } catch (error) {
         console.error("Failed to fetch chat initialization data:", error);
         setMessages([{ role: "ai", text: "Hello! Ask me anything about my projects or skills." }]);
@@ -39,6 +39,25 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     fetchChatData();
   }, []);
+
+  const loadContext = async () => {
+    try {
+      const greetingRes = await fetch(AUTH_API.chat, {
+        credentials: "include",
+      });
+      const greeting = await greetingRes.json();
+
+      if (!greetingRes.ok) {
+        const error = await greetingRes.json();
+        throw new Error(error.message || "Failed to fetch chat greeting");
+      }
+
+      return greeting;
+    } catch (error) {
+      console.error("Failed to load chat context:", error);
+      return null;
+    }
+  };
 
   const addMessage = (message: ChatMessage) => {
     setMessages((prev) => [...prev, message]);

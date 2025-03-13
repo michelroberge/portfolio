@@ -1,16 +1,12 @@
-import { redirect } from "next/navigation";
-import { getAuthUser } from "@/services/authService";
+import { protectAdminRoute } from "@/lib/auth";
 import AnalyticsDashboard from "@/components/admin/AnalyticsDashboard";
 
-export default async function AnalyticsPage() {
-  const { authenticated, user } = await getAuthUser();
-
-  if (!authenticated || !user?.isAdmin) {
-    redirect("/admin/login");
-  }
+export default async function Analytics() {
+  // This will automatically redirect if not authenticated or not admin
+  await protectAdminRoute();
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="p-8 max-w-6xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Analytics Dashboard</h1>
       <AnalyticsDashboard />
     </div>

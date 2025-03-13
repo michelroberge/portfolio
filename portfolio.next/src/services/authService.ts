@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from "@/lib/constants";
+import { AUTH_API } from "@/lib/constants";
 import { User } from "@/models/User";
 
 /**
@@ -20,71 +20,86 @@ export interface AuthResponse {
 }
 
 /**
- * Server-side authentication check.
- * 
- * This function is intended to be used on the server-side to verify the user's authentication status.
- * 
- * @returns A promise resolving to an AuthResponse object.
+ * Interface for login credentials
  */
-export async function getAuthUser(): Promise<AuthResponse> {
+export interface LoginCredentials {
+  /**
+   * The username for login.
+   */
+  username: string;
+  /**
+   * The password for login.
+   */
+  password: string;
+}
+
+/**
+ * Login user with credentials
+ */
+export async function login(credentials: LoginCredentials): Promise<AuthResponse> {
   try {
-    const res = await fetch(`${API_ENDPOINTS.auth}/check`, {
-      method: "GET",
+    const res = await fetch(AUTH_API.auth.login, {
+      method: "POST",
       credentials: "include",
-      cache: "no-store"
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(credentials),
     });
 
     if (!res.ok) {
-      console.log("Authentication failed");
-      return { authenticated: false, user: null, message: `${API_ENDPOINTS.auth}/admin/login` };
+      const error = await res.json();
+      throw new Error(error.message || "Login failed");
     }
 
-    const data = await res.json();
-    if (!data.authenticated || !data.user) {
-      return { authenticated: false, user: null, message: "Authentication failed" };
-    }
-
-    return {
-      authenticated: true,
-      user: data.user,
-      message: "authenticated"
-    };
-  } catch (err) {
-    console.error("Error fetching auth status:", err);
-    return { authenticated: false, user: null, message: "Auth check failed" };
+    return res.json();
+  } catch (error) {
+    console.error("Login failed:", error);
+    throw error;
   }
 }
 
 /**
- * Client-side authentication check.
- * 
- * This function is intended to be used on the client-side to verify the user's authentication status.
- * 
- * @returns A promise resolving to an AuthResponse object.
+ * Check authentication status
  */
 export async function checkAuthStatus(): Promise<AuthResponse> {
   try {
-    const res = await fetch(`${API_ENDPOINTS.auth}/check`, {
+    const res = await fetch(AUTH_API.auth.status, {
       method: "GET",
       credentials: "include"
     });
 
     if (!res.ok) {
-      return { authenticated: false, user: null, message: "Authentication failed" };
+      return { authenticated: false, user: null };
     }
 
     const data = await res.json();
-    if (!data.authenticated || !data.user) {
-      return { authenticated: false, user: null, message: "Authentication failed" };
-    }
-
     return {
       authenticated: true,
       user: data.user,
-      message: "authenticated"
     };
-  } catch (err) {
-    console.error("Error checking auth status:", err);
+  } catch (error) {
+    console.error("Auth check failed:", error);
     return { authenticated: false, user: null, message: "Auth check failed" };
+  }
+}
+
+/**
+ * Logout current user
+ */
+export async function logout(): Promise<void> {
+  try {
+    const res = await fetch(AUTH_API.auth.logout, {
+      method: "POST",
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || "Logout failed");
+    }
+  } catch (error) {
+    console.error("Logout failed:", error);
+    throw error;
   }
 }

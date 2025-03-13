@@ -1,7 +1,8 @@
 import { Project } from '@/models/Project';
 import { useState, useEffect } from 'react';
-import { archiveProject, getProjects } from '@/services/projectService';
+import { archiveProject, fetchProjects } from '@/services/projectService';
 import Link from 'next/link';
+import { APP_ROUTES } from '@/lib/constants';
 
 export default function ProjectManagement() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -12,7 +13,6 @@ export default function ProjectManagement() {
   useEffect(() => {
     refreshProjects();
   }, []);
-
 
   async function handleArchive(id: string) {
     try {
@@ -27,7 +27,7 @@ export default function ProjectManagement() {
   async function refreshProjects() {
     try {
       setLoading(true);
-      const updatedProjects = await getProjects();
+      const updatedProjects = await fetchProjects();
       setProjects(updatedProjects);
       setError(null);
     } catch (err) {
@@ -52,7 +52,7 @@ export default function ProjectManagement() {
         <h2 className="text-2xl font-bold">Project Management</h2>
         <div className="space-x-4">
           <Link 
-            href="/admin/projects/new"
+            href={APP_ROUTES.admin.projects.create}
             className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
           >
             New Project
@@ -99,7 +99,7 @@ export default function ProjectManagement() {
             </div>
             <div className="flex gap-4">
               <Link
-                href={`/admin/projects/edit/${project._id}`}
+                href={APP_ROUTES.admin.projects.edit(project._id)}
                 className="text-blue-500 hover:underline"
               >
                 Edit
