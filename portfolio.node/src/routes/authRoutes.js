@@ -35,7 +35,7 @@ router.post("/login", async (req, res) => {
 });
 
 // Check authentication using the auth service
-router.get("/check", async (req, res) => {
+router.get("/status", async (req, res) => {
 
   const admin = await User.findOne({ isAdmin: true });
   if ( !admin){
