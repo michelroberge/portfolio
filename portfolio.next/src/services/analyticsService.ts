@@ -1,6 +1,11 @@
 // portfolio.next/src/services/analyticsService.ts
 import { ADMIN_API } from '@/lib/constants';
-import { AnalyticsData, TelemetryData, AnalyticsError } from '@/models/Analytics';
+import { 
+    AnalyticsData, 
+    TelemetryData, 
+    AnalyticsError,
+    EventDataValue 
+} from '@/models/Analytics';
 
 const ANALYTICS_ERRORS = {
     FETCH_FAILED: "Failed to fetch analytics data",
@@ -76,8 +81,10 @@ export async function trackPageView(path: string): Promise<void> {
 
 /**
  * Track a custom event
+ * @param event - Name of the event to track
+ * @param data - Optional event data with type-safe values
  */
-export async function trackEvent(event: string, data?: Record<string, any>): Promise<void> {
+export async function trackEvent(event: string, data?: Record<string, EventDataValue>): Promise<void> {
     try {
         const res = await fetch(ADMIN_API.analytics.trackEvent, {
             method: "POST",

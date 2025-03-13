@@ -1,4 +1,9 @@
 /**
+ * Valid types for analytics event data values
+ */
+export type EventDataValue = string | number | boolean | null;
+
+/**
  * Represents analytics data for the portfolio
  */
 export interface AnalyticsData {
@@ -33,7 +38,7 @@ export interface PageView {
  */
 export interface AnalyticsEvent {
     name: string;
-    data?: Record<string, any>;
+    data?: Record<string, EventDataValue>;
     timestamp: string;
     userId?: string;
     sessionId?: string;
@@ -52,10 +57,15 @@ export interface TelemetryData {
 }
 
 /**
+ * Valid types for error details values
+ */
+export type ErrorDetailValue = string | number | boolean | null | Error;
+
+/**
  * Represents an error response from the analytics API
  */
 export interface AnalyticsError {
     message: string;
     code?: string;
-    details?: Record<string, any>;
+    details?: Record<string, ErrorDetailValue>;
 }

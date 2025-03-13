@@ -1,6 +1,6 @@
 // portfolio.next/src/services/blogService.ts
 
-import { BlogEntry, BaseBlogEntry } from "@/models/BlogEntry";
+import { BlogEntry, BlogEntryCreate, BlogEntryUpdate } from "@/models/BlogEntry";
 import { PUBLIC_API, ADMIN_API } from "@/lib/constants";
 
 /**
@@ -47,7 +47,7 @@ export async function fetchBlogEntry(id: string): Promise<BlogEntry> {
 /**
  * Creates a new blog entry
  */
-export async function createBlogEntry(blog: Omit<BlogEntry, '_id' | 'createdAt' | 'updatedAt'>): Promise<BlogEntry> {
+export async function createBlogEntry(blog: BlogEntryCreate): Promise<BlogEntry> {
   try {
     const response = await fetch(ADMIN_API.blog.create, {
       method: "POST",
@@ -73,7 +73,7 @@ export async function createBlogEntry(blog: Omit<BlogEntry, '_id' | 'createdAt' 
 /**
  * Updates an existing blog entry
  */
-export async function updateBlogEntry(id: string, blog: Partial<BaseBlogEntry>): Promise<BaseBlogEntry> {
+export async function updateBlogEntry(id: string, blog: BlogEntryUpdate): Promise<BlogEntry> {
   try {
     const response = await fetch(ADMIN_API.blog.update(id), {
       method: "PUT",

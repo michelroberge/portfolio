@@ -3,12 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createUser } from '@/services/userService';
-import { UserCreate } from '@/models/User';
+import { UserCreateFormData, toUserCreate } from '@/models/User';
 
 export default function CreateUser() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<UserCreate & { confirmPassword: string }>({
+  const [formData, setFormData] = useState<UserCreateFormData>({
     username: '',
     password: '',
     confirmPassword: '',
@@ -30,8 +30,7 @@ export default function CreateUser() {
     }
 
     try {
-      const { confirmPassword, ...userData } = formData;
-      await createUser(userData);
+      await createUser(toUserCreate(formData));
       router.push('/admin/users');
     } catch (err) {
       console.error('Failed to create user:', err);
@@ -54,7 +53,7 @@ export default function CreateUser() {
         <input
           type="text"
           value={formData.username}
-          onChange={e => setFormData(prev => ({ ...prev, username: e.target.value }))}
+          onChange={e => setFormData((prev: UserCreateFormData) => ({ ...prev, username: e.target.value }))}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           required
         />
@@ -67,7 +66,7 @@ export default function CreateUser() {
         <input
           type="password"
           value={formData.password}
-          onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))}
+          onChange={e => setFormData((prev: UserCreateFormData) => ({ ...prev, password: e.target.value }))}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           required
           minLength={8}
@@ -81,7 +80,7 @@ export default function CreateUser() {
         <input
           type="password"
           value={formData.confirmPassword}
-          onChange={e => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+          onChange={e => setFormData((prev: UserCreateFormData) => ({ ...prev, confirmPassword: e.target.value }))}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           required
           minLength={8}
@@ -93,7 +92,7 @@ export default function CreateUser() {
           type="checkbox"
           id="isAdmin"
           checked={formData.isAdmin}
-          onChange={e => setFormData(prev => ({ ...prev, isAdmin: e.target.checked }))}
+          onChange={e => setFormData((prev: UserCreateFormData) => ({ ...prev, isAdmin: e.target.checked }))}
           className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
         />
         <label htmlFor="isAdmin" className="ml-2 block text-sm text-gray-900 dark:text-gray-200">

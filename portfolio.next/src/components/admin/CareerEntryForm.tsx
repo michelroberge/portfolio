@@ -2,17 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { fetchCareerEntry, saveCareerEntry } from "@/services/careerService";
 import { type CareerEntry } from "@/models/CareerEntry";
-import { saveCareerEntry } from "@/services/careerService";
 
-interface CareerEntryEditFormProps {
-  initialEntry?: CareerEntry | null;
+interface CareerEntryFormProps {
+  initialId?: string;
 }
 
-export default function CareerEntryEditForm({ initialEntry }: CareerEntryEditFormProps) {
+export default function CareerEntryForm({ initialId }: CareerEntryFormProps) {
   const router = useRouter();
-  const isNewEntry = !initialEntry?._id;
-
   const [entry, setEntry] = useState<CareerEntry>({
     title: "",
     company: "",
@@ -32,29 +30,41 @@ export default function CareerEntryEditForm({ initialEntry }: CareerEntryEditFor
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (initialEntry) {
-      setEntry({
-        ...initialEntry,
-        startDate: initialEntry.startDate ? new Date(initialEntry.startDate).toISOString().split("T")[0] : "",
-        endDate: initialEntry.endDate ? new Date(initialEntry.endDate).toISOString().split("T")[0] : null,
-      });
+    async function loadData() {
+      try {
+        if (initialId) {
+          const existingEntry = await fetchCareerEntry(initialId);
+          if (existingEntry) {
+            setEntry({
+              ...existingEntry,
+              startDate: existingEntry.startDate ? new Date(existingEntry.startDate).toISOString().split("T")[0] : "",
+              endDate: existingEntry.endDate ? new Date(existingEntry.endDate).toISOString().split("T")[0] : "",
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load career entry:", err);
+        setError("Failed to load existing career entry data.");
+      }
     }
-  }, [initialEntry]);
+
+    loadData();
+  }, [initialId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     try {
       await saveCareerEntry(entry);
-      router.push('/admin/career');
+      router.push("/admin/career");
     } catch (err) {
-      console.error(err);
+      console.error("Failed to save career entry:", err);
       setError("Failed to save career entry.");
     }
   }
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-4">{isNewEntry ? "Add Career Entry" : "Edit Career Entry"}</h1>
+      <h1 className="text-3xl font-bold mb-4">{initialId ? "Edit Career Entry" : "Add Career Entry"}</h1>
       {error && <p className="text-red-500">{error}</p>}
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
@@ -70,13 +80,6 @@ export default function CareerEntryEditForm({ initialEntry }: CareerEntryEditFor
           placeholder="Company"
           value={entry.company || ""}
           onChange={(e) => setEntry({ ...entry, company: e.target.value })}
-          className="w-full p-2 border rounded"
-        />
-        <input
-          type="text"
-          placeholder="Location"
-          value={entry.location || ""}
-          onChange={(e) => setEntry({ ...entry, location: e.target.value })}
           className="w-full p-2 border rounded"
         />
         <input
@@ -107,7 +110,7 @@ export default function CareerEntryEditForm({ initialEntry }: CareerEntryEditFor
         />
 
         <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
-          {isNewEntry ? "Add Entry" : "Save Changes"}
+          {initialId ? "Save Changes" : "Add Entry"}
         </button>
       </form>
     </div>
