@@ -1,16 +1,19 @@
 import { searchContent, chatWithAI, ChatMessage, SearchResult } from '@/services/aiService';
-import { API_ENDPOINTS } from '@/lib/constants';
+import { PUBLIC_API, AUTH_API } from '@/lib/constants';
 
 // Mock the global fetch function
-const mockFetch = jest.fn();
-global.fetch = mockFetch;
+let mockFetch: jest.Mock;
+beforeEach(() => {
+  mockFetch = jest.fn();
+  global.fetch = mockFetch;
+});
 
 // Mock console.error to prevent logging during tests
 console.error = jest.fn();
 
 describe('AI Search and Chat Service', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
+  afterEach(() => {
+    jest.resetAllMocks();
   });
 
   describe('searchContent', () => {
@@ -40,11 +43,10 @@ describe('AI Search and Chat Service', () => {
 
       const results = await searchContent(mockQuery);
 
-      expect(mockFetch).toHaveBeenCalledWith(API_ENDPOINTS.search, {
+      expect(mockFetch).toHaveBeenCalledWith(PUBLIC_API.search, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: mockQuery }),
-        credentials: 'include'
       });
       expect(results).toEqual(mockSearchResults);
     });
@@ -89,7 +91,7 @@ describe('AI Search and Chat Service', () => {
 
       const response = await chatWithAI(mockMessages);
 
-      expect(mockFetch).toHaveBeenCalledWith(API_ENDPOINTS.chat, {
+      expect(mockFetch).toHaveBeenCalledWith(AUTH_API.chat, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: mockMessages }),

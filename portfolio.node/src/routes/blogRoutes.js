@@ -1,137 +1,119 @@
 const express = require("express");
-const authMiddleware = require("../middlewares/auth");
-const adminAuth = require("../middlewares/admin");
 const blogService = require("../services/blogService");
-const BlogEntry = require("../models/BlogEntry"); // For dynamic search
+const BlogEntry = require("../models/BlogEntry");
 const { searchEntitiesHybrid } = require("../services/searchService");
 
 const router = express.Router();
 
 /**
- * @route POST /api/blogs
- * @desc Create a new blog post
- * @access Admin
+ * Sanitize blog data for public consumption
+ * @param {Object} blog - The blog entry to sanitize
+ * @returns {Object} - Sanitized blog entry
  */
-router.post("/", authMiddleware, adminAuth, async (req, res) => {
-    try {
-        const newBlog = await blogService.createBlog(req.body);
-        res.status(201).json(newBlog);
-    } catch (error) {
-        console.error("❌ Error creating blog:", error.message);
-        res.status(500).json({ error: error.message });
+function sanitizeBlogForPublic(blog) {
+    if (!blog) return null;
+
+    // Remove sensitive or admin-only fields
+    const {
+        isDraft,
+        publishAt,
+        createdBy,
+        updatedBy,
+        __v,
+        embedding,
+        ...publicBlog
+    } = blog.toObject();
+
+    // Only include publishAt if it's in the past
+    if (publishAt && publishAt <= new Date()) {
+        publicBlog.publishAt = publishAt;
     }
-});
+
+    return publicBlog;
+}
 
 /**
  * @route GET /api/blogs
- * @desc Retrieve all blog posts
+ * @desc Retrieve all published blog posts
  * @access Public
  */
 router.get("/", async (req, res) => {
     try {
-      let filter = {};
-      try{
-        const token = req.cookies["auth-token"];
-        const decoded = authService.verifyToken(token);
-        req.user = decoded; // Attach user info to the request object
-      }
-      catch (err){
-        // swallow error, user  is just not authenticated.
-      }
-  
-      // If no auth token, assume a public request.
-      if (!req.user?.isAdmin === true) {
-        filter = { 
-          isDraft: false, 
-          publishAt: { $lte: new Date() } // only posts scheduled for now or earlier
+        // Always filter for public posts
+        const filter = { 
+            isDraft: false, 
+            publishAt: { $lte: new Date() }
         };
-      }
-      const blogs = await blogService.getAllBlogs(filter);
-      res.json(blogs);
+
+        const blogs = await blogService.getAllBlogs(filter);
+        
+        // Sanitize each blog for public consumption
+        const sanitizedBlogs = blogs.map(blog => sanitizeBlogForPublic(blog))
+            .filter(blog => blog !== null); // Remove any null entries
+
+        res.json(sanitizedBlogs);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+        console.error("❌ Error fetching blogs:", error.message);
+        res.status(500).json({ error: "Failed to fetch blogs" }); // Generic error for public
     }
-  });
+});
+
+/**
+ * @route GET /api/blogs/search
+ * @desc Search published blog posts
+ * @access Public
+ */
+router.get("/search", async (req, res) => {
+    try {
+        const { q: query, limit = 10, minScore = 0.7 } = req.query;
+        if (!query) return res.status(400).json({ error: "Search query is required" });
+
+        // Only search public posts
+        const filter = {
+            isDraft: false,
+            publishAt: { $lte: new Date() }
+        };
+
+        const results = await searchEntitiesHybrid(BlogEntry, query, limit, minScore, filter);
+        
+        // Sanitize search results
+        const sanitizedResults = results.map(result => ({
+            ...result,
+            document: sanitizeBlogForPublic(result.document)
+        })).filter(result => result.document !== null);
+
+        res.json(sanitizedResults);
+    } catch (error) {
+        console.error("❌ Error searching blogs:", error.message);
+        res.status(500).json({ error: "Search failed" }); // Generic error for public
+    }
+});
 
 /**
  * @route GET /api/blogs/:id
- * @desc Retrieve a single blog post by ID
+ * @desc Retrieve a single published blog post by ID
  * @access Public
  */
 router.get("/:id", async (req, res) => {
     try {
         const blog = await blogService.getBlogById(req.params.id);
         if (!blog) return res.status(404).json({ error: "Blog not found" });
-        res.json(blog);
+
+        // Check if blog is published
+        if (blog.isDraft || (blog.publishAt && blog.publishAt > new Date())) {
+            return res.status(404).json({ error: "Blog not found" });
+        }
+
+        // Sanitize blog for public consumption
+        const sanitizedBlog = sanitizeBlogForPublic(blog);
+        if (!sanitizedBlog) {
+            return res.status(404).json({ error: "Blog not found" });
+        }
+
+        res.json(sanitizedBlog);
     } catch (error) {
         console.error("❌ Error fetching blog:", error.message);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * @route PUT /api/blogs/:id
- * @desc Update a blog post by ID
- * @access Admin
- */
-router.put("/:id", authMiddleware, adminAuth, async (req, res) => {
-    try {
-        const updatedBlog = await blogService.updateBlog(req.params.id, req.body);
-        if (!updatedBlog) return res.status(404).json({ error: "Blog not found" });
-        res.json(updatedBlog);
-    } catch (error) {
-        console.error("❌ Error updating blog:", error.message);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * @route DELETE /api/blogs/:id
- * @desc Delete a blog post by ID
- * @access Admin
- */
-router.delete("/:id", authMiddleware, adminAuth, async (req, res) => {
-    try {
-        const deleted = await blogService.deleteBlog(req.params.id);
-        if (!deleted) return res.status(404).json({ error: "Blog not found" });
-        res.json({ message: "Blog deleted successfully" });
-    } catch (error) {
-        console.error("❌ Error deleting blog:", error.message);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * @route POST /api/blogs/generate-embeddings
- * @desc Refresh blog embeddings (delta or full)
- * @access Admin
- */
-router.post("/generate-embeddings", authMiddleware, adminAuth, async (req, res) => {
-    try {
-        const { fullRefresh = false } = req.body;
-        const result = await blogService.refreshBlogEmbeddings(fullRefresh);
-        res.json(result);
-    } catch (error) {
-        console.error("❌ Error generating blog embeddings:", error.message);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * @route POST /api/blogs/search
- * @desc Perform a hybrid search (full-text + vector)
- * @access Public
- */
-router.post("/search", async (req, res) => {
-    try {
-        const { query, limit, minScore } = req.body;
-        if (!query) return res.status(400).json({ error: "Query is required" });
-
-        const results = await searchEntitiesHybrid(BlogEntry, query, limit, minScore);
-        res.json(results);
-    } catch (error) {
-        console.error("❌ Error searching blogs:", error.message);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Failed to fetch blog" }); // Generic error for public
     }
 });
 

@@ -1,7 +1,7 @@
 // portfolio.next/src/app/[slug]/page.tsx
 import { notFound } from "next/navigation";
 import { marked } from "marked";
-import { fetchPage } from "@/services/pageService";
+import { fetchPageBySlug } from "@/services/pageService";
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -9,7 +9,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   if (!slug) return notFound();
 
   try {
-    const page = await fetchPage(slug);
+    const page = await fetchPageBySlug(slug);
     if (!page) return notFound();
 
     return (

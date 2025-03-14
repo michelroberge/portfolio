@@ -1,56 +1,148 @@
 // portfolio.next/src/services/userService.ts
 
-import { API_ENDPOINTS } from "@/lib/constants";
-import { User } from "@/models/User";
+import { ADMIN_API } from "@/lib/constants";
+import { User, UserCreate } from "@/models/User";
 
 /**
- * Fetches all users from the backend
- * @returns Promise<User[]> List of users
+ * Fetch all users
  */
-export async function getUsers(): Promise<User[]> {
-  try {
-    const response = await fetch(`${API_ENDPOINTS.admin.users}`, {
-      credentials: "include",
-    });
+export async function fetchUsers(isAdmin: boolean = false, cookieHeader: string | null = null): Promise<User[]> {
+    try {
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch users");
+        if ( !isAdmin){
+            throw new Error("Unauthorized");
+        }
+        
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader } // Pass cookies for SSR requests
+            : {};
+
+        const response = await fetch(ADMIN_API.user.list, {
+            credentials: "include",
+            headers,
+            cache: "no-store",
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || "Failed to fetch users");
+        }
+
+        return response.json();
+    } catch (error) {
+        console.error("Failed to fetch users:", error);
+        throw error;
     }
-
-    return await response.json();
-  } catch (err) {
-    console.error("Failed to fetch users:", err);
-    throw err;
-  }
 }
 
 /**
- * Updates a user's admin status
- * @param userId The ID of the user to update
- * @param isAdmin Whether the user should be an admin
- * @returns Promise<User> The updated user
+ * Create a new user
  */
-export async function updateUserAdmin(
-  userId: string,
-  isAdmin: boolean
-): Promise<User> {
-  try {
-    const response = await fetch(`${API_ENDPOINTS.admin.users}/${userId}/admin`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify({ isAdmin }),
-    });
+export async function createUser(user: UserCreate, cookieHeader: string | null = null): Promise<User> {
+    try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
 
-    if (!response.ok) {
-      throw new Error("Failed to update user admin status");
+        const response = await fetch(ADMIN_API.user.create, {
+            method: "POST",
+            credentials: "include",
+            headers,
+            body: JSON.stringify(user),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || "Failed to create user");
+        }
+
+        return response.json();
+    } catch (error) {
+        console.error("Failed to create user:", error);
+        throw error;
     }
+}
 
-    return await response.json();
-  } catch (err) {
-    console.error("Failed to update user admin status:", err);
-    throw err;
-  }
+/**
+ * Update an existing user
+ */
+export async function updateUser(id: string, user: Partial<User>, cookieHeader: string | null = null): Promise<User> {
+    try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
+        const response = await fetch(ADMIN_API.user.update(id), {
+            method: "PUT",
+            credentials: "include",
+            headers,
+            body: JSON.stringify(user),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || "Failed to update user");
+        }
+
+        return response.json();
+    } catch (error) {
+        console.error("Failed to update user:", error);
+        throw error;
+    }
+}
+
+/**
+ * Update user admin status
+ */
+export async function updateUserAdmin(id: string, isAdmin: boolean, cookieHeader: string | null = null): Promise<User> {
+    try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
+        const response = await fetch(ADMIN_API.user.updateAdmin(id), {
+            method: "PUT",
+            credentials: "include",
+            headers,
+            body: JSON.stringify({ isAdmin }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || "Failed to update user admin status");
+        }
+
+        return response.json();
+    } catch (error) {
+        console.error("Failed to update user admin status:", error);
+        throw error;
+    }
+}
+
+/**
+ * Delete a user
+ */
+export async function deleteUser(id: string, cookieHeader: string | null = null): Promise<void> {
+    try {
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
+        const response = await fetch(ADMIN_API.user.delete(id), {
+            method: "DELETE",
+            credentials: "include",
+            headers,
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || "Failed to delete user");
+        }
+    } catch (error) {
+        console.error("Failed to delete user:", error);
+        throw error;
+    }
 }

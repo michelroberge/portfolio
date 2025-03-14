@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { type BlogEntry, BaseBlogEntry } from '@/models/BlogEntry';
+import { type BlogEntry, BaseBlogEntry, BlogEntryCreate } from '@/models/BlogEntry';
 import MarkdownEditor from '@/components/MarkdownEditor';
 import { createBlogEntry, updateBlogEntry } from '@/services/blogService';
 
@@ -18,6 +18,7 @@ export default function EditBlogEntry({ initialData }: Props) {
     excerpt: initialData?.excerpt || '',
     tags: initialData?.tags || [],
     isDraft: initialData?.isDraft ?? true,
+    publishAt: initialData?.publishAt || null,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,7 +27,7 @@ export default function EditBlogEntry({ initialData }: Props) {
       if (initialData?._id) {
         await updateBlogEntry(initialData._id, formData);
       } else {
-        const newBlog: Omit<BlogEntry, '_id' | 'createdAt' | 'updatedAt'> = {
+        const newBlog: BlogEntryCreate = {
           ...formData,
           link: '', // Will be generated on the backend
         };
@@ -48,7 +49,7 @@ export default function EditBlogEntry({ initialData }: Props) {
           type="text"
           id="title"
           value={formData.title}
-          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+          onChange={(e) => setFormData((prev: BaseBlogEntry) => ({ ...prev, title: e.target.value }))}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           required
         />
@@ -61,7 +62,7 @@ export default function EditBlogEntry({ initialData }: Props) {
         <textarea
           id="excerpt"
           value={formData.excerpt}
-          onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+          onChange={(e) => setFormData((prev: BaseBlogEntry) => ({ ...prev, excerpt: e.target.value }))}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           rows={2}
           required
@@ -74,7 +75,7 @@ export default function EditBlogEntry({ initialData }: Props) {
         </label>
         <MarkdownEditor
           value={formData.body}
-          onChange={(value: string) => setFormData({ ...formData, body: value })}
+          onChange={(value: string) => setFormData((prev: BaseBlogEntry) => ({ ...prev, body: value }))}
         />
       </div>
 
@@ -86,7 +87,10 @@ export default function EditBlogEntry({ initialData }: Props) {
           type="text"
           id="tags"
           value={formData.tags.join(', ')}
-          onChange={(e) => setFormData({ ...formData, tags: e.target.value.split(',').map(tag => tag.trim()) })}
+          onChange={(e) => setFormData((prev: BaseBlogEntry) => ({ 
+            ...prev, 
+            tags: e.target.value.split(',').map(tag => tag.trim()) 
+          }))}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
         />
       </div>
@@ -96,7 +100,7 @@ export default function EditBlogEntry({ initialData }: Props) {
           type="checkbox"
           id="isDraft"
           checked={formData.isDraft}
-          onChange={(e) => setFormData({ ...formData, isDraft: e.target.checked })}
+          onChange={(e) => setFormData((prev: BaseBlogEntry) => ({ ...prev, isDraft: e.target.checked }))}
           className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
         />
         <label htmlFor="isDraft" className="ml-2 block text-sm text-gray-900">

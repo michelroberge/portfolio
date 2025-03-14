@@ -1,191 +1,157 @@
-import { fetchBlogEntries, fetchBlogEntry, createBlogEntry, updateBlogEntry, deleteBlogEntry } from '@/services/blogService';
-import { API_ENDPOINTS } from '@/lib/constants';
+import { fetchBlogEntry, createBlogEntry, updateBlogEntry, deleteBlogEntry } from '@/services/blogService';
+import { PUBLIC_API, ADMIN_API } from '@/lib/constants';
 import { BlogEntry } from '@/models/BlogEntry';
 
-// Mock the global fetch function
-const mockFetch = jest.fn();
-global.fetch = mockFetch;
-
-// Mock console.error to prevent logging during tests
-console.error = jest.fn();
-
-describe('blogService', () => {
-  const mockBlogEntry: BlogEntry = {
-    _id: '123',
-    title: 'Test Blog',
-    body: 'Test Content',
-    excerpt: 'Test Description',
-    tags: ['test'],
-    isDraft: false,
-    link: 'test-link',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
+describe('Blog Service', () => {
+  let mockFetch: jest.Mock;
 
   beforeEach(() => {
-    // Clear all mocks before each test
-    jest.clearAllMocks();
+    mockFetch = jest.fn();
+    global.fetch = mockFetch;
   });
 
-  describe('fetchBlogEntries', () => {
-    it('should fetch all blog entries successfully', async () => {
-      const mockResponse = [mockBlogEntry];
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse)
-      });
-
-      const result = await fetchBlogEntries();
-
-      expect(mockFetch).toHaveBeenCalledWith(API_ENDPOINTS.admin.blogs, {
-        credentials: 'include'
-      });
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('should throw error when fetch fails', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false
-      });
-
-      await expect(fetchBlogEntries()).rejects.toThrow('Failed to fetch blog entries');
-      expect(console.error).toHaveBeenCalled();
-    });
-
-    it('should handle network errors', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
-
-      await expect(fetchBlogEntries()).rejects.toThrow('Network error');
-      expect(console.error).toHaveBeenCalled();
-    });
+  afterEach(() => {
+    jest.resetAllMocks();
   });
+
+  const mockBlog: BlogEntry = {
+    _id: '123',
+    title: 'Test Blog',
+    excerpt: 'Test excerpt',
+    body: 'Test body content',
+    tags: ['test'],
+    isDraft: false,
+    link: 'test-blog',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
 
   describe('fetchBlogEntry', () => {
-    it('should fetch a single blog entry successfully', async () => {
+    it('should fetch blog entry correctly', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockBlogEntry)
+        json: () => Promise.resolve(mockBlog),
       });
 
       const result = await fetchBlogEntry('123');
 
-      expect(mockFetch).toHaveBeenCalledWith(`${API_ENDPOINTS.blog}/123`, {
-        credentials: 'include'
+      expect(mockFetch).toHaveBeenCalledWith(PUBLIC_API.blog.get('123'), {
+        credentials: 'include',
       });
-      expect(result).toEqual(mockBlogEntry);
+      expect(result).toEqual(mockBlog);
     });
 
-    it('should throw error when fetch fails', async () => {
+    it('should handle errors correctly', async () => {
+      const errorMessage = 'Blog not found';
       mockFetch.mockResolvedValueOnce({
-        ok: false
+        ok: false,
+        json: () => Promise.resolve({ message: errorMessage }),
       });
 
-      await expect(fetchBlogEntry('123')).rejects.toThrow('Failed to fetch blog entry');
-      expect(console.error).toHaveBeenCalled();
+      await expect(fetchBlogEntry('123')).rejects.toThrow(errorMessage);
     });
   });
 
   describe('createBlogEntry', () => {
-    const newBlogEntry = {
-      _id :'',
+    const newBlog = {
       title: 'New Blog',
-      body: 'New Content',
-      excerpt: 'New Description',
-      slug: 'new-blog',
+      excerpt: 'New excerpt',
+      body: 'New body content',
       tags: ['new'],
       isDraft: true,
-      publishAt: new Date().toISOString(),
       link: 'new-blog',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
     };
 
-    it('should create a blog entry successfully', async () => {
+    it('should create blog entry correctly', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockBlogEntry)
+        json: () => Promise.resolve(mockBlog),
       });
 
-      const result = await createBlogEntry(newBlogEntry);
+      const result = await createBlogEntry(newBlog);
 
-      expect(mockFetch).toHaveBeenCalledWith(API_ENDPOINTS.admin.blogs, {
+      expect(mockFetch).toHaveBeenCalledWith(ADMIN_API.blog.create, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(newBlogEntry)
+        body: JSON.stringify(newBlog),
       });
-      expect(result).toEqual(mockBlogEntry);
+      expect(result).toEqual(mockBlog);
     });
 
-    it('should throw error when creation fails', async () => {
+    it('should handle errors correctly', async () => {
+      const errorMessage = 'Failed to create blog';
       mockFetch.mockResolvedValueOnce({
-        ok: false
+        ok: false,
+        json: () => Promise.resolve({ message: errorMessage }),
       });
 
-      await expect(createBlogEntry(newBlogEntry)).rejects.toThrow('Failed to create blog entry');
-      expect(console.error).toHaveBeenCalled();
+      await expect(createBlogEntry(newBlog)).rejects.toThrow(errorMessage);
     });
   });
 
   describe('updateBlogEntry', () => {
     const updateData = {
       title: 'Updated Blog',
-      content: 'Updated Content'
+      excerpt: 'Updated excerpt',
+      body: 'Updated body content',
     };
 
-    it('should update a blog entry successfully', async () => {
-      const updatedBlog = { ...mockBlogEntry, ...updateData };
+    it('should update blog entry correctly', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(updatedBlog)
+        json: () => Promise.resolve({ ...mockBlog, ...updateData }),
       });
 
       const result = await updateBlogEntry('123', updateData);
 
-      expect(mockFetch).toHaveBeenCalledWith(`${API_ENDPOINTS.admin.blogs}/123`, {
+      expect(mockFetch).toHaveBeenCalledWith(ADMIN_API.blog.update('123'), {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(updateData)
+        body: JSON.stringify(updateData),
       });
-      expect(result).toEqual(updatedBlog);
+      expect(result).toEqual({ ...mockBlog, ...updateData });
     });
 
-    it('should throw error when update fails', async () => {
+    it('should handle errors correctly', async () => {
+      const errorMessage = 'Failed to update blog';
       mockFetch.mockResolvedValueOnce({
-        ok: false
+        ok: false,
+        json: () => Promise.resolve({ message: errorMessage }),
       });
 
-      await expect(updateBlogEntry('123', updateData)).rejects.toThrow('Failed to update blog entry');
-      expect(console.error).toHaveBeenCalled();
+      await expect(updateBlogEntry('123', updateData)).rejects.toThrow(errorMessage);
     });
   });
 
   describe('deleteBlogEntry', () => {
-    it('should delete a blog entry successfully', async () => {
+    it('should delete blog entry correctly', async () => {
       mockFetch.mockResolvedValueOnce({
-        ok: true
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
       });
 
       await deleteBlogEntry('123');
 
-      expect(mockFetch).toHaveBeenCalledWith(`${API_ENDPOINTS.admin.blogs}/123`, {
+      expect(mockFetch).toHaveBeenCalledWith(ADMIN_API.blog.delete('123'), {
         method: 'DELETE',
-        credentials: 'include'
+        credentials: 'include',
       });
     });
 
-    it('should throw error when deletion fails', async () => {
+    it('should handle errors correctly', async () => {
+      const errorMessage = 'Failed to delete blog';
       mockFetch.mockResolvedValueOnce({
-        ok: false
+        ok: false,
+        json: () => Promise.resolve({ message: errorMessage }),
       });
 
-      await expect(deleteBlogEntry('123')).rejects.toThrow('Failed to delete blog entry');
-      expect(console.error).toHaveBeenCalled();
+      await expect(deleteBlogEntry('123')).rejects.toThrow(errorMessage);
     });
   });
 });

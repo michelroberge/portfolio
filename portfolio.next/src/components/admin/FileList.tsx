@@ -9,9 +9,10 @@ interface FileListProps {
   entityId: string;
   context: string;
   refreshFiles: () => void;
+  cookieHeader?: string;
 }
 
-export default function FileList({ entityId, context, refreshFiles }: FileListProps) {
+export default function FileList({ entityId, context, refreshFiles, cookieHeader }: FileListProps) {
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +21,7 @@ export default function FileList({ entityId, context, refreshFiles }: FileListPr
   useEffect(() => {
     async function loadFiles() {
       try {
-        const data = await fetchFiles(entityId, context);
+        const data = await fetchFiles(entityId, context, true, cookieHeader || null);
         setFiles(data);
       } catch (err) {
         console.error('Failed to load files:', err);
@@ -30,13 +31,13 @@ export default function FileList({ entityId, context, refreshFiles }: FileListPr
       }
     }
     loadFiles();
-  }, [entityId, context]);
+  }, [entityId, context, cookieHeader]);
 
   async function handleDelete(fileId: string) {
     if (!window.confirm("Are you sure you want to delete this file?")) return;
 
     try {
-      await deleteFile(fileId);
+      await deleteFile(fileId, true, cookieHeader || null);
       refreshFiles();
     } catch (err) {
       console.error('Failed to delete file:', err);

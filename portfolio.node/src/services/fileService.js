@@ -52,6 +52,10 @@ async function uploadFile(req, entityId, context, isPublic) {
     req.pipe(uploadStream);
 
     uploadStream.on("finish", async (file) => {
+      // Generate vectorId for new files
+      const vectorId = await counterService.getNextVectorId();
+      await updateFileMetadata(file._id, { vectorId });
+
       // Process embeddings for text-based files
       if (contentType.startsWith("text/") || contentType === "application/pdf") {
         await updateFileEmbeddings(file._id, filename, contentType);
@@ -97,7 +101,8 @@ async function updateFileEmbeddings(fileId, filename, contentType) {
   const embedding = await generateEmbeddings(text);
   if (!embedding) throw new Error(`Failed to generate embedding for file: ${fileId}`);
 
-  await storeEmbedding("files", fileId.toString(), embedding, { filename });
+  const fileMetadata = await getFileMetadata(fileId);
+  await storeEmbedding("files", fileMetadata.vectorId, embedding, { filename });
 }
 
 /**

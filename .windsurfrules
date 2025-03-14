@@ -5,6 +5,7 @@ General information
 4. Both projects have a ./src directory where the source code is located.
 5. Both projects have a __tests__ directory where the tests are located.
 
+
 Development Principles
 6. Use Domain Driven Design.
 7. Use Clean Architecture.
@@ -78,3 +79,6 @@ Testing
 - The tests should always use the appropriate props and dependencies (i.e. mock services, hooks, etc.)
 - Use jest.mock() for mocking dependencies.
 - Use waitFor() for async operations.
+
+IMPORTANT AND MANDATORY RULES
+A) Never make a design decision on your own. Always make a suggestion first for confirmation.

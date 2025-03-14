@@ -1,21 +1,29 @@
 // portfolio.next/src/services/blogService.ts
 
-import { API_ENDPOINTS } from "@/lib/constants";
-import { BlogEntry, BaseBlogEntry } from "@/models/BlogEntry";
+import { BlogEntry, BlogEntryCreate, BlogEntryUpdate } from "@/models/BlogEntry";
+import { PUBLIC_API, ADMIN_API } from "@/lib/constants";
 
 /**
  * Fetches all blog entries
  */
-export async function fetchBlogEntries(): Promise<BlogEntry[]> {
+export async function fetchBlogEntries(isAdmin: boolean = false, cookieHeader : string | null = null): Promise<BlogEntry[]> {
   try {
-    const response = await fetch(`${API_ENDPOINTS.admin.blogs}`, {
+    const url = isAdmin ? ADMIN_API.blog.list : PUBLIC_API.blog.list;
+
+    const headers: HeadersInit = cookieHeader
+    ? { Cookie: cookieHeader } // Pass cookies for SSR requests
+    : {};
+
+    const response = await fetch(url, {
       credentials: "include",
+      headers,
+      cache: "no-store",
     });
 
     if (!response.ok) {
-      throw new Error("Failed to fetch blog entries");
+      const error = await response.json();
+      throw new Error(error.message || "Failed to fetch blog entries");
     }
-
     return await response.json();
   } catch (err) {
     console.error("Failed to fetch blog entries:", err);
@@ -26,10 +34,18 @@ export async function fetchBlogEntries(): Promise<BlogEntry[]> {
 /**
  * Fetches a single blog entry by ID
  */
-export async function fetchBlogEntry(id: string): Promise<BlogEntry> {
+export async function fetchBlogEntry(id: string, isAdmin: boolean = false, cookieHeader: string|null=null): Promise<BlogEntry> {
   try {
-    const response = await fetch(`${API_ENDPOINTS.blog}/${id}`, {
+
+    const url = isAdmin? ADMIN_API.blog.get(id) : PUBLIC_API.blog.get(id);
+    const headers: HeadersInit = cookieHeader
+    ? { Cookie: cookieHeader } // Pass cookies for SSR requests
+    : {};
+
+    const response = await fetch(url, {
       credentials: "include",
+      headers,
+      cache: "no-store",
     });
 
     if (!response.ok) {
@@ -46,9 +62,9 @@ export async function fetchBlogEntry(id: string): Promise<BlogEntry> {
 /**
  * Creates a new blog entry
  */
-export async function createBlogEntry(blog: Omit<BlogEntry, '_id' | 'createdAt' | 'updatedAt'>): Promise<BlogEntry> {
+export async function createBlogEntry(blog: BlogEntryCreate): Promise<BlogEntry> {
   try {
-    const response = await fetch(`${API_ENDPOINTS.admin.blogs}`, {
+    const response = await fetch(ADMIN_API.blog.create, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -58,7 +74,8 @@ export async function createBlogEntry(blog: Omit<BlogEntry, '_id' | 'createdAt' 
     });
 
     if (!response.ok) {
-      throw new Error("Failed to create blog entry");
+      const error = await response.json();
+      throw new Error(error.message || "Failed to create blog entry");
     }
 
     return await response.json();
@@ -71,9 +88,9 @@ export async function createBlogEntry(blog: Omit<BlogEntry, '_id' | 'createdAt' 
 /**
  * Updates an existing blog entry
  */
-export async function updateBlogEntry(id: string, blog: Partial<BaseBlogEntry>): Promise<BaseBlogEntry> {
+export async function updateBlogEntry(id: string, blog: BlogEntryUpdate): Promise<BlogEntry> {
   try {
-    const response = await fetch(`${API_ENDPOINTS.admin.blogs}/${id}`, {
+    const response = await fetch(ADMIN_API.blog.update(id), {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -83,7 +100,8 @@ export async function updateBlogEntry(id: string, blog: Partial<BaseBlogEntry>):
     });
 
     if (!response.ok) {
-      throw new Error("Failed to update blog entry");
+      const error = await response.json();
+      throw new Error(error.message || "Failed to update blog entry");
     }
 
     return await response.json();
@@ -98,13 +116,14 @@ export async function updateBlogEntry(id: string, blog: Partial<BaseBlogEntry>):
  */
 export async function deleteBlogEntry(id: string): Promise<void> {
   try {
-    const response = await fetch(`${API_ENDPOINTS.admin.blogs}/${id}`, {
+    const response = await fetch(ADMIN_API.blog.delete(id), {
       method: "DELETE",
       credentials: "include",
     });
 
     if (!response.ok) {
-      throw new Error("Failed to delete blog entry");
+      const error = await response.json();
+      throw new Error(error.message || "Failed to delete blog entry");
     }
   } catch (err) {
     console.error("Failed to delete blog entry:", err);

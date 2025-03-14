@@ -1,24 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from "next/navigation";
 import Link from 'next/link';
 import { type BlogEntry } from '@/models/BlogEntry';
 import { fetchBlogEntries, deleteBlogEntry } from '@/services/blogService';
 
 export default function BlogManagement() {
+  const router = useRouter();
   const [blogs, setBlogs] = useState<BlogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
-
-  const loadBlogs = async () => {
-    try {
-      const data = await fetchBlogEntries();
-      setBlogs(data);
-      setError(null);
-    } catch (err) {
-      console.error('Failed to load blogs:', err);
-      setError('Failed to load blogs');
-    }
-  };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this blog entry?')) return;
@@ -27,6 +18,7 @@ export default function BlogManagement() {
       await deleteBlogEntry(id);
       setBlogs(blogs.filter(blog => blog._id !== id));
       setError(null);
+      router.refresh(); // Forces Next.js to refetch SSR data
     } catch (err) {
       console.error('Failed to delete blog:', err);
       setError('Failed to delete blog');
@@ -34,8 +26,21 @@ export default function BlogManagement() {
   };
 
   useEffect(() => {
+
+    const loadBlogs = async () => {
+      try {
+        const data = await fetchBlogEntries();
+        setBlogs(data);
+        setError(null);
+        router.refresh(); // Forces Next.js to refetch SSR data
+      } catch (err) {
+        console.error('Failed to load blogs:', err);
+        setError('Failed to load blogs');
+      }
+    };
+  
     loadBlogs();
-  }, []);
+  }, [router]);
 
   return (
     <div className="space-y-4">

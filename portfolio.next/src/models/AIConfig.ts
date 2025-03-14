@@ -5,4 +5,5 @@ export interface AIConfig {
   provider: "ollama" | "openai";
   clientId?: string;
   clientSecret?: string;
+  isWarmedUp: boolean;
 }

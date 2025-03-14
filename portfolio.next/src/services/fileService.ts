@@ -1,63 +1,145 @@
+import { PUBLIC_API, ADMIN_API } from '@/lib/constants';
 import { FileInfo } from '@/models/FileInfo';
-import { API_ENDPOINTS } from '@/lib/constants';
 
-export async function fetchFiles(entityId?: string, context?: string): Promise<FileInfo[]> {
-  try {
-    const url = new URL(`${API_ENDPOINTS.file}`);
-    if (entityId && context) {
-      url.searchParams.append("entityId", entityId);
-      url.searchParams.append("context", context);
+/**
+ * Fetch files with optional filtering
+ */
+export async function fetchFiles(entityId?: string, context?: string, isAdmin: boolean = false, cookieHeader: string | null = null): Promise<FileInfo[]> {
+    try {
+        const url = isAdmin ? new URL(ADMIN_API.file.list) : new URL(PUBLIC_API.file.list);
+        if (entityId) url.searchParams.append("entityId", entityId);
+        if (context) url.searchParams.append("context", context);
+
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
+        const res = await fetch(url.toString(), {
+            credentials: "include",
+            headers,
+            cache: "no-store",
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || "Failed to fetch files");
+        }
+
+        return res.json();
+    } catch (error) {
+        console.error("Failed to fetch files:", error);
+        throw error;
     }
-
-    const res = await fetch(url.toString(), { credentials: "include" });
-    if (!res.ok) throw new Error("Failed to fetch files");
-    return await res.json();
-  } catch (error) {
-    console.error(error);
-    return [];
-  }
 }
 
-export async function uploadFile(file: File, entityId: string, context: string, isPublic: boolean): Promise<FileInfo> {
-  try {
-    const formData = new FormData();
-    formData.append("file", file); 
-    formData.append("context", context);
-    formData.append("entityId", entityId);
-    formData.append("isPublic", isPublic.toString());
+/**
+ * Upload a file with metadata
+ */
+export async function uploadFile(
+    file: File,
+    entityId: string,
+    context: string,
+    isPublic: boolean = false,
+    isAdmin: boolean = false,
+    cookieHeader: string | null = null
+): Promise<FileInfo> {
+    try {
+        if (!isAdmin) {
+            throw new Error("Unauthorized");
+        }
 
-    const url = new URL(`${API_ENDPOINTS.file}/upload`);
-    url.searchParams.append("entityId", entityId);
-    url.searchParams.append("context", context);
-    url.searchParams.append("isPublic", isPublic.toString());
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("entityId", entityId);
+        formData.append("context", context);
+        formData.append("isPublic", isPublic.toString());
 
-    const res = await fetch(url.toString(), {
-      method: "POST",
-      credentials: "include",
-      headers: { "content-type" : "multipart/form-data", "x-filename" : file.name},
-      body: formData, 
-    });
+        const url = new URL(ADMIN_API.file.upload);
+        url.searchParams.append("entityId", entityId);
+        url.searchParams.append("context", context);
+        url.searchParams.append("isPublic", isPublic.toString());
 
-    if (!res.ok) throw new Error("Upload failed");
-    return await res.json();
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
+        const res = await fetch(url.toString(), {
+            method: "POST",
+            credentials: "include",
+            headers,
+            body: formData,
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || "Failed to upload file");
+        }
+
+        return res.json();
+    } catch (error) {
+        console.error("Failed to upload file:", error);
+        throw error;
+    }
 }
 
-export async function deleteFile(fileId: string): Promise<void> {
-  try {
-    const res = await fetch(`${API_ENDPOINTS.file}/${fileId}`, {
-      method: "DELETE",
-      credentials: "include",
-    });
+/**
+ * Update file metadata
+ */
+export async function updateFile(id: string, metadata: Partial<FileInfo>, isAdmin: boolean = false, cookieHeader: string | null = null): Promise<FileInfo> {
+    try {
+        if (!isAdmin) {
+            throw new Error("Unauthorized");
+        }
 
-    if (!res.ok) {
-      throw new Error("Failed to delete");
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
+        const res = await fetch(ADMIN_API.file.update(id), {
+            method: "PUT",
+            credentials: "include",
+            headers,
+            body: JSON.stringify(metadata),
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || "Failed to update file");
+        }
+
+        return res.json();
+    } catch (error) {
+        console.error("Failed to update file:", error);
+        throw error;
     }
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
+}
+
+/**
+ * Delete a file
+ */
+export async function deleteFile(id: string, isAdmin: boolean = false, cookieHeader: string | null = null): Promise<void> {
+    try {
+        if (!isAdmin) {
+            throw new Error("Unauthorized");
+        }
+
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
+        const res = await fetch(ADMIN_API.file.delete(id), {
+            method: "DELETE",
+            credentials: "include",
+            headers,
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || "Failed to delete file");
+        }
+    } catch (error) {
+        console.error("Failed to delete file:", error);
+        throw error;
+    }
 }

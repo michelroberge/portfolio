@@ -3,15 +3,19 @@
 import { useState } from "react";
 import { uploadFile } from "@/services/fileService";
 
+interface UploadSpecificFileProps {
+  entityId: string;
+  context: string;
+  refreshFiles: () => void;
+  cookieHeader?: string;
+}
+
 export default function UploadSpecificFile({
   entityId,
   context,
-  refreshFiles, // ✅ Accept refreshFiles as a prop
-}: {
-  entityId: string;
-  context: string;
-  refreshFiles: () => void; // ✅ Function to refresh file list
-}) {
+  refreshFiles,
+  cookieHeader,
+}: UploadSpecificFileProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isPublic, setIsPublic] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,8 +31,8 @@ export default function UploadSpecificFile({
     setError(null);
 
     try {
-      await uploadFile(file, entityId, context, isPublic);
-      refreshFiles(); // ✅ Trigger file list refresh
+      await uploadFile(file, entityId, context, isPublic, true, cookieHeader || null);
+      refreshFiles();
     } catch (err) {
       console.error(err);
       setError("Upload failed. Try again.");

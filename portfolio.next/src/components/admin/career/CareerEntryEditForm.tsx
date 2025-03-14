@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { type CareerEntry } from "@/models/CareerEntry";
 import { saveCareerEntry } from "@/services/careerService";
-import { APP_ROUTES } from "@/lib/constants";
 
 interface CareerEntryEditFormProps {
   initialEntry?: CareerEntry | null;
@@ -46,7 +45,7 @@ export default function CareerEntryEditForm({ initialEntry }: CareerEntryEditFor
     e.preventDefault();
     try {
       await saveCareerEntry(entry);
-      router.push(APP_ROUTES.admin.career);
+      router.push('/admin/career');
     } catch (err) {
       console.error(err);
       setError("Failed to save career entry.");

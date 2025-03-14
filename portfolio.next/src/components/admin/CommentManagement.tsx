@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { API_ENDPOINTS } from "@/lib/constants";
+import { PUBLIC_API, AUTH_API } from "@/lib/constants";
 
 interface Comment {
   _id: string;
@@ -25,41 +25,51 @@ export default function CommentManagement() {
   async function fetchComments() {
     try {
       setLoading(true);
-      const res = await fetch(`${API_ENDPOINTS.admin.comments}/all`, {
+      const res = await fetch(PUBLIC_API.comment.list, {
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to fetch comments");
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to fetch comments");
+      }
+
       const data = await res.json();
       setComments(data);
-    } catch (err: unknown) {
-      console.error('Failed to fetch comments:', err);
-      if (err instanceof Error) {
-        setError(err.message);
+    } catch (error) {
+      console.error("Failed to fetch comments:", error);
+      if (error instanceof Error) {
+        setError(error.message);
       }
     } finally {
       setLoading(false);
     }
   }
 
-  const handleRedact = async (id: string) => {
+  async function handleRedact(id: string) {
     if (!confirm("Mark this comment as redacted?")) return;
     try {
-      const res = await fetch(`${API_ENDPOINTS.admin.comments}/${id}`, {
+      const res = await fetch(AUTH_API.comment.delete(id), {
         method: "DELETE",
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Redaction failed");
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Redaction failed");
+      }
+
       // Update the local state to mark the comment as redacted.
       setComments(prev =>
         prev.map(c => (c._id === id ? { ...c, redacted: true } : c))
       );
-    } catch (err: unknown) {
-      console.error('Failed to redact comment:', err);
-      if (err instanceof Error) {
-        setError(err.message);
+    } catch (error) {
+      console.error("Failed to redact comment:", error);
+      if (error instanceof Error) {
+        setError(error.message);
       }
     }
-  };
+  }
 
   if (loading) {
     return (

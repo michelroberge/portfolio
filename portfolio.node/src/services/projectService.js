@@ -45,7 +45,7 @@ async function deleteProject(id) {
     const project = await Project.findByIdAndDelete(id);
     if (!project) return false;
 
-    await deleteEmbedding("projects", project._id);
+    await deleteEmbedding("projects", project.vectorId);
     return true;
 }
 
@@ -77,7 +77,7 @@ async function updateProjectEmbeddings(project) {
     const embedding = await generateEmbeddings(text);
     if (!embedding) throw new Error(`Failed to generate embedding for project: ${project._id}`);
 
-    await storeEmbedding("projects", project._id, embedding, {
+    await storeEmbedding(Project.collection.collectionName, project.vectorId, embedding, {
         title: project.title,
         tags: project.tags || [],
         industry: project.industry || "",

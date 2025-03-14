@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { APP_ROUTES } from "@/lib/constants";
+import { AdminInitRequest } from "@/models/AdminInit";
+import { checkAdminExists, initializeAdmin } from "@/services/adminService";
 
 export default function AdminSetup() {
   const [adminExists, setAdminExists] = useState<boolean | null>(null);
@@ -9,56 +12,45 @@ export default function AdminSetup() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   useEffect(() => {
     async function checkAdmin() {
       try {
-        const res = await fetch(`${apiUrl}/api/users/admin-exists`, {
-          credentials: "include",
-        });
-        const data = await res.json();
+        const data = await checkAdminExists();
         setAdminExists(data.exists);
+        
         if (data.exists) {
           console.log("Admin already exists");
-          // If an admin exists, redirect to the admin dashboard.
-          router.push("/admin");
-        }else{
-          console.log("Should creste new admin");
+          router.push(APP_ROUTES.admin.home);
         }
-      } catch (err: unknown) { // ✅ Use "unknown" instead of "any"
+      } catch (err) {
         if (err instanceof Error) {
-          console.error(err.message);
           setError(err.message);
         } else {
-          console.error("Error checking admin status", err);
-          setError("Error checking admin status");
+          setError("Failed to check admin status");
         }
       }
     }
     checkAdmin();
-  }, [apiUrl, router]);
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     try {
-      // Use our existing user registration endpoint to create an admin.
-      const res = await fetch(`${apiUrl}/api/users/initialize`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, isAdmin: true }),
-      });
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Admin creation failed");
-      }
-      router.push("/admin/login");
-    } catch (err: unknown) { // ✅ Use "unknown" instead of "any"
+      const initRequest: AdminInitRequest = {
+        username,
+        password,
+        isAdmin: true,
+      };
+
+      await initializeAdmin(initRequest);
+      router.push(APP_ROUTES.auth.login);
+    } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError("An unknown error occurred.");
+        setError("Failed to create admin account");
       }
     }
   };

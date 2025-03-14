@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { API_ENDPOINTS } from "@/lib/constants";
+import { AUTH_API, APP_ROUTES } from "@/lib/constants";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -12,14 +12,15 @@ export default function AdminLogin() {
   const [error, setError] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnUrl = searchParams.get("returnUrl") || "/admin";
-  const { isAuthenticated, login } = useAuth();
+  const returnUrl = searchParams.get("returnUrl") || APP_ROUTES.admin.home;
+  const { isAuthenticated, login, refreshAuth } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     try {
       await login(email, password);
+      await refreshAuth();
       if (returnUrl) {
         router.push(returnUrl);
       }
@@ -64,13 +65,13 @@ export default function AdminLogin() {
         <h3 className="text-xl font-semibold mb-4 text-center">Or Login with</h3>
         <div className="flex flex-col gap-2">
           <Link
-            href={`${API_ENDPOINTS.auth}/oauth2/google?returnUrl=${encodeURIComponent(returnUrl)}`}
+            href={`${AUTH_API.auth.oauth.google}?returnUrl=${encodeURIComponent(returnUrl)}`}
             className="bg-red-500 text-white text-center py-2 rounded"
           >
             Login with Google
           </Link>
           <Link
-            href={`${API_ENDPOINTS.auth}/oauth2/facebook?returnUrl=${encodeURIComponent(returnUrl)}`}
+            href={`${AUTH_API.auth.oauth.facebook}?returnUrl=${encodeURIComponent(returnUrl)}`}
             className="bg-blue-600 text-white text-center py-2 rounded"
           >
             Login with Facebook

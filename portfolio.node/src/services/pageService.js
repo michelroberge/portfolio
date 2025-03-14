@@ -45,7 +45,7 @@ async function deletePage(id) {
     const page = await Page.findByIdAndDelete(id);
     if (!page) return false;
 
-    await deleteEmbedding("pages", id);
+    await deleteEmbedding("pages", page.vectorId);
     return true;
 }
 
@@ -86,7 +86,7 @@ async function updatePageEmbeddings(page) {
     const embedding = await generateEmbeddings(text);
     if (!embedding) throw new Error(`Failed to generate embedding for page: ${page._id}`);
 
-    await storeEmbedding("pages", page._id, embedding, {
+    await storeEmbedding(Page.collection.collectionName, page.vectorId, embedding, {
         title: page.title,
         tags: page.tags || [],
     });

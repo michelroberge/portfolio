@@ -1,60 +1,134 @@
-import { fetchTelemetry, TelemetryData } from '@/services/analyticsService';
-import { API_ENDPOINTS } from '@/lib/constants';
-
-// Mock the global fetch function
-const mockFetch = jest.fn();
-global.fetch = mockFetch;
-
-// Mock console.error to prevent logging during tests
-console.error = jest.fn();
+import { fetchAnalytics, trackPageView, trackEvent } from '@/services/analyticsService';
+import { ADMIN_API } from '@/lib/constants';
+import { AnalyticsData } from '@/models/Analytics';
 
 describe('Analytics Service', () => {
-  const mockTelemetryData: TelemetryData = {
-    users: 100,
-    blogPosts: 25,
-    projects: 15,
-    sessions: 1000,
-    pageHits: 5000
-  };
+  let mockFetch: jest.Mock;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mockFetch = jest.fn();
+    global.fetch = mockFetch;
   });
 
-  describe('fetchTelemetry', () => {
-    it('should fetch telemetry data successfully', async () => {
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
+
+  describe('fetchAnalytics', () => {
+    const mockAnalytics: AnalyticsData = {
+      pageViews: 100,
+      uniqueVisitors: 50,
+      topPages: [
+        { path: '/home', views: 30 },
+        { path: '/about', views: 20 },
+      ],
+    };
+
+    it('should fetch analytics data correctly', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockTelemetryData)
+        json: () => Promise.resolve(mockAnalytics),
       });
 
-      const result = await fetchTelemetry();
+      const result = await fetchAnalytics();
 
-      expect(mockFetch).toHaveBeenCalledWith(API_ENDPOINTS.analytics.telemetry, {
-        credentials: 'include'
+      expect(mockFetch).toHaveBeenCalledWith(ADMIN_API.analytics.list, {
+        credentials: 'include',
       });
-      expect(result).toEqual(mockTelemetryData);
+      expect(result).toEqual(mockAnalytics);
     });
 
-    it('should return null when fetch fails', async () => {
+    it('should handle errors correctly', async () => {
+      const errorMessage = 'Failed to fetch analytics';
       mockFetch.mockResolvedValueOnce({
-        ok: false
+        ok: false,
+        json: () => Promise.resolve({ message: errorMessage }),
       });
 
-      const result = await fetchTelemetry();
+      await expect(fetchAnalytics()).rejects.toThrow(errorMessage);
+    });
+  });
 
-      expect(result).toBeNull();
-      expect(console.error).toHaveBeenCalled();
+  describe('trackPageView', () => {
+    const mockPath = '/home';
+
+    it('should track page view correctly', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      });
+
+      await trackPageView(mockPath);
+
+      expect(mockFetch).toHaveBeenCalledWith(ADMIN_API.analytics.trackPage, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ path: mockPath }),
+      });
     });
 
-    it('should handle network errors and return null', async () => {
-      const networkError = new Error('Network error');
-      mockFetch.mockRejectedValueOnce(networkError);
+    it('should handle errors correctly', async () => {
+      const errorMessage = 'Failed to track page view';
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: () => Promise.resolve({ message: errorMessage }),
+      });
 
-      const result = await fetchTelemetry();
+      await expect(trackPageView(mockPath)).rejects.toThrow(errorMessage);
+    });
+  });
 
-      expect(result).toBeNull();
-      expect(console.error).toHaveBeenCalled();
+  describe('trackEvent', () => {
+    const mockEvent = 'button_click';
+    const mockData = { buttonId: 'signup' };
+
+    it('should track event correctly', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      });
+
+      await trackEvent(mockEvent, mockData);
+
+      expect(mockFetch).toHaveBeenCalledWith(ADMIN_API.analytics.trackEvent, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ event: mockEvent, data: mockData }),
+      });
+    });
+
+    it('should track event without data correctly', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      });
+
+      await trackEvent(mockEvent);
+
+      expect(mockFetch).toHaveBeenCalledWith(ADMIN_API.analytics.trackEvent, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ event: mockEvent }),
+      });
+    });
+
+    it('should handle errors correctly', async () => {
+      const errorMessage = 'Failed to track event';
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: () => Promise.resolve({ message: errorMessage }),
+      });
+
+      await expect(trackEvent(mockEvent)).rejects.toThrow(errorMessage);
     });
   });
 });

@@ -47,6 +47,7 @@ async function storeEmbedding(collection, id, vectors, metadata = {}) {
         throw new Error(`❌ Invalid embedding vector: expected ${VECTOR_SIZE} dimensions.`);
     }
 
+    console.log(`Storing embedding in Qdrant collection: "${collection}" with id: ${id}`, metadata  );
     try {
         await qdrantClient.upsert(collection, {
             points: [

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePathname } from "next/navigation";
-import { API_ENDPOINTS } from "@/lib/constants";
+import { PUBLIC_API, AUTH_API } from "@/lib/constants";
 
 interface Comment {
   _id: string;
@@ -28,7 +28,7 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
 
   const fetchComments = useCallback(async () => {
     try {
-      const res = await fetch(`${API_ENDPOINTS.comment}/blog/${blogId}`);
+      const res = await fetch(`${PUBLIC_API.comment.list}/blog/${blogId}`);
       const data = await res.json();
       if (!Array.isArray(data)) {
         setComments([]);
@@ -49,7 +49,7 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
     e.preventDefault();
     if (!newComment.trim()) return;
     try {
-      const res = await fetch(API_ENDPOINTS.comment, {
+      const res = await fetch(AUTH_API.comment.create, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
