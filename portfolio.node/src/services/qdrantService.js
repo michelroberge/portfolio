@@ -22,15 +22,18 @@ async function initCollection(collection) {
         console.log(`⚠️ Collection "${collection}" did not exist, proceeding with initialization.`);
     }
 
+    await ensureCollection(collection);
+}
+
+async function ensureCollection(collection){
     try {
         console.log(`📌 Creating new Qdrant collection: "${collection}"...`);
         await qdrantClient.createCollection(collection, {
             vectors: { size: VECTOR_SIZE, distance: "Cosine" },
         });
-        console.log(`✅ Collection "${collection}" reinitialized.`);
+        console.log(`✅ Collection "${collection}" created.`);
     } catch (error) {
-        console.error(`❌ Error creating collection "${collection}":`, error.message);
-        console.error(error);
+        console.error(`! Cannot create collection "${collection}":`, error.message);
     }
 }
 
@@ -46,6 +49,8 @@ async function storeEmbedding(collection, id, vectors, metadata = {}) {
     if (!Array.isArray(vectors) || vectors.length !== VECTOR_SIZE) {
         throw new Error(`❌ Invalid embedding vector: expected ${VECTOR_SIZE} dimensions.`);
     }
+
+    await ensureCollection(collection);
 
     console.log(`Storing embedding in Qdrant collection: "${collection}" with id: ${id}`, metadata  );
     try {

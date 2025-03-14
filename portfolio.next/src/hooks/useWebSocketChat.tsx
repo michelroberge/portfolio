@@ -7,45 +7,82 @@ export function useWebSocketChat(isOpen: boolean) {
   const [isStreaming, setIsStreaming] = useState(false);
   const streamingResponseRef = useRef("");
   const [streamingResponse, setStreamingResponse] = useState("");
+  const [useTrailingSlash, setUseTrailingSlash] = useState(false);
+  const hasConnectedSuccessfully = useRef(false);
 
   const wsUrl = useMemo(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-    return apiUrl.replace(/^http/, "ws");
-  }, []);
+    const baseWsUrl = apiUrl.replace(/^http/, "ws");
+    // Add trailing slash only if needed (will be determined after connection attempt)
+    return useTrailingSlash ? `${baseWsUrl}/` : baseWsUrl;
+  }, [useTrailingSlash]);
+
+  const connectWebSocket = useCallback(() => {
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+
+    console.log(`Attempting to connect to WebSocket: ${wsUrl}`);
+    const websocket = new WebSocket(wsUrl);
+
+    websocket.onopen = () => {
+      console.log("Connected to WebSocket successfully");
+      // Mark that we've had a successful connection with the current URL format
+      hasConnectedSuccessfully.current = true;
+    };
+
+    websocket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
+      if (data.response) {
+        setIsStreaming(true);
+        streamingResponseRef.current += data.response;
+        setStreamingResponse(streamingResponseRef.current);
+      }
+
+      if (data.done) {
+        setIsStreaming(false);
+      }
+    };
+
+    websocket.onerror = (error) => {
+      console.error("WebSocket connection error:", error);
+      // Only try with trailing slash if we've never had a successful connection
+      // and we're not already using a trailing slash
+      if (!hasConnectedSuccessfully.current && !useTrailingSlash) {
+        console.log("Retrying with trailing slash...");
+        setUseTrailingSlash(true);
+      }
+    };
+
+    websocket.onclose = (event) => {
+      console.log(`WebSocket disconnected with code: ${event.code}, reason: ${event.reason}`);
+      wsRef.current = null;
+      
+      // If this was a connection failure (not a normal close) and we've never had a successful connection
+      // and we're not already using a trailing slash
+      if (event.code !== 1000 && !hasConnectedSuccessfully.current && !useTrailingSlash) {
+        console.log("Connection failed. Retrying with trailing slash...");
+        setUseTrailingSlash(true);
+      }
+    };
+
+    wsRef.current = websocket;
+  }, [wsUrl, useTrailingSlash]);
 
   useEffect(() => {
     if (isOpen && !wsRef.current) {
-      const websocket = new WebSocket(wsUrl);
-
-      websocket.onopen = () => console.log("Connected to WebSocket");
-
-      websocket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-
-        if (data.response) {
-          setIsStreaming(true);
-          streamingResponseRef.current += data.response;
-          setStreamingResponse(streamingResponseRef.current);
-        }
-
-        if (data.done) {
-          setIsStreaming(false);
-        }
-      };
-
-      websocket.onclose = () => {
-        console.log("WebSocket disconnected");
-        wsRef.current = null;
-      };
-
-      wsRef.current = websocket;
+      connectWebSocket();
     }
 
     return () => {
-      wsRef.current?.close();
-      wsRef.current = null;
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
     };
-  }, [isOpen, wsUrl]);
+  }, [isOpen, connectWebSocket]);
 
   const safeAddMessage = useCallback(
     (message: { role: "user" | "ai"; text: string }) => {
