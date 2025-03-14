@@ -45,7 +45,10 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   }
 
   const handleSearch = async () => {
-    if (!query.trim()) return;
+    if (!query.trim()) {
+      setResults([]); // Clear results if query is empty
+      return;
+    }
 
     try {
       const projects = await searchProjects(query);

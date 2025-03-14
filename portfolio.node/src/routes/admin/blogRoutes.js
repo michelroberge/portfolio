@@ -5,6 +5,17 @@ const blogService = require("../../services/blogService");
 
 const router = express.Router();
 
+router.get("/", authMiddleware, adminAuth, async (req, res) => {
+    try {
+
+        const data = await blogService.getAllBlogs({});
+        res.status(200).json(data);
+
+    } catch (error) {
+        console.error("❌ Error fetching blogs:", error.message);
+        res.status(500).json({ error: "Failed to fetch blogs" }); // Generic error for public
+    }
+});
 /**
  * @route POST /api/admin/blogs
  * @desc Create a new blog post

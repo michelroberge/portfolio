@@ -14,7 +14,7 @@ export default async function UserManagementPage() {
     <AdminLayout>
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-6">User Management</h1>
-        <UserList initialUsers={users} currentUserId={user._id} />
+        <UserList initialUsers={users} currentUserId={user?._id || ''} />
       </div>
     </AdminLayout>
   );

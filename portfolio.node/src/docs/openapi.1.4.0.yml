@@ -1,0 +1,1181 @@
+openapi: 3.0.0
+info:
+  title: Portfolio API
+  description: API for managing blogs, projects, AI chat, embeddings, search, and career timeline.
+  version: 1.4.0
+
+servers:
+  - url: http://localhost:5000/api
+    description: Local Development Server
+  - url: https://yourdomain.com/api
+    description: Production Server
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Blogs
+    description: Blog creation, retrieval, updates, and deletion
+  - name: Projects
+    description: Project portfolio management
+  - name: AI Chat
+    description: AI-powered chatbot using local LLM
+  - name: Search
+    description: Semantic search and source code search
+  - name: Embeddings
+    description: Vector embeddings for AI-powered search
+  - name: Career Timeline
+    description: Interactive career timeline and skills mapping
+  - name: Users
+    description: Users management (admin)
+  - name: Prompts
+    description: Prompts configuration and fine tuning
+
+paths:
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login a user (session-based auth)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+        "401":
+          description: Invalid credentials
+
+  /auth/check:
+    get:
+      tags: [Authentication]
+      summary: Check if user logged and session valid
+      responses:
+        "200":
+          description: User logged in
+        "401":
+          description: User not logged in
+
+  /auth/logout:
+    get:
+      tags: [Authentication]
+      summary: Logout user (clears session)
+      responses:
+        "200":
+          description: User logged out successfully
+
+  /blogs:
+    get:
+      tags: [Blogs]
+      summary: Retrieve all blog posts
+      responses:
+        "200":
+          description: List of blog posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Blog"
+    post:
+      tags: [Blogs]
+      summary: Create a new blog post
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BlogRequest"
+      responses:
+        "201":
+          description: Blog created
+        "400":
+          description: Validation error
+
+  /blogs/{id}:
+    get:
+      tags: [Blogs]
+      summary: Get a specific blog post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Blog entry retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Blog"
+        "404":
+          description: Blog not found
+    put:
+      tags: [Blogs]
+      summary: Update a blog post
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BlogRequest"
+      responses:
+        "200":
+          description: Blog updated
+        "404":
+          description: Blog not found
+    delete:
+      tags: [Blogs]
+      summary: Delete a blog post
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Blog deleted
+        "404":
+          description: Blog not found
+
+  /projects:
+    get:
+      tags: [Projects]
+      summary: Retrieve all projects
+      responses:
+        "200":
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+    post:
+      tags: [Projects]
+      summary: Create a new project
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectRequest"
+      responses:
+        "201":
+          description: Project created
+        "400":
+          description: Validation error
+
+  /projects/{id}:
+    put:
+      tags: [Projects]
+      summary: Update a project
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectRequest"
+      responses:
+        "200":
+          description: Project updated
+        "404":
+          description: Project not found
+    delete:
+      tags: [Projects]
+      summary: Delete a project
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Project deleted
+        "404":
+          description: Project not found
+          
+  /projects/generate-embeddings:
+    post:
+      tags: [Projects]
+      summary: Generate AI embeddings for all projects
+      description: Uses an AI model to generate embeddings for each project and stores them in Qdrant.
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Successfully generated embeddings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Embeddings generated for all projects."
+                  embeddings:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProjectEmbedding"
+        "500":
+          description: Internal server error
+
+  /career/timeline:
+    get:
+      tags: [Career Timeline]
+      summary: Retrieve career timeline
+      responses:
+        "200":
+          description: Career timeline retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CareerEntry"
+    post:
+      tags: [Career Timeline]
+      summary: Create a career timeline entry
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CareerEntry"
+      responses:
+        "201":
+          description: Career timeline entry created
+    delete:
+      tags: [Career Timeline]
+      summary: Delete a career timeline entry
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Career timeline entry deleted
+  /chat:
+    post:
+      tags: [AI Chat]
+      summary: Process user query with LLM chatbot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatRequest"
+      responses:
+        "200":
+          description: Chat response from LLM
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+    get:
+      tags: [AI Chat]
+      summary: Retrieve chat history for a session
+      parameters:
+        - name: sessionId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Chat history retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatMessage"
+
+  /search/semantic:
+    post:
+      tags: [Search]
+      summary: Perform AI-powered semantic search
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SemanticSearchRequest"
+      responses:
+        "200":
+          description: Search results retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SearchResult"
+
+  /search/codebase:
+    post:
+      tags: [Search]
+      summary: Search within indexed source code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CodeSearchRequest"
+      responses:
+        "200":
+          description: Code search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CodeSearchResult"
+
+  /search/{collection}:
+    post:
+      tags: [Search]
+      summary: Search across different Qdrant collections
+      description: Performs a vector search within the specified collection.
+      parameters:
+        - name: collection
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "projects"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  example: "AI-powered projects"
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /embeddings/generate:
+    post:
+      tags: [Embeddings]
+      summary: Generate embeddings for blogs and projects
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Embeddings generated successfully
+
+  /embeddings/refresh:
+    post:
+      tags: [Embeddings]
+      summary: Refresh embeddings from the database
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Embeddings refreshed successfully
+
+  /embeddings/status:
+    get:
+      tags: [Embeddings]
+      summary: Retrieve embedding sync status
+      responses:
+        "200":
+          description: Embedding sync status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmbeddingStatus"
+
+  /users/admin-exists:
+    get:
+      tags: [Users]
+      summary: Check if an admin user exists
+      description: Returns whether an admin user is already set up in the system.
+      responses:
+        "200":
+          description: Admin existence status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exists:
+                    type: boolean
+        "500":
+          description: Server error
+
+  /users:
+    post:
+      tags: [Users]
+      summary: Create a new user (non-admin)
+      description: Creates the user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRequest"
+      responses:
+        "201":
+          description: User created successfully
+        "400":
+          description: Invalid request or admin already exists
+        "500":
+          description: Server error
+
+    get:
+      tags: [Users]
+      summary: Retrieve all users
+      security:
+        - cookieAuth: []
+      description: Returns a list of all registered users (Admin-only).
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "403":
+          description: Forbidden (non-admin access)
+        "500":
+          description: Server error
+
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: Retrieve a single user by ID
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+        "500":
+          description: Server error
+
+    put:
+      tags: [Users]
+      summary: Update a user's information
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRequest"
+      responses:
+        "200":
+          description: User updated
+        "403":
+          description: Forbidden (non-admin access)
+        "404":
+          description: User not found
+        "500":
+          description: Server error
+
+    delete:
+      tags: [Users]
+      summary: Delete a user by ID
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User deleted
+        "403":
+          description: Forbidden (non-admin access)
+        "404":
+          description: User not found
+        "500":
+          description: Server error
+
+  /users/initialize:
+    post:
+      tags: [Users]
+      summary: Create a new administrator 
+      description: Creates the first admin user if no admin exists.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRequest"
+      responses:
+        "201":
+          description: User created successfully
+        "400":
+          description: Invalid request or admin already exists
+        "500":
+          description: Server error
+
+  /embeddings/local-directory:
+    post:
+      tags: [Embeddings]
+      summary: Generate embeddings from a local directory
+      description: Parses a local directory and generates embeddings for the contained files.
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmbeddingDirectoryRequest"
+      responses:
+        "200":
+          description: Successfully generated embeddings from the directory
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmbeddingStatus"
+        "400":
+          description: Invalid request
+        "500":
+          description: Internal server error
+
+  /embeddings/{id}/metadata:
+    put:
+      tags: [Embeddings]
+      summary: Update metadata for an embedding entry
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmbeddingMetadataRequest"
+      responses:
+        "200":
+          description: Metadata updated successfully
+        "404":
+          description: Embedding not found
+  /embeddings/{id}/vector:
+    put:
+      tags: [Embeddings]
+      summary: Update an embedding vector for a document
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newContent:
+                  type: string
+                  example: "Updated content of my document."
+                metadata:
+                  type: object
+                  example: { "author": "John Doe", "category": "AI" }
+      responses:
+        "200":
+          description: Embedding updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Embedding"
+        "404":
+          description: Embedding not found
+        "500":
+          description: Server error
+  /embeddings/{id}:
+    delete:
+      tags: [Embeddings]
+      summary: Delete an embedding by ID
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Embedding deleted successfully
+        "404":
+          description: Embedding not found
+        "500":
+          description: Server error
+  /embeddings/search:
+    post:
+      tags: [Embeddings]
+      summary: Perform a similarity search in Qdrant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                queryVector:
+                  type: array
+                  items:
+                    type: number
+                  example: [0.12, 0.98, 0.33, 0.76]
+                topK:
+                  type: integer
+                  default: 5
+                minScore:
+                  type: number
+                  default: 0.5
+      responses:
+        "200":
+          description: Search results retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EmbeddingSearchResult"
+        "500":
+          description: Server error
+
+  /embeddings/list:
+    get:
+      tags: [Embeddings]
+      summary: Retrieve a list of all embeddings with metadata
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: List of embeddings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EmbeddingEntry"
+        "500":
+          description: Internal server error
+
+  /embeddings:
+    post:
+      tags: [Embeddings]
+      summary: Store a new embedding for a document
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filePath:
+                  type: string
+                  example: "/documents/article.txt"
+                content:
+                  type: string
+                  example: "This is the content of my document."
+                metadata:
+                  type: object
+                  example: { "author": "John Doe", "category": "Technology" }
+      responses:
+        "201":
+          description: Embedding stored successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Embedding"
+        "400":
+          description: Invalid input
+        "500":
+          description: Server error
+
+  /chat/context:
+    post:
+      tags: [AI Chat]
+      summary: Inject web page context into chat
+      description: Allows the frontend to inject a web page's content into the chat session.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebContextRequest"
+      responses:
+        "200":
+          description: Web context added successfully
+
+  /prompts:
+    get:
+      tags: [Prompts]
+      summary: Retrieve all stored prompts
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: List of prompts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Prompt"
+
+    post:
+      tags: [Prompts]
+      summary: Create a new prompt
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PromptRequest"
+      responses:
+        "201":
+          description: Prompt created
+
+  /prompts/{id}:
+    put:
+      tags: [Prompts]
+      summary: Update an existing prompt
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PromptRequest"
+      responses:
+        "200":
+          description: Prompt updated
+
+    delete:
+      tags: [Prompts]
+      summary: Delete a prompt
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Prompt deleted
+
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+
+    Blog:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        excerpt:
+          type: string
+        body:
+          type: string
+        isDraft:
+          type: boolean
+        publishAt:
+          type: string
+          format: date-time
+
+    BlogRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        excerpt:
+          type: string
+        body:
+          type: string
+        isDraft:
+          type: boolean
+        publishAt:
+          type: string
+          format: date-time
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        image:
+          type: string
+        link:
+          type: string
+
+    ProjectRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        image:
+          type: string
+        link:
+          type: string
+
+    CareerEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        company:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+          nullable: true
+        technologies:
+          type: array
+          items:
+            type: string
+            
+    ChatRequest:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        query:
+          type: string
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+      required:
+        - sessionId
+        - query
+
+    ChatResponse:
+      type: object
+      properties:
+        response:
+          type: string
+          description: AI-generated response
+        sources:
+          type: array
+          description: Sources used for AI-generated response
+          items:
+            type: string
+
+    ChatMessage:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          description: Unique chat session ID
+        role:
+          type: string
+          enum: [user, ai]
+          description: Whether the message is from the user or AI
+        text:
+          type: string
+          description: Chat message content
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of the message
+
+    SemanticSearchRequest:
+      type: object
+      properties:
+        query:
+          type: string
+        top_k:
+          type: integer
+          default: 5
+      required:
+        - query
+
+    SearchResult:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        excerpt:
+          type: string
+        sourceType:
+          type: string
+          enum: [blog, project]
+
+    CodeSearchRequest:
+      type: object
+      properties:
+        query:
+          type: string
+      required:
+        - query
+
+    CodeSearchResult:
+      type: object
+      properties:
+        file:
+          type: string
+        snippet:
+          type: string
+        lineNumber:
+          type: integer
+
+    EmbeddingStatus:
+      type: object
+      properties:
+        lastUpdated:
+          type: string
+          format: date-time
+        totalEmbeddings:
+          type: integer
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        isAdmin:
+          type: boolean
+
+    UserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        isAdmin:
+          type: boolean
+      required:
+        - username
+        - password
+
+    ProjectEmbedding:
+      type: object
+      properties:
+        projectId:
+          type: string
+          example: "6543abcd5678ef9012345678"
+        embedding:
+          type: array
+          items:
+            type: number
+          description: "The generated AI embedding vector for this project."
+
+    EmbeddingDirectoryRequest:
+      type: object
+      properties:
+        directoryPath:
+          type: string
+          description: Absolute path to the directory to be processed
+        includeExtensions:
+          type: array
+          items:
+            type: string
+          example: [".js", ".md", ".txt", ".json"]
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Optional metadata for embeddings
+
+    EmbeddingMetadataRequest:
+      type: object
+      properties:
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Metadata to associate with an embedding entry
+
+    EmbeddingEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        filePath:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+
+    Embedding:
+      type: object
+      properties:
+        id:
+          type: integer
+        filePath:
+          type: string
+          example: "/documents/article.txt"
+        metadata:
+          type: object
+          example: { "author": "John Doe", "category": "Technology" }
+        externalId:
+          type: integer
+          example: 12345
+
+    EmbeddingSearchResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        filePath:
+          type: string
+        score:
+          type: number
+        metadata:
+          type: object
+
+    WebContextRequest:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          description: Unique identifier for the chat session
+        content:
+          type: string
+          description: Extracted content from the web page
+      required:
+        - sessionId
+        - content
+
+    Prompt:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          description: Friendly name for the prompt
+        template:
+          type: string
+          description: Prompt template with placeholders
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Optional metadata for the prompt
+
+    PromptRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        template:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+
+securitySchemes:
+  cookieAuth:
+    type: apiKey
+    in: cookie
+    name: auth-token

@@ -6,17 +6,24 @@ import { PUBLIC_API, ADMIN_API } from "@/lib/constants";
 /**
  * Fetches all blog entries
  */
-export async function fetchBlogEntries(): Promise<BlogEntry[]> {
+export async function fetchBlogEntries(isAdmin: boolean = false, cookieHeader : string | null = null): Promise<BlogEntry[]> {
   try {
-    const response = await fetch(PUBLIC_API.blog.list, {
+    const url = isAdmin ? ADMIN_API.blog.list : PUBLIC_API.blog.list;
+
+    const headers: HeadersInit = cookieHeader
+    ? { Cookie: cookieHeader } // Pass cookies for SSR requests
+    : {};
+
+    const response = await fetch(url, {
       credentials: "include",
+      headers,
+      cache: "no-store",
     });
 
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || "Failed to fetch blog entries");
     }
-
     return await response.json();
   } catch (err) {
     console.error("Failed to fetch blog entries:", err);
@@ -27,10 +34,17 @@ export async function fetchBlogEntries(): Promise<BlogEntry[]> {
 /**
  * Fetches a single blog entry by ID
  */
-export async function fetchBlogEntry(id: string): Promise<BlogEntry> {
+export async function fetchBlogEntry(id: string, isAdmin: boolean = false, cookieHeader: string|null=null): Promise<BlogEntry> {
   try {
+
+    const headers: HeadersInit = cookieHeader
+    ? { Cookie: cookieHeader } // Pass cookies for SSR requests
+    : {};
+
     const response = await fetch(PUBLIC_API.blog.get(id), {
       credentials: "include",
+      headers,
+      cache: "no-store",
     });
 
     if (!response.ok) {

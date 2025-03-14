@@ -21,7 +21,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true); // Start as loading
+  const [loading, setLoading] = useState(false); // Start as not loading
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Check auth status when component mounts
   useEffect(() => {
-    refreshAuth().finally(() => setLoading(false));
+    refreshAuth();
   }, []);
 
   async function refreshAuth() {
