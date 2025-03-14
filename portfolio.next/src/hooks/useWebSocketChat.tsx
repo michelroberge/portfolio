@@ -8,6 +8,7 @@ export function useWebSocketChat(isOpen: boolean) {
   const streamingResponseRef = useRef("");
   const [streamingResponse, setStreamingResponse] = useState("");
   const [useTrailingSlash, setUseTrailingSlash] = useState(false);
+  const hasConnectedSuccessfully = useRef(false);
 
   const wsUrl = useMemo(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -27,6 +28,8 @@ export function useWebSocketChat(isOpen: boolean) {
 
     websocket.onopen = () => {
       console.log("Connected to WebSocket successfully");
+      // Mark that we've had a successful connection with the current URL format
+      hasConnectedSuccessfully.current = true;
     };
 
     websocket.onmessage = (event) => {
@@ -45,7 +48,9 @@ export function useWebSocketChat(isOpen: boolean) {
 
     websocket.onerror = (error) => {
       console.error("WebSocket connection error:", error);
-      if (!useTrailingSlash) {
+      // Only try with trailing slash if we've never had a successful connection
+      // and we're not already using a trailing slash
+      if (!hasConnectedSuccessfully.current && !useTrailingSlash) {
         console.log("Retrying with trailing slash...");
         setUseTrailingSlash(true);
       }
@@ -55,8 +60,9 @@ export function useWebSocketChat(isOpen: boolean) {
       console.log(`WebSocket disconnected with code: ${event.code}, reason: ${event.reason}`);
       wsRef.current = null;
       
-      // If this was a connection failure (not a normal close) and we haven't tried with trailing slash yet
-      if (event.code !== 1000 && !useTrailingSlash) {
+      // If this was a connection failure (not a normal close) and we've never had a successful connection
+      // and we're not already using a trailing slash
+      if (event.code !== 1000 && !hasConnectedSuccessfully.current && !useTrailingSlash) {
         console.log("Connection failed. Retrying with trailing slash...");
         setUseTrailingSlash(true);
       }
