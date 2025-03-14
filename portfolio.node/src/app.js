@@ -55,6 +55,13 @@ async function createApp() {
   if ( process.env.LOG_HTTP_REQUESTS==="true"){
     app.use(requestLogger);
   }
+  else{
+      app.use((req, res, next) => {
+      console.log(`${req.method} ${req.url}`);
+      next();
+    });
+  }
+
 
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -72,7 +79,7 @@ setupStrategies()
   });
 
   app.use(passport.initialize());  
-
+  
   // Swagger Documentation
   app.use('/api/docs', swaggerMiddleware, swaggerSetup);
 

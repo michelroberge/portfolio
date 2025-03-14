@@ -16,6 +16,19 @@ router.get("/", authMiddleware, adminAuth, async (req, res) => {
         res.status(500).json({ error: "Failed to fetch blogs" }); // Generic error for public
     }
 });
+
+router.get("/:id", authMiddleware, adminAuth, async (req, res) => {
+    const { id } = req.params;
+    try {
+
+        const data = await blogService.getBlogById(id);
+        res.status(200).json(data);
+
+    } catch (error) {
+        console.error("❌ Error fetching blogs:", error.message);
+        res.status(500).json({ error: "Failed to fetch blogs" }); // Generic error for public
+    }
+});
 /**
  * @route POST /api/admin/blogs
  * @desc Create a new blog post

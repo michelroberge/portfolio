@@ -5,6 +5,31 @@ const projectService = require("../../services/projectService");
 
 const router = express.Router();
 
+router.get("/:id", authMiddleware, adminAuth, async (req, res) => {
+    const { id } = req.params;
+    try {
+
+        const data = await projectService.getProjectById(id);
+        res.status(200).json(data);
+
+    } catch (error) {
+        console.error("❌ Error fetching projects:", error.message);
+        res.status(500).json({ error: "Failed to fetch projects" }); // Generic error for public
+    }
+});
+
+router.get("/", authMiddleware, adminAuth, async (req, res) => {
+    try {
+
+        const data = await projectService.getAllProjects({});
+        res.status(200).json(data);
+
+    } catch (error) {
+        console.error("❌ Error fetching projects:", error.message);
+        res.status(500).json({ error: "Failed to fetch projects" }); // Generic error for public
+    }
+});
+
 /**
  * @route POST /api/admin/projects
  * @desc Create a new project

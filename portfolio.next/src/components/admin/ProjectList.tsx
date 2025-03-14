@@ -54,7 +54,7 @@ export default function ProjectList({ initialProjects }: Props) {
                 Status: {project.status} • 
                 {project.startDate && `Started: ${new Date(project.startDate).toLocaleDateString()}`}
               </p>
-              {project.technologies.length > 0 && (
+              {project.technologies?.length > 0 && (
                 <div className="mt-2 flex gap-2">
                   {project.technologies.map(tech => (
                     <span 

@@ -12,7 +12,7 @@ const projectRoutes = require("./projectRoutes");
 const userRoutes = require("../../routes/userRoutes");
 const providerConfigRoutes = require("../../routes/providerConfigRoutes");
 const careerRoutes = require("../../routes/careerTimelineRoutes");
-const pageRoutes = require("../../routes/pageRoutes");
+const pageRoutes = require("./pageRoutes");
 
 const router = express.Router();
 
