@@ -1,10 +1,7 @@
 // portfolio.node/src/services/chatService.js
 const ChatMessage = require("../models/ChatMessage");
-const providerConfigService = require("../services/providerConfigService");
-const ollamaService = require("../services/ollamaService"); // AI Model Integration
-const generatePrompt = require("../utils/generatePrompt");
-const {queryLLM} = require("../services/llmService");
 const cache = require("../utils/cache");
+const { executePipeline } = require("../services/pipelineService");
 
 /**
  * Processes a user query using the AI model.
@@ -15,30 +12,25 @@ const cache = require("../utils/cache");
  * @returns {Promise<{ response: string, sources: string[] }>} - AI response with sources.
  */
 async function processChat(sessionId, query, history = [], webContext = "") {
-  try {
-      // Generate AI prompt
-      const { formattedPrompt, sources } = await generatePrompt(query, history, webContext);
+    try {
+        console.log(`📡 Processing chat for session: ${sessionId}`);
 
-      const config = await providerConfigService.getAIConfig();
-      let response;
-      
-      if (config.provider === "ollama") {
-        response = await ollamaService.generateResponse(formattedPrompt);
-      } else if (config.provider === "openai") {
-        response = await requestOpenAIResponse(formattedPrompt, history, config.clientId, config.clientSecret);
-      } else {
-        throw new Error("Invalid AI provider configured");
-      }
+        // Use the AI pipeline for structured processing
+        const responseData = await executePipeline("chat-response", {
+            userQuery: query,
+            chatHistory: JSON.stringify(history),
+            context: webContext
+        }, true); // Enable search
 
-      // Store user message & AI response in chat history
-      await ChatMessage.create({ sessionId, role: "user", text: query });
-      await ChatMessage.create({ sessionId, role: "ai", text: response });
+        // Store chat messages
+        await ChatMessage.create({ sessionId, role: "user", text: query });
+        await ChatMessage.create({ sessionId, role: "ai", text: responseData.response });
 
-      return { response, sources };
-  } catch (error) {
-      console.error(`❌ Chat processing error:`, error.message);
-      return { response: "Sorry, I encountered an error.", sources: [] };
-  }
+        return responseData;
+    } catch (error) {
+        console.error("❌ Chat processing error:", error);
+        return { response: "Sorry, an error occurred.", sources: [] };
+    }
 }
 
 

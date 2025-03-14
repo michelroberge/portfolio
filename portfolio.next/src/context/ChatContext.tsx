@@ -10,6 +10,7 @@ type ChatMessage = {
 type ChatContextType = {
   messages: ChatMessage[];
   addMessage: (message: ChatMessage) => void;
+  updateMessage: (index: number, newText: string) => void; // ✅ New function
   clearChat: () => void;
 };
 
@@ -63,12 +64,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     setMessages((prev) => [...prev, message]);
   };
 
+  // ✅ New function to update an existing message
+  const updateMessage = (index: number, newText: string) => {
+    setMessages((prev) =>
+      prev.map((msg, i) => (i === index ? { ...msg, text: newText } : msg))
+    );
+  };
+
   const clearChat = () => {
     setMessages([{ role: "ai", text: "Hello! Ask me anything about my projects or skills." }]);
   };
 
   return (
-    <ChatContext.Provider value={{ messages, addMessage, clearChat }}>
+    <ChatContext.Provider value={{ messages, addMessage, updateMessage, clearChat }}>
       {children}
     </ChatContext.Provider>
   );

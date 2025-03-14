@@ -2,20 +2,19 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useChat } from "@/context/ChatContext";
 
 export function useWebSocketChat(isOpen: boolean) {
-  const { addMessage } = useChat();
+  const { messages, addMessage, updateMessage } = useChat();
   const wsRef = useRef<WebSocket | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
-  const streamingResponseRef = useRef("");
+  const streamingResponseBuffer = useRef(""); // ✅ Buffer for AI response
   const [streamingResponse, setStreamingResponse] = useState("");
-  const [useTrailingSlash, setUseTrailingSlash] = useState(false);
+  const currentMessageIndex = useRef<number | null>(null); // ✅ Track the latest AI message
   const hasConnectedSuccessfully = useRef(false);
 
   const wsUrl = useMemo(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
     const baseWsUrl = apiUrl.replace(/^http/, "ws");
-    // Add trailing slash only if needed (will be determined after connection attempt)
-    return useTrailingSlash ? `${baseWsUrl}/` : baseWsUrl;
-  }, [useTrailingSlash]);
+    return baseWsUrl;
+  }, []);
 
   const connectWebSocket = useCallback(() => {
     if (wsRef.current) {
@@ -27,49 +26,72 @@ export function useWebSocketChat(isOpen: boolean) {
     const websocket = new WebSocket(wsUrl);
 
     websocket.onopen = () => {
-      console.log("Connected to WebSocket successfully");
-      // Mark that we've had a successful connection with the current URL format
+      console.log("✅ Connected to WebSocket successfully");
       hasConnectedSuccessfully.current = true;
     };
 
     websocket.onmessage = (event) => {
       const data = JSON.parse(event.data);
 
-      if (data.response) {
+      // ✅ Handle pipeline step updates separately
+      if (data.response && !data.done && data.step) {
         setIsStreaming(true);
-        streamingResponseRef.current += data.response;
-        setStreamingResponse(streamingResponseRef.current);
+        setStreamingResponse(data.response);
+
+        if (currentMessageIndex.current === null) {
+          // 🔹 Ensure pipeline messages do not overwrite user messages
+          const index = messages.length;
+          // addMessage({ role: "ai", text: data.response });
+          currentMessageIndex.current = index;
+        } else {
+          updateMessage(currentMessageIndex.current, data.response);
+        }
       }
 
+      // ✅ Start AI response in a new message if needed
+      if (data.response && !data.done && !data.step) {
+        setIsStreaming(true);
+
+        // 🔹 Ensure AI response starts in a NEW message, not overwriting the user message
+        if (currentMessageIndex.current === null || messages[currentMessageIndex.current]?.role !== "ai") {
+          addMessage({ role: "ai", text: "" });
+          const index = messages.length;
+          currentMessageIndex.current = index;
+        }
+
+        // 🔹 Append streamed words to AI message
+        streamingResponseBuffer.current += ` ${data.response}`;
+        setStreamingResponse(streamingResponseBuffer.current.trim());
+        updateMessage(currentMessageIndex.current, streamingResponseBuffer.current.trim());
+      }
+
+      // ✅ When a paragraph is complete, finalize and start a new one
+      if (data.response && data.response.includes("\n\n")) {
+        setIsStreaming(false);
+        streamingResponseBuffer.current = "";
+        addMessage({ role: "ai", text: "" }); // Start new AI bubble
+        currentMessageIndex.current = messages.length; // Prepare for next paragraph
+      }
+
+      // ✅ When streaming is fully complete
       if (data.done) {
         setIsStreaming(false);
+        setStreamingResponse("");
+        currentMessageIndex.current = null; // Reset for next message
       }
     };
 
     websocket.onerror = (error) => {
-      console.error("WebSocket connection error:", error);
-      // Only try with trailing slash if we've never had a successful connection
-      // and we're not already using a trailing slash
-      if (!hasConnectedSuccessfully.current && !useTrailingSlash) {
-        console.log("Retrying with trailing slash...");
-        setUseTrailingSlash(true);
-      }
+      console.error("❌ WebSocket connection error:", error);
     };
 
     websocket.onclose = (event) => {
-      console.log(`WebSocket disconnected with code: ${event.code}, reason: ${event.reason}`);
+      console.log(`❌ WebSocket disconnected (code: ${event.code}, reason: ${event.reason})`);
       wsRef.current = null;
-      
-      // If this was a connection failure (not a normal close) and we've never had a successful connection
-      // and we're not already using a trailing slash
-      if (event.code !== 1000 && !hasConnectedSuccessfully.current && !useTrailingSlash) {
-        console.log("Connection failed. Retrying with trailing slash...");
-        setUseTrailingSlash(true);
-      }
     };
 
     wsRef.current = websocket;
-  }, [wsUrl, useTrailingSlash]);
+  }, [wsUrl]);
 
   useEffect(() => {
     if (isOpen && !wsRef.current) {
@@ -83,21 +105,6 @@ export function useWebSocketChat(isOpen: boolean) {
       }
     };
   }, [isOpen, connectWebSocket]);
-
-  const safeAddMessage = useCallback(
-    (message: { role: "user" | "ai"; text: string }) => {
-      addMessage(message);
-    },
-    [addMessage]
-  );
-
-  useEffect(() => {
-    if (!isStreaming && streamingResponseRef.current) {
-      safeAddMessage({ role: "ai", text: streamingResponseRef.current });
-      streamingResponseRef.current = "";
-      setStreamingResponse("");
-    }
-  }, [isStreaming, safeAddMessage]);
 
   return { wsRef, isStreaming, streamingResponse, setStreamingResponse, setIsStreaming };
 }

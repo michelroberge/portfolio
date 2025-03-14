@@ -47,7 +47,9 @@ export default function Chat() {
             ))}
 
             {isStreaming && (
-              <div className="p-2 rounded-lg text-sm bg-gray-200 text-black self-start">{streamingResponse}</div>
+              <div className="p-2 rounded-lg text-sm bg-gray-200 text-black self-start">
+                {streamingResponse || "⏳"}
+              </div>
             )}
           </div>
 

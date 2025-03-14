@@ -1,9 +1,6 @@
 const WebSocket = require("ws");
-const ChatMessage = require("../models/ChatMessage");
-const { generatePrompt } = require("../utils/generatePrompt");
-const { performSearch } = require("../services/searchService");
-const ollamaService = require("../services/ollamaService");
-const { queryLLM } = require("./llmService");
+const { executePipeline } = require("../services/pipelineService");
+const { generateResponseStream } = require("../services/ollamaService");
 
 const setupWebSocketServer = (server) => {
     const wss = new WebSocket.Server({ server });
@@ -19,33 +16,33 @@ const setupWebSocketServer = (server) => {
                     return;
                 }
 
-                console.log(`📡 Received query: "${query}" - Starting search`);
+                console.log(`📡 WebSocket received query: "${query}"`);
 
-                // 1️⃣ Notify user that search is starting
-                ws.send(JSON.stringify({ response: "⏳ Searching for relevant information..." }));
+                // Send pipeline updates step-by-step
+                const streamCallback = (update) => {
+                    ws.send(JSON.stringify(update));
+                };
 
-                // 2️⃣ Perform the search (Qdrant + MongoDB)
-                const { sources, context } = await performSearch(query);
-                console.log(`🔎 Search complete - Found ${sources.length} relevant documents.`);
+                // Execute pipeline with streaming enabled
+                const responseData = await executePipeline("chat-response", {
+                    userQuery: query,
+                    chatHistory: JSON.stringify(history),
+                }, true, streamCallback);
 
-                // 3️⃣ Notify user that AI is generating a response
-                ws.send(JSON.stringify({ response: "✨ Found useful information! Generating a response..." }));
+                // Stream the final AI response from Ollama
+                const responseStream = await generateResponseStream(responseData.response);
+                const reader = responseStream.getReader();
 
-                // 4️⃣ Generate AI prompt
-                const { formattedPrompt } = await generatePrompt(query, history, context);
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) {
+                        ws.send(JSON.stringify({ done: true }));
+                        break;
+                    }
 
-                // 5️⃣ Stream AI response
-                const responseStream = await ollamaService.generateResponseStream(formattedPrompt);
-                for await (const chunk of responseStream) {
-                    ws.send(JSON.stringify({ response: chunk }));
+                    // Enqueue the streamed JSON chunk
+                    ws.send(JSON.stringify({ response: value.trim() }));
                 }
-
-                ws.send(JSON.stringify({ done: true }));
-
-                // 6️⃣ Store chat messages in database
-                await ChatMessage.create({ sessionId, role: "user", text: query });
-                await ChatMessage.create({ sessionId, role: "ai", text: formattedPrompt });
-
             } catch (error) {
                 console.error("❌ WebSocket error:", error);
                 ws.send(JSON.stringify({ error: "An error occurred while processing your request." }));
@@ -59,19 +56,5 @@ const setupWebSocketServer = (server) => {
 
     return wss;
 };
-
-/**
- * Generates a random greeting message.
- * @returns {Promise<string>} - A friendly AI-generated greeting.
- */
-async function generateRandomGreeting() {
-    const response = await queryLLM(
-        "AI Chat Assistant",
-        "Generate a friendly greeting for a user who just started a conversation.",
-        {}
-    );
-
-    return response?.greeting || "Hello! How can I assist you today?";
-}
 
 module.exports = { setupWebSocketServer };

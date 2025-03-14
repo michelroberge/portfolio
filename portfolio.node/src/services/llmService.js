@@ -1,33 +1,54 @@
-// portfolio.node/src/services/llmService.js
-const { generateResponse } = require("./ollamaService"); // Assuming aiService handles both providers
+const { generateResponse, generateResponseStream } = require("./ollamaService");
+const Prompt = require("../models/Prompt");
+const defaultPrompts = require("../utils/prompts");
 
 /**
- * Calls the configured LLM with a given prompt and expected JSON output.
- * @param {string} systemRole - The role of the LLM (e.g., "Search Assistant", "Chat Assistant").
- * @param {string} userQuery - The user input or instruction.
- * @param {object} extraParams - Any additional data for context (e.g., available collections).
- * @returns {Promise<object>} - The LLM response as JSON.
+ * Calls the configured LLM with a named prompt and parameters.
+ * Supports streaming when `useStreaming` is true.
  */
-async function queryLLM(systemRole, userQuery, extraParams = {}) {
-    const promptObject  = {
-        role: systemRole,
-        task: userQuery,
-        context: extraParams,
-        output_format: "JSON"
-    };
-
-    const formattedPrompt = `You are an AI assistant. 
-    Please respond in JSON format. 
-    Here is the task:\n${JSON.stringify(promptObject, null, 2)}`;
-
+async function queryLLMByName(promptName, parameters = {}, useStreaming = false) {
     try {
-        // Choose the AI provider dynamically
-        const llmResponse =await generateResponse(formattedPrompt);
-        return JSON.parse(llmResponse.response); // Ensure response is parsed into JSON
+        if (!parameters || !parameters.userQuery) {
+            console.warn("⚠️ queryLLMByName called with no query.");
+            return null;
+        }
+
+        let promptDoc = await Prompt.findOne({ name: promptName });
+
+        if (!promptDoc) {
+            console.warn(`⚠️ Prompt "${promptName}" not found. Using fallback prompt.`);
+            promptDoc = defaultPrompts[promptName];
+            if (!promptDoc) {
+                throw new Error(`❌ Unknown prompt: ${promptName}`);
+            }
+        }
+
+        // 🟢 Restore parameter replacement
+        let formattedPrompt = promptDoc.template || "";
+
+        // Normalize parameter keys to lowercase
+        const normalizedParams = Object.fromEntries(
+            Object.entries(parameters).map(([key, value]) => [key.toLowerCase(), value])
+        );
+
+        // Replace placeholders dynamically
+        if (formattedPrompt.includes("{")) {
+            for (const [key, value] of Object.entries(normalizedParams)) {
+                formattedPrompt = formattedPrompt.replace(new RegExp(`{${key}}`, "gi"), value);
+            }
+        }
+
+        console.log(`🤖 Sending formatted prompt to LLM (Streaming: ${useStreaming}):\n${formattedPrompt}`);
+
+        if (useStreaming) {
+            return generateResponseStream(formattedPrompt); // ✅ Streamed response
+        } else {
+            return await generateResponse(formattedPrompt); // ✅ Full response
+        }
     } catch (error) {
-        console.error("LLM query failed:", error);
+        console.error("❌ LLM query failed:", error);
         return null;
     }
 }
 
-module.exports = { queryLLM };
+module.exports = { queryLLMByName };

@@ -1,23 +1,10 @@
 // portfolio.node/src/routes/providerConfigRoutes.js
 const express = require("express");
-const authMiddleware = require("../middlewares/auth");
-const providerConfigService = require("../services/providerConfigService");
+const authMiddleware = require("../../middlewares/auth");
+const providerConfigService = require("../../services/providerConfigService");
 const router = express.Router();
 
-// GET /api/provider-configs: Retrieve all provider configurations.
-// router.get("/", authMiddleware, async (req, res) => {
-//   try {
 
-//     if  (!req.user?.isAdmin === true){
-//       res.status(403);
-//     }
-
-//     const configs = await providerConfigService.getAllConfigs();
-//     res.json(configs);
-//   } catch (error) {
-//     res.status(500).json({ error: error.message });
-//   }
-// });
 
 // PUT /api/provider-configs/:provider: Update configuration for a specific provider.
 router.put("/:provider", authMiddleware, async (req, res) => {

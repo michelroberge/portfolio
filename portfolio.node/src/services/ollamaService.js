@@ -15,14 +15,15 @@ async function generateResponse(prompt) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: PROMPT_MODEL,
-        prompt: prompt,
+        prompt: `${prompt}`,
         max_tokens: 200,
         temperature: 0.7,
+        format: "json"
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`Ollama API returned an error: ${response.statusText}`);
+      throw new Error(`⚠️ API returned an error: ${response.statusText}`);
     }
 
     // Read the response as a stream
@@ -59,53 +60,50 @@ async function generateResponse(prompt) {
 }
 
 async function generateResponseStream(prompt) {
-
   const url = `${OLLAMA_URL}/api/generate`;
-  // console.log("calling ollama", url);
-    const response = await fetch(url, {
+  const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "mistral",
-        prompt: prompt,
-        max_tokens: 200,
-        temperature: 0.7,
+          model: PROMPT_MODEL,
+          prompt: prompt,
+          max_tokens: 200,
+          temperature: 0.7,
       }),
-    });
-  
-    const reader = response.body.getReader();
-    
-    return new ReadableStream({
+  });
+
+  const reader = response.body.getReader();
+
+  return new ReadableStream({
       async start(controller) {
-        let accumulatedResponse = "";
-  
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            controller.close();
-            break;
-          }
-  
-          const chunk = new TextDecoder().decode(value);
-  
-          // Process streamed JSON lines
-          chunk.split("\n").forEach((line) => {
-            if (line.trim()) {
-              try {
-                const parsed = JSON.parse(line);
-                if (parsed.response) {
-                  accumulatedResponse += parsed.response;
-                  controller.enqueue(parsed.response); // Send each chunk immediately
-                }
-              } catch (err) {
-                console.warn("Skipping invalid JSON chunk (possibly end?)");
+          let accumulatedResponse = "";
+
+          while (true) {
+              const { done, value } = await reader.read();
+              if (done) {
+                  controller.close();
+                  break;
               }
-            }
-          });
-        }
+
+              const chunk = new TextDecoder().decode(value);
+              chunk.split("\n").forEach((line) => {
+                  if (line.trim()) {
+                      try {
+                          const parsed = JSON.parse(line);
+                          if (parsed.response) {
+                              accumulatedResponse += parsed.response;
+                              controller.enqueue(parsed.response);
+                          }
+                      } catch (err) {
+                          console.warn("Skipping invalid JSON chunk");
+                      }
+                  }
+              });
+          }
       }
-    });
-  }
+  });
+}
+
   
 
 module.exports = { generateResponse, generateResponseStream };

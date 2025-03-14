@@ -84,10 +84,10 @@ async function searchQdrant(queryVector, collection, limit = 5, minScore = 0.3) 
             return [];
         }
         console.log(`📡 Searching Qdrant in collection "${collection}"...`);
-        console.log(`collection: ${collection}`);
-        console.log(`vector count: ${queryVector.length}`);
-        console.log(`limit: ${limit}`);
-        console.log(`min score: ${minScore}`);
+        // console.log(`collection: ${collection}`);
+        // console.log(`vector count: ${queryVector.length}`);
+        // console.log(`limit: ${limit}`);
+        // console.log(`min score: ${minScore}`);
 
         const response = await qdrantClient.search(collection, {
             vector: queryVector,
@@ -110,7 +110,7 @@ async function searchQdrant(queryVector, collection, limit = 5, minScore = 0.3) 
                 metadata: doc.payload,
             }));
     } catch (error) {
-        console.error(`❌ Qdrant Search Error: ${error.message}`);
+        console.error(`❌ Qdrant Search on ${collection} Error: ${error.message}`);
         return [];
     }
 }
