@@ -29,3 +29,6 @@ Task:
   - analyze .src/utils/prompts.js
 
 You should get a full understanding of the e2e process. Then, you should be able to fix the issue so it works with the expected behaviour.
+
+Specific rules:
+- If you change something on the backend, you need to consider the other scripts that use the functions you change. There can be no orphan scripts, they should still all work.
