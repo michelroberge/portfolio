@@ -30,5 +30,7 @@ Task:
 
 You should get a full understanding of the e2e process. Then, you should be able to fix the issue so it works with the expected behaviour.
 
+My suspicion is that generateResponse and generateResponseStream are misused. generateResponse should support a format parameter (json or text) so that when we do the final query, we can ask to stream pure text. The pipeline should return the format as part of the response. The frontend should behave differently on the type.
+
 Specific rules:
 - If you change something on the backend, you need to consider the other scripts that use the functions you change. There can be no orphan scripts, they should still all work.
