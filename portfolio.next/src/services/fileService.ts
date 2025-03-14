@@ -4,14 +4,20 @@ import { FileInfo } from '@/models/FileInfo';
 /**
  * Fetch files with optional filtering
  */
-export async function fetchFiles(entityId?: string, context?: string): Promise<FileInfo[]> {
+export async function fetchFiles(entityId?: string, context?: string, isAdmin: boolean = false, cookieHeader: string | null = null): Promise<FileInfo[]> {
     try {
-        const url = new URL(PUBLIC_API.file.list);
+        const url = isAdmin ? new URL(ADMIN_API.file.list) : new URL(PUBLIC_API.file.list);
         if (entityId) url.searchParams.append("entityId", entityId);
         if (context) url.searchParams.append("context", context);
 
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
         const res = await fetch(url.toString(), {
-            credentials: "include", // Include for potential admin access
+            credentials: "include",
+            headers,
+            cache: "no-store",
         });
 
         if (!res.ok) {
@@ -33,9 +39,15 @@ export async function uploadFile(
     file: File,
     entityId: string,
     context: string,
-    isPublic: boolean = false
+    isPublic: boolean = false,
+    isAdmin: boolean = false,
+    cookieHeader: string | null = null
 ): Promise<FileInfo> {
     try {
+        if (!isAdmin) {
+            throw new Error("Unauthorized");
+        }
+
         const formData = new FormData();
         formData.append("file", file);
         formData.append("entityId", entityId);
@@ -47,9 +59,14 @@ export async function uploadFile(
         url.searchParams.append("context", context);
         url.searchParams.append("isPublic", isPublic.toString());
 
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
         const res = await fetch(url.toString(), {
             method: "POST",
             credentials: "include",
+            headers,
             body: formData,
         });
 
@@ -68,14 +85,21 @@ export async function uploadFile(
 /**
  * Update file metadata
  */
-export async function updateFile(id: string, metadata: Partial<FileInfo>): Promise<FileInfo> {
+export async function updateFile(id: string, metadata: Partial<FileInfo>, isAdmin: boolean = false, cookieHeader: string | null = null): Promise<FileInfo> {
     try {
+        if (!isAdmin) {
+            throw new Error("Unauthorized");
+        }
+
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         const res = await fetch(ADMIN_API.file.update(id), {
             method: "PUT",
             credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify(metadata),
         });
 
@@ -94,11 +118,20 @@ export async function updateFile(id: string, metadata: Partial<FileInfo>): Promi
 /**
  * Delete a file
  */
-export async function deleteFile(id: string): Promise<void> {
+export async function deleteFile(id: string, isAdmin: boolean = false, cookieHeader: string | null = null): Promise<void> {
     try {
+        if (!isAdmin) {
+            throw new Error("Unauthorized");
+        }
+
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
         const res = await fetch(ADMIN_API.file.delete(id), {
             method: "DELETE",
             credentials: "include",
+            headers,
         });
 
         if (!res.ok) {

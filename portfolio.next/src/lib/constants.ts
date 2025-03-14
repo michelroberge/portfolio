@@ -60,18 +60,23 @@ export const AUTH_API = {
 export const ADMIN_API = {
   blog: {
     list:  `${REMOTE_URL}${API_BASE}/admin/blogs`,
+    get: (id: string) => `${REMOTE_URL}${API_BASE}/admin/blogs/${id}`,
     create: `${REMOTE_URL}${API_BASE}/admin/blogs`,
     update: (id: string) => `${REMOTE_URL}${API_BASE}/admin/blogs/${id}`,
     delete: (id: string) => `${REMOTE_URL}${API_BASE}/admin/blogs/${id}`,
     generateEmbeddings: `${REMOTE_URL}${API_BASE}/admin/blogs/generate-embeddings`,
   },
   project: {
+    list: `${REMOTE_URL}${API_BASE}/admin/projects`,
+    get: (id: string) => `${REMOTE_URL}${API_BASE}/admin/projects/${id}`,
     create: `${REMOTE_URL}${API_BASE}/admin/projects`,
     update: (id: string) => `${REMOTE_URL}${API_BASE}/admin/projects/${id}`,
     delete: (id: string) => `${REMOTE_URL}${API_BASE}/admin/projects/${id}`,
     archive: (id: string) => `${REMOTE_URL}${API_BASE}/admin/projects/${id}/archive`,
   },
   career: {
+    list: `${REMOTE_URL}${API_BASE}/admin/career/timeline`,
+    get: (id: string) => `${REMOTE_URL}${API_BASE}/admin/career/timeline/${id}`,
     create: `${REMOTE_URL}${API_BASE}/admin/career/timeline`,
     update: (id: string) => `${REMOTE_URL}${API_BASE}/admin/career/timeline/${id}`,
     delete: (id: string) => `${REMOTE_URL}${API_BASE}/admin/career/timeline/${id}`,
@@ -80,17 +85,22 @@ export const ADMIN_API = {
     bulkImport: `${REMOTE_URL}${API_BASE}/admin/career/timeline/bulk`,
   },
   file: {
+    list: `${REMOTE_URL}${API_BASE}/admin/files`,
+    get: (id: string) => `${REMOTE_URL}${API_BASE}/admin/files/${id}`,
     upload: `${REMOTE_URL}${API_BASE}/admin/files/upload`,
     update: (id: string) => `${REMOTE_URL}${API_BASE}/admin/files/${id}`,
     delete: (id: string) => `${REMOTE_URL}${API_BASE}/admin/files/${id}`,
   },
   page: {
+    list: `${REMOTE_URL}${API_BASE}/admin/pages`,
+    get: (id: string) => `${REMOTE_URL}${API_BASE}/admin/pages/${id}`,
     create: `${REMOTE_URL}${API_BASE}/admin/pages`,
     update: (id: string) => `${REMOTE_URL}${API_BASE}/pages/${id}`,
     delete: (id: string) => `${REMOTE_URL}${API_BASE}/pages/${id}`,
   },
   user: {
     list: `${REMOTE_URL}${API_BASE}/admin/users`,
+    get: (id: string) => `${REMOTE_URL}${API_BASE}/admin/users/${id}`,
     create: `${REMOTE_URL}${API_BASE}/admin/users`,
     update: (id: string) => `${REMOTE_URL}${API_BASE}/admin/users/${id}`,
     delete: (id: string) => `${REMOTE_URL}${API_BASE}/admin/users/${id}`,
@@ -120,6 +130,7 @@ export const ADMIN_API = {
   },
   comment: {
     list: `${REMOTE_URL}${API_BASE}/admin/comments/all`,
+    get: (id: string) => `${REMOTE_URL}${API_BASE}/admin/comments/${id}`,
     delete: (id: string) => `${REMOTE_URL}${API_BASE}/admin/comments/${id}`,
   },
 } as const;
@@ -135,26 +146,31 @@ export const APP_ROUTES = {
       list: '/admin/blogs',
       create: '/admin/blogs/create',
       edit: (id: string) => `/admin/blogs/edit/${id}`,
+      get: (id: string) => `/admin/blogs/${id}`,
     },
     projects: {
       list: '/admin/projects',
       create: '/admin/projects/create',
       edit: (id: string) => `/admin/projects/edit/${id}`,
+      get: (id: string) => `/admin/projects/${id}`,
     },
     pages: {
       list: '/admin/pages',
       create: '/admin/pages/create',
       edit: (id: string) => `/admin/pages/edit/${id}`,
+      get: (id: string) => `/admin/pages/${id}`,
     },
     career: {
       list: '/admin/career',
       create: '/admin/career/create',
       edit: (id: string) => `/admin/career/edit/${id}`,
+      get: (id: string) => `/admin/career/${id}`,
     },
     users: {
       list: '/admin/users',
       create: '/admin/users/create',
       edit: (id: string) => `/admin/users/edit/${id}`,
+      get: (id: string) => `/admin/users/${id}`,
     },
     settings: '/admin/settings',
   },

@@ -4,11 +4,22 @@ import { PUBLIC_API, ADMIN_API } from "@/lib/constants";
 
 /**
  * Fetch a project by ID
+ * 
+ * Uses the admin endpoint when isAdmin is true, allowing admins to view
+ * draft/unpublished projects that aren't visible to public users.
  */
-export async function fetchProject(id: string): Promise<Project> {
+export async function fetchProject(id: string, isAdmin: boolean = false, cookieHeader: string | null = null): Promise<Project> {
     try {
-        const res = await fetch(PUBLIC_API.project.get(id), {
-            credentials: "include", // Include for potential admin access
+        const url = isAdmin ? ADMIN_API.project.get(id) : PUBLIC_API.project.get(id);
+        
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader } // Pass cookies for SSR requests
+            : {};
+
+        const res = await fetch(url, {
+            credentials: "include",
+            headers,
+            cache: "no-store",
         });
 
         if (!res.ok) {
@@ -25,11 +36,22 @@ export async function fetchProject(id: string): Promise<Project> {
 
 /**
  * Fetch all projects
+ * 
+ * Uses the admin endpoint when isAdmin is true, allowing admins to view
+ * draft/unpublished projects that aren't visible to public users.
  */
-export async function fetchProjects(): Promise<Project[]> {
+export async function fetchProjects(isAdmin: boolean = false, cookieHeader: string | null = null): Promise<Project[]> {
     try {
-        const res = await fetch(PUBLIC_API.project.list, {
-            credentials: "include", // Include for potential admin access
+        const url = isAdmin ? ADMIN_API.project.list : PUBLIC_API.project.list;
+        
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader } // Pass cookies for SSR requests
+            : {};
+
+        const res = await fetch(url, {
+            credentials: "include",
+            headers,
+            cache: "no-store",
         });
 
         if (!res.ok) {
@@ -47,14 +69,17 @@ export async function fetchProjects(): Promise<Project[]> {
 /**
  * Create a new project
  */
-export async function createProject(projectData: ProjectCreate): Promise<Project> {
+export async function createProject(projectData: ProjectCreate, cookieHeader: string | null = null): Promise<Project> {
     try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         const res = await fetch(ADMIN_API.project.create, {
             method: "POST",
             credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify({
                 ...projectData,
                 status: projectData.status || 'planned',
@@ -77,14 +102,17 @@ export async function createProject(projectData: ProjectCreate): Promise<Project
 /**
  * Update an existing project
  */
-export async function updateProject(id: string, projectData: Partial<Project>): Promise<Project> {
+export async function updateProject(id: string, projectData: Partial<Project>, cookieHeader: string | null = null): Promise<Project> {
     try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         const res = await fetch(ADMIN_API.project.update(id), {
             method: "PUT",
             credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify(projectData),
         });
 
@@ -103,11 +131,16 @@ export async function updateProject(id: string, projectData: Partial<Project>): 
 /**
  * Delete a project
  */
-export async function deleteProject(id: string): Promise<void> {
+export async function deleteProject(id: string, cookieHeader: string | null = null): Promise<void> {
     try {
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
         const res = await fetch(ADMIN_API.project.delete(id), {
             method: "DELETE",
             credentials: "include",
+            headers,
         });
 
         if (!res.ok) {
@@ -123,11 +156,16 @@ export async function deleteProject(id: string): Promise<void> {
 /**
  * Archive a project
  */
-export async function archiveProject(id: string): Promise<void> {
+export async function archiveProject(id: string, cookieHeader: string | null = null): Promise<void> {
     try {
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
         const res = await fetch(ADMIN_API.project.archive(id), {
             method: "PUT",
             credentials: "include",
+            headers,
         });
 
         if (!res.ok) {
@@ -143,10 +181,19 @@ export async function archiveProject(id: string): Promise<void> {
 /**
  * Search for projects
  */
-export async function searchProjects(query: string): Promise<Project[]> {
+export async function searchProjects(query: string, cookieHeader: string | null = null): Promise<Project[]> {
     try {
-        const res = await fetch(PUBLIC_API.project.search(query), {
-            credentials: "include", // Include for potential admin access
+        // For search operations, we only have PUBLIC_API endpoints
+        const url = PUBLIC_API.project.search(query);
+        
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
+        const res = await fetch(url, {
+            credentials: "include",
+            headers,
+            cache: "no-store",
         });
 
         if (!res.ok) {

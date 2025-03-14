@@ -4,10 +4,16 @@ import { Page } from "@/models/Page";
 /**
  * Fetch a page by slug
  */
-export async function fetchPageBySlug(slug: string, fromCache: boolean = true): Promise<Page> {
+export async function fetchPageBySlug(slug: string, isAdmin: boolean = false, cookieHeader: string | null = null, fromCache: boolean = true): Promise<Page> {
     try {
-        const res = await fetch(`${PUBLIC_API.page.list}/slug/${slug}`, {
-            credentials: "include", // Include for potential admin access
+        const url = isAdmin ? ADMIN_API.page.get(slug) : PUBLIC_API.page.get(slug);
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader } // Pass cookies for SSR requests
+            : {};
+
+        const res = await fetch(url, {
+            credentials: "include",
+            headers,
             ...(fromCache ? {} : { cache: "no-store" }),
         });
 
@@ -26,10 +32,17 @@ export async function fetchPageBySlug(slug: string, fromCache: boolean = true): 
 /**
  * Fetch all pages
  */
-export async function fetchPages(): Promise<Page[]> {
+export async function fetchPages(isAdmin: boolean = false, cookieHeader: string | null = null): Promise<Page[]> {
     try {
-        const res = await fetch(PUBLIC_API.page.list, {
-            credentials: "include", // Include for potential admin access
+        const url = isAdmin ? ADMIN_API.page.list : PUBLIC_API.page.list;
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader } // Pass cookies for SSR requests
+            : {};
+
+        const res = await fetch(url, {
+            credentials: "include",
+            headers,
+            cache: "no-store",
         });
 
         if (!res.ok) {
@@ -47,14 +60,17 @@ export async function fetchPages(): Promise<Page[]> {
 /**
  * Create a new page
  */
-export async function createPage(page: Omit<Page, '_id'>): Promise<Page> {
+export async function createPage(page: Omit<Page, '_id'>, cookieHeader: string | null = null): Promise<Page> {
     try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         const res = await fetch(ADMIN_API.page.create, {
             method: "POST",
             credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify(page),
         });
 
@@ -73,14 +89,17 @@ export async function createPage(page: Omit<Page, '_id'>): Promise<Page> {
 /**
  * Update an existing page
  */
-export async function updatePage(id: string, page: Partial<Page>): Promise<Page> {
+export async function updatePage(id: string, page: Partial<Page>, cookieHeader: string | null = null): Promise<Page> {
     try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         const res = await fetch(ADMIN_API.page.update(id), {
             method: "PUT",
             credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify(page),
         });
 
@@ -99,11 +118,16 @@ export async function updatePage(id: string, page: Partial<Page>): Promise<Page>
 /**
  * Delete a page
  */
-export async function deletePage(id: string): Promise<void> {
+export async function deletePage(id: string, cookieHeader: string | null = null): Promise<void> {
     try {
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
         const res = await fetch(ADMIN_API.page.delete(id), {
             method: "DELETE",
             credentials: "include",
+            headers,
         });
 
         if (!res.ok) {

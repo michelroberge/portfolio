@@ -6,10 +6,21 @@ import { User, UserCreate } from "@/models/User";
 /**
  * Fetch all users
  */
-export async function fetchUsers(): Promise<User[]> {
+export async function fetchUsers(isAdmin: boolean = false, cookieHeader: string | null = null): Promise<User[]> {
     try {
+
+        if ( !isAdmin){
+            throw new Error("Unauthorized");
+        }
+        
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader } // Pass cookies for SSR requests
+            : {};
+
         const response = await fetch(ADMIN_API.user.list, {
             credentials: "include",
+            headers,
+            cache: "no-store",
         });
 
         if (!response.ok) {
@@ -27,14 +38,17 @@ export async function fetchUsers(): Promise<User[]> {
 /**
  * Create a new user
  */
-export async function createUser(user: UserCreate): Promise<User> {
+export async function createUser(user: UserCreate, cookieHeader: string | null = null): Promise<User> {
     try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         const response = await fetch(ADMIN_API.user.create, {
             method: "POST",
             credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify(user),
         });
 
@@ -53,14 +67,17 @@ export async function createUser(user: UserCreate): Promise<User> {
 /**
  * Update an existing user
  */
-export async function updateUser(id: string, user: Partial<User>): Promise<User> {
+export async function updateUser(id: string, user: Partial<User>, cookieHeader: string | null = null): Promise<User> {
     try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         const response = await fetch(ADMIN_API.user.update(id), {
             method: "PUT",
             credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify(user),
         });
 
@@ -79,14 +96,17 @@ export async function updateUser(id: string, user: Partial<User>): Promise<User>
 /**
  * Update user admin status
  */
-export async function updateUserAdmin(id: string, isAdmin: boolean): Promise<User> {
+export async function updateUserAdmin(id: string, isAdmin: boolean, cookieHeader: string | null = null): Promise<User> {
     try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         const response = await fetch(ADMIN_API.user.updateAdmin(id), {
             method: "PUT",
             credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify({ isAdmin }),
         });
 
@@ -105,11 +125,16 @@ export async function updateUserAdmin(id: string, isAdmin: boolean): Promise<Use
 /**
  * Delete a user
  */
-export async function deleteUser(id: string): Promise<void> {
+export async function deleteUser(id: string, cookieHeader: string | null = null): Promise<void> {
     try {
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
         const response = await fetch(ADMIN_API.user.delete(id), {
             method: "DELETE",
             credentials: "include",
+            headers,
         });
 
         if (!response.ok) {

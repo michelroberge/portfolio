@@ -1,13 +1,20 @@
-import { AUTH_API, ADMIN_API } from '@/lib/constants';
+import { AUTH_API, ADMIN_API, PUBLIC_API } from '@/lib/constants';
 import { Comment, CommentUpdate, CommentCreate } from '@/models/Comment';
 
 /**
  * Fetch all comments for admin management
  */
-export async function fetchAllComments(): Promise<Comment[]> {
+export async function fetchAllComments(isAdmin: boolean = false, cookieHeader: string | null = null): Promise<Comment[]> {
   try {
-    const res = await fetch(ADMIN_API.comment.list, {
+    const url = isAdmin ? ADMIN_API.comment.list : PUBLIC_API.comment.list;
+    const headers: HeadersInit = cookieHeader
+      ? { Cookie: cookieHeader }
+      : {};
+
+    const res = await fetch(url, {
       credentials: "include",
+      headers,
+      cache: "no-store",
     });
 
     if (!res.ok) {
@@ -25,11 +32,20 @@ export async function fetchAllComments(): Promise<Comment[]> {
 /**
  * Redact a comment by its ID (admin only)
  */
-export async function redactComment(id: string): Promise<void> {
+export async function redactComment(id: string, isAdmin: boolean = false, cookieHeader: string | null = null): Promise<void> {
   try {
+    if (!isAdmin) {
+      throw new Error("Unauthorized");
+    }
+
+    const headers: HeadersInit = cookieHeader
+      ? { Cookie: cookieHeader }
+      : {};
+
     const res = await fetch(ADMIN_API.comment.delete(id), {
       method: "DELETE",
       credentials: "include",
+      headers,
     });
 
     if (!res.ok) {
@@ -45,13 +61,16 @@ export async function redactComment(id: string): Promise<void> {
 /**
  * Create a new comment or reply (auth required)
  */
-export async function createComment(comment: CommentCreate): Promise<Comment> {
+export async function createComment(comment: CommentCreate, cookieHeader: string | null = null): Promise<Comment> {
   try {
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+      ...(cookieHeader ? { Cookie: cookieHeader } : {})
+    };
+
     const res = await fetch(AUTH_API.comment.create, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       credentials: "include",
       body: JSON.stringify(comment),
     });
@@ -71,13 +90,16 @@ export async function createComment(comment: CommentCreate): Promise<Comment> {
 /**
  * Update a user's own comment (auth required)
  */
-export async function updateComment(id: string, update: CommentUpdate): Promise<Comment> {
+export async function updateComment(id: string, update: CommentUpdate, cookieHeader: string | null = null): Promise<Comment> {
   try {
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+      ...(cookieHeader ? { Cookie: cookieHeader } : {})
+    };
+
     const res = await fetch(AUTH_API.comment.update(id), {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       credentials: "include",
       body: JSON.stringify(update),
     });
@@ -97,11 +119,16 @@ export async function updateComment(id: string, update: CommentUpdate): Promise<
 /**
  * Delete a user's own comment (auth required)
  */
-export async function deleteComment(id: string): Promise<void> {
+export async function deleteComment(id: string, cookieHeader: string | null = null): Promise<void> {
   try {
+    const headers: HeadersInit = cookieHeader
+      ? { Cookie: cookieHeader }
+      : {};
+
     const res = await fetch(AUTH_API.comment.delete(id), {
       method: "DELETE",
       credentials: "include",
+      headers,
     });
 
     if (!res.ok) {

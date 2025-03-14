@@ -5,28 +5,36 @@ import Link from "next/link";
 import { CareerEntry } from "@/models/CareerEntry";
 import { fetchCareerTimeline, deleteCareerEntry } from "@/services/careerService";
 
-export default function CareerTimelineManager() {
-  const [timeline, setTimeline] = useState<CareerEntry[]>([]);
+interface CareerTimelineManagerProps {
+  initialTimeline?: CareerEntry[];
+  cookieHeader?: string;
+}
+
+export default function CareerTimelineManager({ initialTimeline = [], cookieHeader }: CareerTimelineManagerProps) {
+  const [timeline, setTimeline] = useState<CareerEntry[]>(initialTimeline);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadEntries();
-  }, []);
 
-  async function loadEntries() {
-    try {
-      const data = await fetchCareerTimeline();
-      setTimeline(data);
-    } catch (err) {
-      console.error('Failed to fetch career timeline:', err);
-      setError('Failed to load career timeline');
+    async function loadEntries() {
+      try {
+        const data = await fetchCareerTimeline(true, cookieHeader || null);
+        setTimeline(data);
+      } catch (err) {
+        console.error('Failed to fetch career timeline:', err);
+        setError('Failed to load career timeline');
+      }
     }
-  }
+
+    if (initialTimeline.length === 0) {
+      loadEntries();
+    }
+  }, [initialTimeline, cookieHeader]);
 
   async function handleDelete(id: string) {
     if (!confirm("Are you sure you want to delete this entry?")) return;
     try {
-      await deleteCareerEntry(id);
+      await deleteCareerEntry(id, cookieHeader || null);
       setTimeline((prev) => prev.filter((entry) => entry._id !== id)); 
     } catch (err) {
       console.error('Failed to delete career entry:', err);

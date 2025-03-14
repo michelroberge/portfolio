@@ -11,18 +11,6 @@ export default function BlogManagement() {
   const [blogs, setBlogs] = useState<BlogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const loadBlogs = async () => {
-    try {
-      const data = await fetchBlogEntries();
-      setBlogs(data);
-      setError(null);
-      router.refresh(); // Forces Next.js to refetch SSR data
-    } catch (err) {
-      console.error('Failed to load blogs:', err);
-      setError('Failed to load blogs');
-    }
-  };
-
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this blog entry?')) return;
     
@@ -38,8 +26,21 @@ export default function BlogManagement() {
   };
 
   useEffect(() => {
+
+    const loadBlogs = async () => {
+      try {
+        const data = await fetchBlogEntries();
+        setBlogs(data);
+        setError(null);
+        router.refresh(); // Forces Next.js to refetch SSR data
+      } catch (err) {
+        console.error('Failed to load blogs:', err);
+        setError('Failed to load blogs');
+      }
+    };
+  
     loadBlogs();
-  }, []);
+  }, [router]);
 
   return (
     <div className="space-y-4">

@@ -5,13 +5,20 @@ import Link from "next/link";
 import { Page } from "@/models/Page";
 import { fetchPages, deletePage } from "@/services/pageService";
 
-export default function PagesList() {
-  const [pages, setPages] = useState<Page[]>([]);
+interface PagesListProps {
+  initialPages?: Page[];
+  cookieHeader?: string;
+}
+
+export default function PagesList({ initialPages = [], cookieHeader }: PagesListProps) {
+  const [pages, setPages] = useState<Page[]>(initialPages);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadPages();
-  }, []);
+    if (initialPages.length === 0) {
+      loadPages();
+    }
+  }, [initialPages]);
 
   async function loadPages() {
     try {
@@ -26,7 +33,7 @@ export default function PagesList() {
   async function handleDelete(id: string) {
     if (!confirm("Are you sure you want to delete this page?")) return;
     try {
-      await deletePage(id);
+      await deletePage(id, cookieHeader || null);
       setPages(pages.filter(page => page._id !== id));
     } catch (err) {
       console.error('Failed to delete page:', err);

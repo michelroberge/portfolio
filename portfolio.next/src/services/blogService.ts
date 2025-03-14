@@ -37,11 +37,12 @@ export async function fetchBlogEntries(isAdmin: boolean = false, cookieHeader : 
 export async function fetchBlogEntry(id: string, isAdmin: boolean = false, cookieHeader: string|null=null): Promise<BlogEntry> {
   try {
 
+    const url = isAdmin? ADMIN_API.blog.get(id) : PUBLIC_API.blog.get(id);
     const headers: HeadersInit = cookieHeader
     ? { Cookie: cookieHeader } // Pass cookies for SSR requests
     : {};
 
-    const response = await fetch(PUBLIC_API.blog.get(id), {
+    const response = await fetch(url, {
       credentials: "include",
       headers,
       cache: "no-store",

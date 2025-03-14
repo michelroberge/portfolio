@@ -6,16 +6,17 @@ import { redactComment } from "@/services/commentService";
 
 interface CommentsListProps {
   initialComments: Comment[];
+  cookieHeader?: string;
 }
 
-export default function CommentsList({ initialComments }: CommentsListProps) {
+export default function CommentsList({ initialComments, cookieHeader }: CommentsListProps) {
   const [comments, setComments] = useState<Comment[]>(initialComments);
   const [error, setError] = useState<string | null>(null);
 
   async function handleRedact(id: string) {
     if (!confirm("Are you sure you want to redact this comment? This action cannot be undone.")) return;
     try {
-      await redactComment(id);
+      await redactComment(id, true, cookieHeader || null);
       setComments(comments.map(comment => 
         comment._id === id ? { ...comment, redacted: true } : comment
       ));

@@ -16,10 +16,18 @@ export interface LinkedInParseResult {
 /**
  * Fetch all career entries
  */
-export async function fetchCareerTimeline(): Promise<CareerEntry[]> {
+export async function fetchCareerTimeline(isAdmin: boolean = false, cookieHeader: string | null = null): Promise<CareerEntry[]> {
     try {
-        const res = await fetch(PUBLIC_API.career.list, {
+        const url = isAdmin ? ADMIN_API.career.create : PUBLIC_API.career.list;
+        
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader } // Pass cookies for SSR requests
+            : {};
+
+        const res = await fetch(url, {
             credentials: "include",
+            headers,
+            cache: "no-store",
         });
 
         if (!res.ok) {
@@ -37,10 +45,18 @@ export async function fetchCareerTimeline(): Promise<CareerEntry[]> {
 /**
  * Fetch a career entry by ID
  */
-export async function fetchCareerEntry(id: string): Promise<CareerEntry> {
+export async function fetchCareerEntry(id: string, isAdmin: boolean = false, cookieHeader: string | null = null): Promise<CareerEntry> {
     try {
-        const res = await fetch(PUBLIC_API.career.get(id), {
+        const url = isAdmin ? ADMIN_API.career.get(id) : PUBLIC_API.career.get(id);
+        
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader } // Pass cookies for SSR requests
+            : {};
+
+        const res = await fetch(url, {
             credentials: "include",
+            headers,
+            cache: "no-store",
         });
 
         if (!res.ok) {
@@ -58,16 +74,19 @@ export async function fetchCareerEntry(id: string): Promise<CareerEntry> {
 /**
  * Save (create or update) a career entry
  */
-export async function saveCareerEntry(entry: Partial<CareerEntry> & { _id?: string }): Promise<CareerEntry> {
+export async function saveCareerEntry(entry: Partial<CareerEntry> & { _id?: string }, cookieHeader: string | null = null): Promise<CareerEntry> {
     try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         if (entry._id) {
             // Update existing entry
             const res = await fetch(ADMIN_API.career.update(entry._id), {
                 method: "PUT",
                 credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers,
                 body: JSON.stringify(entry),
             });
 
@@ -82,9 +101,7 @@ export async function saveCareerEntry(entry: Partial<CareerEntry> & { _id?: stri
             const res = await fetch(ADMIN_API.career.create, {
                 method: "POST",
                 credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers,
                 body: JSON.stringify(entry),
             });
 
@@ -104,11 +121,16 @@ export async function saveCareerEntry(entry: Partial<CareerEntry> & { _id?: stri
 /**
  * Delete a career entry
  */
-export async function deleteCareerEntry(id: string): Promise<void> {
+export async function deleteCareerEntry(id: string, cookieHeader: string | null = null): Promise<void> {
     try {
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
         const res = await fetch(ADMIN_API.career.delete(id), {
             method: "DELETE",
             credentials: "include",
+            headers,
         });
 
         if (!res.ok) {
@@ -124,14 +146,17 @@ export async function deleteCareerEntry(id: string): Promise<void> {
 /**
  * Parse LinkedIn HTML data on the backend
  */
-export async function parseLinkedInHTMLBackend(rawHTML: string): Promise<LinkedInParseResult[]> {
+export async function parseLinkedInHTMLBackend(rawHTML: string, cookieHeader: string | null = null): Promise<LinkedInParseResult[]> {
     try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         const res = await fetch(ADMIN_API.career.parseLinkedIn, {
             method: "POST",
             credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify({ rawHTML }),
         });
 
@@ -150,14 +175,17 @@ export async function parseLinkedInHTMLBackend(rawHTML: string): Promise<LinkedI
 /**
  * Save parsed LinkedIn jobs to the backend
  */
-export async function saveParsedJobs(jobs: LinkedInParseResult[]): Promise<CareerEntry[]> {
+export async function saveParsedJobs(jobs: LinkedInParseResult[], cookieHeader: string | null = null): Promise<CareerEntry[]> {
     try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         const res = await fetch(ADMIN_API.career.bulkImport, {
             method: "POST",
             credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify(jobs),
         });
 
