@@ -34,3 +34,13 @@ My suspicion is that generateResponse and generateResponseStream are misused. ge
 
 Specific rules:
 - If you change something on the backend, you need to consider the other scripts that use the functions you change. There can be no orphan scripts, they should still all work.
+
+Suggested changes:
+- in generateResponseStream function : always enfore the "json" format too. Wrap the prompt with necessary instructions so we get a response in a static format : { "data" : string, end: boolean, newParagraph : boolean} . 
+  - "end" is false until streaming is complete, then it is true. 
+  - "newParagraph" is true when a new paragraph is starting, otherwise is false. 
+  - "data" contains the streamed data (the LLM response). 
+- in wsChatService, the client opens the connection, and rely on the received data to determine wheter to
+a) update the last "ai" entry
+b) add a new entry based on the "newParagraph" property 
+c) response ends when "end" is true

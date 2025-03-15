@@ -9,7 +9,7 @@ const PROMPT_MODEL = process.env.PROMPT_MODEL || "mistral";
  * @param {string} format - Response format ('json' or 'text')
  * @returns {Promise<{ response: string }>} - AI-generated response.
  */
-async function generateResponse(prompt, format = 'json') {
+async function generateResponse(prompt) {
   try {
     const response = await fetch(`${OLLAMA_URL}/api/generate`, {
       method: "POST",
@@ -19,7 +19,7 @@ async function generateResponse(prompt, format = 'json') {
         prompt: `${prompt}`,
         max_tokens: 200,
         temperature: 0.7,
-        format: format
+        format: 'json'
       }),
     });
 
