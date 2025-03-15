@@ -1,53 +1,23 @@
-Background: I have this Chat component. It is meant to interact with a LLM. When it opens,
-- it shows up a greeting. 
-- User enter a prompt (we will refer to as userQuery). 
-- This goes to the backend.
-- The backend runs a pipeline for prompt optimization. 
-- For each step, it should stream back through websocket to the client. 
+Objective
+Create a Chatbot that works with a LLM pipeline. The flow is 
+1. Chatbot greets user (1st bubble)
+2. User enters a prompt (2nd bubble)
+3. Chatbot sends prompt to backend (3rd bubble with "...")
+4. Backend runs a pipeline.
+ - Each pipeline step is sent back to the chatbot (they are not stream, only complete answers, one per step)
+ - Each pipeline entry replaces the last chatbot bubble (replace 3rd bubble content)
+ - When the "final" response starts streaming, add a 4th bubble and stream response into that bubble.
 
-Current Behavior: 
-Both the userQuery and the bot reply gets updated with streamed data. Gibberish data is also being streamed back. 
+ Constraints
+ - use web sockets 
+   - on client side, there is a partially working implementation in useWebSocket and ChatContext. You do not need to keep them, but use the same libraries.
+   - on the server side, there is a partially working wsChatService that works with that client. Use the same libraries, but no need to keep the existing code. 
+   - You can change the responses of the GenerateResponse and GenerateResponseStream if necessary.
+   - You can change the pipelineService structure if necessary, but the pipeline steps should remain the same. 
+   - The conversion of the userQuery to vector must remain and be the first step. 
 
-Expected behavior: 
-The client should now see a new bubble, being updated with the current step, so it looks like something is happening. 
-When the pipeline finishes and the final response is streamed, it should be streamed on the client side as the chat response, in a single bubble. Only the answer is to be streamed.
-
-Task:
-- in portfolio.next
-  - analyze @/component/Chat
-  - analyze @/hooks/useWebSocketChat
-  - analyze @/context/ChatContext
-- in portfolio.node
-  - analyze .src/services/wsChatService
-  - analyze .src/services/pipelineService
-  - analyze .src/services/ollamaService
-  - analyze .src/services/llmService
-  - analyze .src/services/embeddingService
-  - analyze .src/services/dataFetcherService
-  - analyze .src/utils/generatePrompt.js
-  - analyze .src/utils/queryUtils.js
-  - analyze .src/utils/prompts.js
-
-You should get a full understanding of the e2e process. Then, you should be able to fix the issue so it works with the expected behaviour.
-
-My suspicion is that generateResponse and generateResponseStream are misused. generateResponse should support a format parameter (json or text) so that when we do the final query, we can ask to stream pure text. The pipeline should return the format as part of the response. The frontend should behave differently on the type.
-
-Specific rules:
-- If you change something on the backend, you need to consider the other scripts that use the functions you change. There can be no orphan scripts, they should still all work.
-
-Suggested changes:
-- in generateResponseStream function : always enfore the "json". If format is set to "text" in parameter, wrap the prompt with necessary instructions so we get a response in a static format : { "data" : string, end: boolean, newParagraph : boolean}. 
-  - "end" is false until streaming is complete, then it is true. 
-  - "newParagraph" is true when a new paragraph is starting, otherwise is false. (meaning it should always be true for the 1st bucket of the response)
-  - "data" contains the streamed data (the LLM response). 
-- in wsChatService, the client opens the connection, and rely on the received data to determine wheter to
-a) update the last "ai" entry
-b) add a new entry based on the "newParagraph" property 
-c) response ends when "end" is true
-- in useWebSocketChat, the client should handle the received data in the same way as in wsChatService
-- in ChatContext, the following rules should be applied:
-  - a new paragraph = new "ai" bubble with the streamed data
-  - not a new paragraph = append to the last "ai" bubble
-  - end = append to the last "ai" bubble and close it
-- the Chat component should display the messages in the correct order.
-- user prompts should be bubbles of type "user" whereas chatbot bubbles should be "ai"
+User Experience
+- Keep the existing look and feel of the chat interface.
+- Make this a reusable component (i.e. I may want to use it in other places, not as a popup). 
+Task
+Create a Chatbot with the provided specifications that works, applying the existing rules of this workspace (SOLID & Clean architecture).
