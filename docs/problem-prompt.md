@@ -36,11 +36,18 @@ Specific rules:
 - If you change something on the backend, you need to consider the other scripts that use the functions you change. There can be no orphan scripts, they should still all work.
 
 Suggested changes:
-- in generateResponseStream function : always enfore the "json" format too. Wrap the prompt with necessary instructions so we get a response in a static format : { "data" : string, end: boolean, newParagraph : boolean} . 
+- in generateResponseStream function : always enfore the "json". If format is set to "text" in parameter, wrap the prompt with necessary instructions so we get a response in a static format : { "data" : string, end: boolean, newParagraph : boolean}. 
   - "end" is false until streaming is complete, then it is true. 
-  - "newParagraph" is true when a new paragraph is starting, otherwise is false. 
+  - "newParagraph" is true when a new paragraph is starting, otherwise is false. (meaning it should always be true for the 1st bucket of the response)
   - "data" contains the streamed data (the LLM response). 
 - in wsChatService, the client opens the connection, and rely on the received data to determine wheter to
 a) update the last "ai" entry
 b) add a new entry based on the "newParagraph" property 
 c) response ends when "end" is true
+- in useWebSocketChat, the client should handle the received data in the same way as in wsChatService
+- in ChatContext, the following rules should be applied:
+  - a new paragraph = new "ai" bubble with the streamed data
+  - not a new paragraph = append to the last "ai" bubble
+  - end = append to the last "ai" bubble and close it
+- the Chat component should display the messages in the correct order.
+- user prompts should be bubbles of type "user" whereas chatbot bubbles should be "ai"
