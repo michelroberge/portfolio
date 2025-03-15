@@ -3,6 +3,9 @@ node project is in directory portfolio.node
 
 Objective: convert node project to .NET
 
+Context:
+User requirements are in /docs/prompts/1.c.UserRequirements.v3.md
+
 Steps:
 1. Analyze the node project
 2. Convert the node project to .NET
