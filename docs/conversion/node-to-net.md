@@ -42,36 +42,36 @@ Key Architectural Issues:
 ```
 portfolio.net/
 ├── src/
-│   ├── Domain/              # Domain Layer
+│   ├── Portfolio.Domain/              # Domain Layer
 │   │   ├── Entities/                  # Domain entities
 │   │   ├── Interfaces/                # Core interfaces
 │   │   ├── Events/                    # Domain events
 │   │   └── ValueObjects/              # Value objects
 │   │
-│   ├── Application/         # Application Layer
+│   ├── Portfolio.Application/         # Application Layer
 │   │   ├── Common/                    # Shared DTOs, mappings
 │   │   ├── Interfaces/                # Port interfaces
 │   │   ├── Services/                  # Application services
 │   │   └── UseCases/                  # CQRS handlers
 │   │
-│   ├── Infrastructure/      # Infrastructure Layer
+│   ├── Portfolio.Infrastructure/      # Infrastructure Layer
 │   │   ├── Persistence/              # Data access
 │   │   ├── Identity/                 # Auth implementation
 │   │   ├── Search/                   # Qdrant implementation
 │   │   ├── AI/                       # Ollama implementation
 │   │   └── External/                 # External services
 │   │
-│   └── Api/             # API Layer
+│   └── Portfolio.WebApi/             # API Layer
 │       ├── Controllers/              # API endpoints
 │       ├── Middleware/               # Request pipeline
 │       ├── Configuration/            # App settings
 │       └── DependencyInjection/      # IoC setup
 │
 └── tests/
-    ├── Domain.Tests/        # Domain unit tests
-    ├── Application.Tests/    # Application tests
-    ├── Infrastructure.Tests/ # Infrastructure tests
-    └── Api.Tests/        # API integration tests
+    ├── Portfolio.Domain.Tests/        # Domain unit tests
+    ├── Portfolio.Application.Tests/    # Application tests
+    ├── Portfolio.Infrastructure.Tests/ # Infrastructure tests
+    └── Portfolio.WebApi.Tests/        # API integration tests
 
 ### Component Mapping
 
