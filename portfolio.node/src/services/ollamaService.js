@@ -6,9 +6,10 @@ const PROMPT_MODEL = process.env.PROMPT_MODEL || "mistral";
 /**
  * Sends a structured prompt to the Ollama AI model and retrieves a response.
  * @param {string} prompt - The structured prompt with context and user query.
+ * @param {string} format - Response format ('json' or 'text')
  * @returns {Promise<{ response: string }>} - AI-generated response.
  */
-async function generateResponse(prompt) {
+async function generateResponse(prompt, format = 'json') {
   try {
     const response = await fetch(`${OLLAMA_URL}/api/generate`, {
       method: "POST",
@@ -18,7 +19,7 @@ async function generateResponse(prompt) {
         prompt: `${prompt}`,
         max_tokens: 200,
         temperature: 0.7,
-        format: "json"
+        format: format
       }),
     });
 
@@ -59,7 +60,13 @@ async function generateResponse(prompt) {
   }
 }
 
-async function generateResponseStream(prompt) {
+/**
+ * Streams a response from Ollama
+ * @param {string} prompt - The prompt to send to Ollama
+ * @param {string} format - Response format ('json' or 'text')
+ * @returns {ReadableStream} A stream of response chunks
+ */
+async function generateResponseStream(prompt, format = 'text') {
   const url = `${OLLAMA_URL}/api/generate`;
   const response = await fetch(url, {
       method: "POST",
@@ -69,6 +76,7 @@ async function generateResponseStream(prompt) {
           prompt: prompt,
           max_tokens: 200,
           temperature: 0.7,
+          format: format
       }),
   });
 
@@ -95,7 +103,12 @@ async function generateResponseStream(prompt) {
                               controller.enqueue(parsed.response);
                           }
                       } catch (err) {
-                          console.warn("Skipping invalid JSON chunk");
+                          // For text format, try to use the raw chunk
+                          if (format === 'text') {
+                              controller.enqueue(line.trim());
+                          } else {
+                              console.warn("Skipping invalid JSON chunk");
+                          }
                       }
                   }
               });
@@ -103,7 +116,5 @@ async function generateResponseStream(prompt) {
       }
   });
 }
-
-  
 
 module.exports = { generateResponse, generateResponseStream };
