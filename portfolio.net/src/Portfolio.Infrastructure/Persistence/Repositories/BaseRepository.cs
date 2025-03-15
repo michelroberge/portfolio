@@ -4,6 +4,10 @@ using Portfolio.Domain.Interfaces;
 
 namespace Portfolio.Infrastructure.Persistence.Repositories;
 
+/// <summary>
+/// Base repository implementation following Clean Architecture principles.
+/// Provides common CRUD operations for all entities and ensures data consistency.
+/// </summary>
 public abstract class BaseRepository<TEntity> : IRepository<TEntity>
     where TEntity : class, IEntity
 {
@@ -28,22 +32,41 @@ public abstract class BaseRepository<TEntity> : IRepository<TEntity>
 
     public virtual async Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
+
         await DbSet.AddAsync(entity, cancellationToken);
         return entity;
     }
 
     public virtual Task UpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
+
         Context.Entry(entity).State = EntityState.Modified;
         return Task.CompletedTask;
     }
 
     public virtual async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrEmpty(id))
+            throw new ArgumentNullException(nameof(id));
+
         var entity = await GetByIdAsync(id, cancellationToken);
         if (entity != null)
         {
             DbSet.Remove(entity);
         }
+    }
+
+    protected virtual async Task<bool> ExistsAsync(string id, CancellationToken cancellationToken = default)
+    {
+        return await DbSet.AnyAsync(e => e.Id == id, cancellationToken);
+    }
+
+    protected virtual IQueryable<TEntity> GetQueryable()
+    {
+        return DbSet.AsQueryable();
     }
 }

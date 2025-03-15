@@ -2,6 +2,7 @@ using System.Diagnostics;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Portfolio.Application.Common.Interfaces;
+using Portfolio.Application.Interfaces.Services;
 
 namespace Portfolio.Application.Common.Behaviors;
 

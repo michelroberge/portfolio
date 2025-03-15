@@ -30,20 +30,6 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, UserD
         {
             _logger.LogInformation("Creating new user with username: {Username}", request.Username);
 
-            // Check if username is unique
-            if (!await _userRepository.IsUsernameUniqueAsync(request.Username, cancellationToken))
-            {
-                _logger.LogWarning("Username {Username} is already taken", request.Username);
-                throw new Common.Exceptions.ValidationException("Username is already taken");
-            }
-
-            // Check if email is unique
-            if (!await _userRepository.IsEmailUniqueAsync(request.Email, cancellationToken))
-            {
-                _logger.LogWarning("Email {Email} is already registered", request.Email);
-                throw new Common.Exceptions.ValidationException("Email is already registered");
-            }
-
             // Create Email value object
             var email = Email.Create(request.Email);
             _logger.LogDebug("Created Email value object for {Email}", request.Email);

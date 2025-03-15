@@ -1,7 +1,8 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Portfolio.Application.Common.Interfaces;
-
+using Portfolio.Application.Interfaces.Services;
+using Portfolio.Application.Interfaces.Persistence;
 namespace Portfolio.Application.Common.Behaviors;
 
 public class TransactionBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>

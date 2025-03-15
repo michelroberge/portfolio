@@ -48,7 +48,7 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
                 typeof(TRequest).Name,
                 string.Join(", ", failures.Select(f => f.ErrorMessage)));
 
-            throw new ValidationException(failures);
+            throw new FluentValidation.ValidationException(failures);
         }
 
         _logger.LogDebug("Validation successful for request of type {RequestType}", typeof(TRequest).Name);

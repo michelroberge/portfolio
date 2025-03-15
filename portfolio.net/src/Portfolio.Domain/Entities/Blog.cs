@@ -1,10 +1,9 @@
 using Portfolio.Domain.Common;
 using Portfolio.Domain.Exceptions;
-using Portfolio.Domain.Interfaces;
 
 namespace Portfolio.Domain.Entities;
 
-public class Blog : Entity, IBlog
+public class Blog : AuditableEntity
 {
     private readonly List<string> _tags;
 
@@ -14,15 +13,16 @@ public class Blog : Entity, IBlog
     public bool IsDraft { get; private set; }
     public DateTime? PublishAt { get; private set; }
     public int VectorId { get; private set; }
-    public string? Link { get; private set; }
+    public string Link { get; private set; }
     public IReadOnlyCollection<string> Tags => _tags.AsReadOnly();
 
-    // For ORM
-    private Blog() : base()
+    // For EF Core
+    private Blog() : base(Guid.NewGuid().ToString())
     {
         Title = string.Empty;
         Excerpt = string.Empty;
         Body = string.Empty;
+        Link = string.Empty;
         _tags = new List<string>();
     }
 
@@ -54,7 +54,7 @@ public class Blog : Entity, IBlog
     {
         ValidateTitle(title);
         Title = title;
-        UpdatedAt = DateTime.UtcNow;
+        UpdateModifiedDate();
         GenerateLink();
     }
 
@@ -62,26 +62,28 @@ public class Blog : Entity, IBlog
     {
         ValidateExcerpt(excerpt);
         Excerpt = excerpt;
-        UpdatedAt = DateTime.UtcNow;
+        UpdateModifiedDate();
     }
 
     public void UpdateBody(string body)
     {
         ValidateBody(body);
         Body = body;
-        UpdatedAt = DateTime.UtcNow;
+        UpdateModifiedDate();
     }
 
-    public void UpdateDraftStatus(bool isDraft)
+    public void Publish(DateTime? publishAt = null)
     {
-        IsDraft = isDraft;
-        UpdatedAt = DateTime.UtcNow;
-    }
-
-    public void UpdatePublishDate(DateTime? publishAt)
-    {
+        IsDraft = false;
         PublishAt = publishAt;
-        UpdatedAt = DateTime.UtcNow;
+        UpdateModifiedDate();
+    }
+
+    public void UnPublish()
+    {
+        IsDraft = true;
+        PublishAt = null;
+        UpdateModifiedDate();
     }
 
     public void AddTag(string tag)
@@ -93,7 +95,7 @@ public class Blog : Entity, IBlog
         if (!_tags.Contains(normalizedTag))
         {
             _tags.Add(normalizedTag);
-            UpdatedAt = DateTime.UtcNow;
+            UpdateModifiedDate();
         }
     }
 
@@ -102,7 +104,7 @@ public class Blog : Entity, IBlog
         var normalizedTag = tag.Trim().ToLowerInvariant();
         if (_tags.Remove(normalizedTag))
         {
-            UpdatedAt = DateTime.UtcNow;
+            UpdateModifiedDate();
         }
     }
 
@@ -111,7 +113,7 @@ public class Blog : Entity, IBlog
         if (_tags.Any())
         {
             _tags.Clear();
-            UpdatedAt = DateTime.UtcNow;
+            UpdateModifiedDate();
         }
     }
 
