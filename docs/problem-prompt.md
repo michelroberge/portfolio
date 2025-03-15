@@ -15,6 +15,16 @@ Create a Chatbot that works with a LLM pipeline. The flow is
    - You can change the responses of the GenerateResponse and GenerateResponseStream if necessary.
    - You can change the pipelineService structure if necessary, but the pipeline steps should remain the same. 
    - The conversion of the userQuery to vector must remain and be the first step. 
+- the websocket endpoint MUST be obtained like this:
+
+```
+  const wsUrl = useMemo(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    const baseWsUrl = apiUrl.replace(/^http/, "ws");
+    return baseWsUrl;
+  }, []);
+```
+- All the existing scripts for the current chatbot (i.e. useWebSocketChat) must either be used or removed. 
 
 User Experience
 - Keep the existing look and feel of the chat interface.
