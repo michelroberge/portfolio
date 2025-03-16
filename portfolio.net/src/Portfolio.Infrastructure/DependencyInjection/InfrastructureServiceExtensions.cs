@@ -23,6 +23,9 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IProjectRepository, ProjectRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
 
+        // Register UnitOfWork
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+
         return services;
     }
 }

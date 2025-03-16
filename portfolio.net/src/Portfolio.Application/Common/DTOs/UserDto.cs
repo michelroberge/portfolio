@@ -1,8 +1,11 @@
 namespace Portfolio.Application.Common.DTOs;
 
-public record UserDto
+/// <summary>
+/// Data Transfer Object for User entity following Clean Architecture principles.
+/// Provides a flat, serializable representation of the User aggregate.
+/// </summary>
+public record UserDto : BaseDto
 {
-    public required string Id { get; init; }
     public required string Username { get; init; }
     public required string Email { get; init; }
     public string? DisplayName { get; init; }
@@ -10,6 +13,4 @@ public record UserDto
     public string? Provider { get; init; }
     public string? ProviderId { get; init; }
     public required bool IsAdmin { get; init; }
-    public required DateTime CreatedAt { get; init; }
-    public required DateTime UpdatedAt { get; init; }
 }
