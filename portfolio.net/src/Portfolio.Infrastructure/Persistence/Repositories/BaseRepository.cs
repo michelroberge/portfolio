@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Portfolio.Application.Interfaces.Persistence;
-using Portfolio.Domain.Interfaces;
+using Portfolio.Domain.Common;
 
 namespace Portfolio.Infrastructure.Persistence.Repositories;
 
@@ -20,9 +20,12 @@ public abstract class BaseRepository<TEntity> : IRepository<TEntity>
         DbSet = context.Set<TEntity>();
     }
 
-    public virtual async Task<TEntity?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+    public virtual async Task<TEntity> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
-        return await DbSet.FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
+        var entity = await DbSet.FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
+        if (entity == null)
+            throw new NotFoundException(typeof(TEntity).Name, nameof(id), id);
+        return entity;
     }
 
     public virtual async Task<IEnumerable<TEntity>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -32,32 +35,29 @@ public abstract class BaseRepository<TEntity> : IRepository<TEntity>
 
     public virtual async Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
-        if (entity == null)
-            throw new ArgumentNullException(nameof(entity));
+        ArgumentNullException.ThrowIfNull(entity);
 
         await DbSet.AddAsync(entity, cancellationToken);
+        await Context.SaveChangesAsync(cancellationToken);
         return entity;
     }
 
-    public virtual Task UpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
+    public virtual async Task UpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
-        if (entity == null)
-            throw new ArgumentNullException(nameof(entity));
+        ArgumentNullException.ThrowIfNull(entity);
+
+        // Ensure entity exists
+        await GetByIdAsync(entity.Id, cancellationToken);
 
         Context.Entry(entity).State = EntityState.Modified;
-        return Task.CompletedTask;
+        await Context.SaveChangesAsync(cancellationToken);
     }
 
     public virtual async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrEmpty(id))
-            throw new ArgumentNullException(nameof(id));
-
         var entity = await GetByIdAsync(id, cancellationToken);
-        if (entity != null)
-        {
-            DbSet.Remove(entity);
-        }
+        DbSet.Remove(entity);
+        await Context.SaveChangesAsync(cancellationToken);
     }
 
     protected virtual async Task<bool> ExistsAsync(string id, CancellationToken cancellationToken = default)

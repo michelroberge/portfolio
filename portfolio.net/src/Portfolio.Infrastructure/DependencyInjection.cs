@@ -19,10 +19,13 @@ public static class DependencyInjection
                 configuration.GetConnectionString("DefaultConnection"),
                 b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
 
+        services.AddScoped<IPageRepository, PageRepository>();
+
         // Add Repositories
         services.AddScoped<IBlogRepository, BlogRepository>();
         services.AddScoped<IProjectRepository, ProjectRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IPageRepository, PageRepository>();
 
         // Add Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();

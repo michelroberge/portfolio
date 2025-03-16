@@ -55,8 +55,8 @@ public class ProjectConfiguration : BaseConfiguration<Project>
         builder.Property(p => p.Technologies)
             .HasColumnName("Technologies")
             .HasConversion(
-                v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null),
-                v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions)null));
+                v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
+                v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions)null!)!);
 
         // Configure indexes for performance and data integrity
         builder.HasIndex(p => p.Link)

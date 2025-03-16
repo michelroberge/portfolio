@@ -1,15 +1,16 @@
-using Portfolio.Domain.Interfaces;
+using System;
 
 namespace Portfolio.Domain.Common;
 
 public abstract class Entity : IEntity
 {
-    public string Id { get; protected set; } = string.Empty;
-    public DateTime CreatedAt { get; protected set; }
-    public DateTime UpdatedAt { get; protected set; }
+    public string Id { get; protected set; }
+    public DateTime CreatedAt { get; internal set; }
+    public DateTime UpdatedAt { get; internal set; }
 
     protected Entity()
     {
+        Id = Guid.NewGuid().ToString();
         CreatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }
@@ -18,6 +19,11 @@ public abstract class Entity : IEntity
     {
         Id = id;
         CreatedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void UpdateModifiedDate()
+    {
         UpdatedAt = DateTime.UtcNow;
     }
 }
