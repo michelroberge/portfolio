@@ -37,6 +37,10 @@ public class BlogConfiguration : BaseConfiguration<Blog>
             .IsRequired()
             .HasDefaultValue(true);
 
+        builder.Property(b => b.IsPublished)
+            .IsRequired()
+            .HasDefaultValue(false);
+
         builder.Property(b => b.PublishAt);
 
         // Configure vector search properties
@@ -60,7 +64,11 @@ public class BlogConfiguration : BaseConfiguration<Blog>
             .HasDatabaseName("IX_Blogs_VectorId");
 
         // Configure composite indexes for efficient querying
-        builder.HasIndex(b => new { b.IsDraft, b.PublishAt })
-            .HasDatabaseName("IX_Blogs_IsDraft_PublishAt");
+        builder.HasIndex(b => new { b.IsDraft, b.IsPublished, b.PublishAt })
+            .HasDatabaseName("IX_Blogs_IsDraft_IsPublished_PublishAt");
+
+        // Configure full-text search index
+        builder.HasIndex(b => new { b.Title, b.Body })
+            .HasDatabaseName("IX_Blogs_FullText");
     }
 }

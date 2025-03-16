@@ -4,62 +4,167 @@ using System.Text.RegularExpressions;
 
 namespace Portfolio.Domain.Entities;
 
-public class Blog : Entity
+public class Blog : PublishableEntity
 {
     private string _title = string.Empty;
     public string Title 
     { 
         get => _title;
-        set
+        private init
         {
             if (string.IsNullOrWhiteSpace(value))
                 throw new DomainValidationException("Title cannot be empty");
             if (value.Length > 200)
                 throw new DomainValidationException("Title cannot be longer than 200 characters");
             _title = value;
-            Link = GenerateLink();
-            UpdatedAt = DateTime.UtcNow;
         }
     }
 
-    public string Excerpt { get; set; } = string.Empty;
-    public string Body { get; set; } = string.Empty;
-    public bool IsDraft { get; set; } = true;
-    public DateTime? PublishAt { get; set; }
-    public int VectorId { get; set; }
-    public string Link { get; private set; } = string.Empty;
-    public List<string> Tags { get; set; } = new();
+    public string Excerpt { get; private init; } = string.Empty;
+    public string Body { get; private init; } = string.Empty;
+    public DateTime? PublishAt { get; private init; }
+    public string Link { get; private init; } = string.Empty;
+    public List<string> Tags { get; private init; } = new();
 
-    private string GenerateLink()
+    private Blog() { } // For EF Core
+
+    public Blog(
+        string title,
+        string excerpt,
+        string body,
+        DateTime? publishAt = null,
+        List<string>? tags = null)
     {
-        var slug = Title.ToLowerInvariant();
+        Title = title;
+        Excerpt = excerpt;
+        Body = body;
+        PublishAt = publishAt;
+        Link = GenerateLink(title);
+        Tags = tags ?? new List<string>();
+        ValidateProperties();
+    }
+
+    public Blog Update(
+        string title,
+        string excerpt,
+        string body,
+        DateTime? publishAt = null,
+        List<string>? tags = null,
+        bool? isDraft = null,
+        bool? isPublished = null)
+    {
+        ValidateProperties(title, excerpt, body);
+
+        return new Blog
+        {
+            Id = Id,
+            Title = title,
+            Excerpt = excerpt,
+            Body = body,
+            PublishAt = publishAt ?? PublishAt,
+            Link = title != Title ? GenerateLink(title) : Link,
+            Tags = tags ?? Tags,
+            IsDraft = isDraft ?? IsDraft,
+            IsPublished = isPublished ?? IsPublished,
+            VectorId = VectorId,
+            CreatedAt = CreatedAt,
+            UpdatedAt = DateTime.UtcNow
+        };
+    }
+
+    public Blog Publish()
+    {
+        ValidateForPublishing();
+
+        return new Blog
+        {
+            Id = Id,
+            Title = Title,
+            Excerpt = Excerpt,
+            Body = Body,
+            PublishAt = DateTime.UtcNow,
+            Link = Link,
+            Tags = Tags,
+            IsDraft = false,
+            IsPublished = true,
+            VectorId = VectorId,
+            CreatedAt = CreatedAt,
+            UpdatedAt = DateTime.UtcNow
+        };
+    }
+
+    public Blog Unpublish()
+    {
+        return new Blog
+        {
+            Id = Id,
+            Title = Title,
+            Excerpt = Excerpt,
+            Body = Body,
+            PublishAt = null,
+            Link = Link,
+            Tags = Tags,
+            IsDraft = true,
+            IsPublished = false,
+            VectorId = VectorId,
+            CreatedAt = CreatedAt,
+            UpdatedAt = DateTime.UtcNow
+        };
+    }
+
+    public Blog SetVectorId(int vectorId)
+    {
+        ValidateVectorId(vectorId);
+
+        return new Blog
+        {
+            Id = Id,
+            Title = Title,
+            Excerpt = Excerpt,
+            Body = Body,
+            PublishAt = PublishAt,
+            Link = Link,
+            Tags = Tags,
+            IsDraft = IsDraft,
+            IsPublished = IsPublished,
+            VectorId = vectorId,
+            CreatedAt = CreatedAt,
+            UpdatedAt = DateTime.UtcNow
+        };
+    }
+
+    protected override void ValidateForPublishing()
+    {
+        if (string.IsNullOrWhiteSpace(Excerpt))
+            throw new DomainValidationException("Excerpt is required before publishing");
+        if (string.IsNullOrWhiteSpace(Body))
+            throw new DomainValidationException("Body is required before publishing");
+    }
+
+    private void ValidateProperties()
+    {
+        ValidateProperties(Title, Excerpt, Body);
+    }
+
+    private static void ValidateProperties(string title, string excerpt, string body)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            throw new DomainValidationException("Title cannot be empty");
+        if (title.Length > 200)
+            throw new DomainValidationException("Title cannot be longer than 200 characters");
+        if (excerpt?.Length > 500)
+            throw new DomainValidationException("Excerpt cannot be longer than 500 characters");
+    }
+
+    private static string GenerateLink(string title)
+    {
+        var slug = title.ToLowerInvariant();
         // Replace any non-alphanumeric characters with a dash
         slug = Regex.Replace(slug, @"[^a-z0-9]", "-");
         // Remove multiple consecutive dashes
         slug = Regex.Replace(slug, @"-+", "-");
         // Remove leading and trailing dashes
         slug = slug.Trim('-');
-        return $"{slug}-{Id}";
-    }
-
-    public Blog(
-        string id = "",
-        string title= "",
-        string excerpt = "",
-        string body = "",
-        bool isDraft =true,
-        int vectorId = 0,
-        DateTime? publishAt = null,
-        string link= ""
-    ): base(id)
-    {
-        Id = id;
-        Title = title;
-        Excerpt = excerpt;
-        Body = body;
-        IsDraft = isDraft;
-        PublishAt = publishAt;
-        Link = link;
-        VectorId = vectorId;
+        return slug;
     }
 }

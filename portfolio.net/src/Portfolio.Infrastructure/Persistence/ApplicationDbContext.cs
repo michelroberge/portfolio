@@ -1,21 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using Portfolio.Domain.Common;
 using Portfolio.Domain.Entities;
-using Portfolio.Domain.ValueObjects;
 
 namespace Portfolio.Infrastructure.Persistence;
 
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
 {
-    public DbSet<Blog> Blogs => Set<Blog>();
+    public DbSet<Blog> Blogs { get; set; } = null!;
     public DbSet<Page> Pages { get; set; } = null!;
-    public DbSet<Project> Projects => Set<Project>();
-    public DbSet<User> Users => Set<User>();
-
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-        : base(options)
-    {
-    }
+    public DbSet<Project> Projects { get; set; } = null!;
+    public DbSet<User> Users { get; set; } = null!;
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -47,25 +41,5 @@ public class ApplicationDbContext : DbContext
 
         // Apply all entity configurations from assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
-
-        // Configure value objects
-        modelBuilder.Entity<User>()
-            .Property(u => u.Email)
-            .HasConversion(
-                email => email.Value,
-                value => Email.Create(value));
-
-        // Configure collections
-        modelBuilder.Entity<Blog>()
-            .Property(b => b.Tags)
-            .HasConversion(
-                tags => string.Join(',', tags),
-                value => value.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList());
-
-        modelBuilder.Entity<Project>()
-            .Property(p => p.Technologies)
-            .HasConversion(
-                tech => string.Join(',', tech),
-                value => value.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList());
     }
 }

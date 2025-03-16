@@ -210,6 +210,14 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "AutoMapper": {
+              "target": "Package",
+              "version": "[13.0.1, )"
+            },
+            "MediatR": {
+              "target": "Package",
+              "version": "[12.2.0, )"
+            },
             "Microsoft.EntityFrameworkCore": {
               "target": "Package",
               "version": "[8.0.2, )"
@@ -277,22 +285,16 @@
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
-          "net9.0"
+          "net8.0"
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "net9.0": {
-            "targetAlias": "net9.0",
+          "net8.0": {
+            "targetAlias": "net8.0",
             "projectReferences": {
-              "C:\\dev\\portfolio\\portfolio.net\\src\\Portfolio.Application\\Portfolio.Application.csproj": {
-                "projectPath": "C:\\dev\\portfolio\\portfolio.net\\src\\Portfolio.Application\\Portfolio.Application.csproj"
-              },
-              "C:\\dev\\portfolio\\portfolio.net\\src\\Portfolio.Domain\\Portfolio.Domain.csproj": {
-                "projectPath": "C:\\dev\\portfolio\\portfolio.net\\src\\Portfolio.Domain\\Portfolio.Domain.csproj"
-              },
               "C:\\dev\\portfolio\\portfolio.net\\src\\Portfolio.Infrastructure\\Portfolio.Infrastructure.csproj": {
                 "projectPath": "C:\\dev\\portfolio\\portfolio.net\\src\\Portfolio.Infrastructure\\Portfolio.Infrastructure.csproj"
               }
@@ -312,20 +314,28 @@
         "SdkAnalysisLevel": "9.0.100"
       },
       "frameworks": {
-        "net9.0": {
-          "targetAlias": "net9.0",
+        "net8.0": {
+          "targetAlias": "net8.0",
           "dependencies": {
+            "AutoMapper": {
+              "target": "Package",
+              "version": "[13.0.1, )"
+            },
             "MediatR": {
               "target": "Package",
               "version": "[12.2.0, )"
             },
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
-              "version": "[9.0.1, )"
+              "version": "[8.0.0, )"
             },
-            "NSwag.AspNetCore": {
+            "Microsoft.Extensions.DependencyInjection": {
               "target": "Package",
-              "version": "[14.0.3, )"
+              "version": "[8.0.0, )"
+            },
+            "Swashbuckle.AspNetCore": {
+              "target": "Package",
+              "version": "[6.5.0, )"
             }
           },
           "imports": [

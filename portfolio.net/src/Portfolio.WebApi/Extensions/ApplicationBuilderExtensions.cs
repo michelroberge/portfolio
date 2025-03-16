@@ -1,4 +1,3 @@
-using NSwag.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 
@@ -10,12 +9,25 @@ public static class ApplicationBuilderExtensions
     {
         if (env.IsDevelopment())
         {
-            app.UseOpenApi();
-            app.UseSwaggerUi();
+            app.UseSwaggerWithUI();
         }
 
         app.UseHttpsRedirection();
+        app.UseCustomExceptionHandler();
 
+        return app;
+    }
+
+    public static IApplicationBuilder UseSwaggerWithUI(this IApplicationBuilder app)
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+        return app;
+    }
+
+    public static IApplicationBuilder UseCustomExceptionHandler(this IApplicationBuilder app)
+    {
+        app.UseExceptionHandler("/error");
         return app;
     }
 }
