@@ -45,10 +45,10 @@ public class CreateProjectCommandHandler : IRequestHandler<CreateProjectCommand,
                 vectorId: vectorId
             );
 
-            // Add technologies if any
+
             foreach (var technology in request.Technologies)
             {
-                project.AddTechnology(technology);
+                project.Technologies.Add(technology);
             }
 
             _logger.LogDebug("Project entity created with ID: {ProjectId}", project.Id);

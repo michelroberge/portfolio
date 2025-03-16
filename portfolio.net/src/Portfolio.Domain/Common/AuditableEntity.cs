@@ -5,8 +5,8 @@ namespace Portfolio.Domain.Common;
 public abstract class AuditableEntity : IEntity
 {
     public string Id { get; private set; }
-    public DateTime CreatedAt { get; private set; }
-    public DateTime UpdatedAt { get; private set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 
     protected AuditableEntity(string id)
     {

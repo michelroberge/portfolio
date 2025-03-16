@@ -47,7 +47,7 @@ public class CreateBlogCommandHandler : IRequestHandler<CreateBlogCommand, BlogD
             // Add tags if any
             foreach (var tag in request.Tags)
             {
-                blog.AddTag(tag);
+                blog.Tags.Add(tag);
             }
 
             _logger.LogDebug("Blog entity created with ID: {BlogId}", blog.Id);
