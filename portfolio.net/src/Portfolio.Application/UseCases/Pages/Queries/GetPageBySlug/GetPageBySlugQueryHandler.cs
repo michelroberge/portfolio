@@ -1,7 +1,8 @@
+using AutoMapper;
 using MediatR;
-using Portfolio.Application.Common.Interfaces;
-using Portfolio.Application.UseCases.Pages.Common;
-using Portfolio.Domain.Common;
+using Portfolio.Application.Common.DTOs;
+using Portfolio.Application.Common.Exceptions;
+using Portfolio.Application.Interfaces.Persistence;
 using Portfolio.Domain.Entities;
 
 namespace Portfolio.Application.UseCases.Pages.Queries.GetPageBySlug;
@@ -9,28 +10,21 @@ namespace Portfolio.Application.UseCases.Pages.Queries.GetPageBySlug;
 public class GetPageBySlugQueryHandler : IRequestHandler<GetPageBySlugQuery, PageDto>
 {
     private readonly IPageRepository _pageRepository;
+    private readonly IMapper _mapper;
 
-    public GetPageBySlugQueryHandler(IPageRepository pageRepository)
+    public GetPageBySlugQueryHandler(IPageRepository pageRepository, IMapper mapper)
     {
         _pageRepository = pageRepository;
+        _mapper = mapper;
     }
 
     public async Task<PageDto> Handle(GetPageBySlugQuery request, CancellationToken cancellationToken)
     {
-        // Normalize slug for consistency
-        var normalizedSlug = request.Slug.Trim().ToLowerInvariant();
-        var page = await _pageRepository.GetBySlugAsync(normalizedSlug, cancellationToken);
-        
-        if (page == null)
-            throw new NotFoundException($"Page with slug '{normalizedSlug}' not found", nameof(Page), normalizedSlug);
+        var page = await _pageRepository.GetBySlugAsync(request.Slug, cancellationToken);
 
-        // Map domain entity to DTO
-        return new PageDto(
-            page.Id,
-            page.Title,
-            page.Slug,
-            page.Content,
-            page.CreatedAt,
-            page.UpdatedAt);
+        if (page == null)
+            throw new NotFoundException(nameof(Page), request.Slug);
+
+        return _mapper.Map<PageDto>(page);
     }
 }

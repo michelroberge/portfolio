@@ -1,6 +1,6 @@
 using MediatR;
-using Portfolio.Application.UseCases.Pages.Common;
+using Portfolio.Application.Common.DTOs;
 
 namespace Portfolio.Application.UseCases.Pages.Queries.GetPageById;
 
-public record GetPageByIdQuery(Guid Id) : IRequest<PageDto>;
+public record GetPageByIdQuery(string Id) : IRequest<PageDto>;

@@ -16,5 +16,8 @@ public class MappingProfile : Profile
 
         CreateMap<User, UserDto>()
             .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email.Value));
+
+        CreateMap<Page, PageDto>()
+            .ForMember(dest => dest.MetaKeywords, opt => opt.MapFrom(src => src.MetaKeywords));
     }
 }
