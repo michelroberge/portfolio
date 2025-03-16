@@ -1,5 +1,3 @@
-using Portfolio.Domain.Common;
-using Portfolio.Domain.Exceptions;
 using Portfolio.Infrastructure;
 using Portfolio.WebApi.Extensions;
 
