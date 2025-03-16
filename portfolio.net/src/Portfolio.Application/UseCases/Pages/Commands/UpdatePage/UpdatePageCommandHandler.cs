@@ -1,36 +1,54 @@
+using AutoMapper;
 using MediatR;
-using Portfolio.Application.Common.Interfaces;
-using Portfolio.Domain.Common;
+using Portfolio.Application.Common.DTOs;
+using Portfolio.Application.Common.Exceptions;
+using Portfolio.Application.Interfaces.Persistence;
 using Portfolio.Domain.Entities;
 
 namespace Portfolio.Application.UseCases.Pages.Commands.UpdatePage;
 
-public class UpdatePageCommandHandler(IPageRepository pageRepository) : IRequestHandler<UpdatePageCommand, Unit>
+public class UpdatePageCommandHandler : IRequestHandler<UpdatePageCommand, PageDto>
 {
-    public async Task<Unit> Handle(UpdatePageCommand request, CancellationToken cancellationToken)
+    private readonly IPageRepository _pageRepository;
+    private readonly IMapper _mapper;
+
+    public UpdatePageCommandHandler(IPageRepository pageRepository, IMapper mapper)
+    {
+        _pageRepository = pageRepository;
+        _mapper = mapper;
+    }
+
+    public async Task<PageDto> Handle(UpdatePageCommand request, CancellationToken cancellationToken)
     {
         // Get existing page
-        var existingPage = await pageRepository.GetByIdAsync(request.Id, cancellationToken);
-        if (existingPage == null)
-            throw new NotFoundException($"Page with ID {request.Id} not found", nameof(Page), request.Id);
+        var page = await _pageRepository.GetByIdAsync(request.Id, cancellationToken);
+        if (page == null)
+            throw new NotFoundException(nameof(Page), request.Id);
 
-        // Validate slug uniqueness
-        if (!string.Equals(existingPage.Slug, request.Slug, StringComparison.OrdinalIgnoreCase))
+        // Check for duplicate slug if changed
+        if (request.Slug != page.Slug)
         {
-            var pageWithSlug = await pageRepository.GetBySlugAsync(request.Slug, cancellationToken);
-            if (pageWithSlug != null && pageWithSlug.Id.Equals(request.Id) == false)
-                throw new DuplicateSlugException($"A page with slug '{request.Slug}' already exists");
+            var existingPage = await _pageRepository.GetBySlugAsync(request.Slug, cancellationToken);
+            if (existingPage != null)
+                throw new ValidationException($"A page with slug '{request.Slug}' already exists.");
         }
 
-        // Update page using domain entity's Update method
-        var updatedPage = existingPage.Update(
-            request.Title.Trim(),
-            request.Slug.Trim().ToLowerInvariant(),
-            request.Content.Trim()
+        // Update page following DDD principles
+        var updatedPage = page.Update(
+            title: request.Title,
+            slug: request.Slug,
+            content: request.Content,
+            metaDescription: request.MetaDescription,
+            metaKeywords: request.MetaKeywords?.ToList(),
+            openGraphImage: request.OpenGraphImage,
+            isDraft: request.IsDraft,
+            isPublished: request.IsPublished
         );
 
-        // Persist changes
-        await pageRepository.UpdateAsync(updatedPage, cancellationToken);
-        return Unit.Value;
+        // Save changes
+        await _pageRepository.UpdateAsync(updatedPage, cancellationToken);
+
+        // Map to DTO and return
+        return _mapper.Map<PageDto>(updatedPage);
     }
 }

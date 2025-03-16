@@ -35,13 +35,10 @@ public class CreateBlogCommandHandler : IRequestHandler<CreateBlogCommand, BlogD
 
             // Create new blog entity
             var blog = new Blog(
-                id: Guid.NewGuid().ToString(),
                 title: request.Title,
                 excerpt: request.Excerpt,
                 body: request.Body,
-                isDraft: request.IsDraft,
-                publishAt: request.PublishAt,
-                vectorId: vectorId
+                publishAt: request.PublishAt
             );
 
             // Add tags if any

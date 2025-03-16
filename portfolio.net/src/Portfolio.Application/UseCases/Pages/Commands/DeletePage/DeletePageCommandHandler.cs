@@ -1,6 +1,6 @@
 using MediatR;
-using Portfolio.Application.Common.Interfaces;
-using Portfolio.Domain.Common;
+using Portfolio.Application.Common.Exceptions;
+using Portfolio.Application.Interfaces.Persistence;
 using Portfolio.Domain.Entities;
 
 namespace Portfolio.Application.UseCases.Pages.Commands.DeletePage;
@@ -16,12 +16,14 @@ public class DeletePageCommandHandler : IRequestHandler<DeletePageCommand, Unit>
 
     public async Task<Unit> Handle(DeletePageCommand request, CancellationToken cancellationToken)
     {
+        // Verify page exists
         var page = await _pageRepository.GetByIdAsync(request.Id, cancellationToken);
-        
         if (page == null)
-            throw new NotFoundException($"Page with ID {request.Id} not found", nameof(Page), request.Id);
+            throw new NotFoundException(nameof(Page), request.Id);
 
+        // Delete page
         await _pageRepository.DeleteAsync(request.Id, cancellationToken);
+
         return Unit.Value;
     }
 }

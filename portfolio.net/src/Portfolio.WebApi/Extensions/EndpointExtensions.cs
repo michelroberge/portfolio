@@ -45,7 +45,7 @@ public static class EndpointExtensions
         .WithName("CreatePage")
         .WithDescription("Creates a new page");
 
-        pages.MapPut("/{id:guid}", async (IMediator mediator, Guid id, [FromBody] UpdatePageCommand command) =>
+        pages.MapPut("/{id:guid}", async (IMediator mediator, string id, [FromBody] UpdatePageCommand command) =>
         {
             try 
             {
@@ -65,7 +65,7 @@ public static class EndpointExtensions
         .WithName("UpdatePage")
         .WithDescription("Updates an existing page");
 
-        pages.MapDelete("/{id:guid}", async (IMediator mediator, Guid id) =>
+        pages.MapDelete("/{id:guid}", async (IMediator mediator, string id) =>
         {
             try
             {
@@ -89,7 +89,7 @@ public static class EndpointExtensions
         .WithName("GetAllPages")
         .WithDescription("Retrieves all pages");
 
-        pages.MapGet("/{id:guid}", async (IMediator mediator, Guid id) =>
+        pages.MapGet("/{id:guid}", async (IMediator mediator, string id) =>
         {
             try
             {
