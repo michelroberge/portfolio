@@ -1,6 +1,7 @@
 using AutoMapper;
+using MediatR;
 using Portfolio.Application.Common.DTOs;
-using Portfolio.Application.Common.Interfaces;
+using Portfolio.Application.Interfaces.Persistence;
 
 namespace Portfolio.Application.UseCases.Blogs.Queries.GetAllBlogs;
 

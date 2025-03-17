@@ -1,6 +1,7 @@
 using MediatR;
 using Portfolio.Application.Common.Exceptions;
 using Portfolio.Application.Common.Interfaces;
+using Portfolio.Application.Interfaces.Persistence;
 
 namespace Portfolio.Application.UseCases.Projects.Commands.DeleteProject;
 
@@ -18,10 +19,10 @@ public class DeleteProjectCommandHandler : IRequestHandler<DeleteProjectCommand,
     public async Task<Unit> Handle(DeleteProjectCommand request, CancellationToken cancellationToken)
     {
         var project = await _projectRepository.GetByIdAsync(request.Id, cancellationToken)
-            ?? throw new NotFoundException($"Project with ID {request.Id} not found");
+            ?? throw new NotFoundException("Project", request.Id);
 
-        _projectRepository.Delete(project);
-        await _unitOfWork.CompleteAsync(cancellationToken);
+        await _projectRepository.DeleteAsync(request.Id);
+        await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
         return Unit.Value;
     }

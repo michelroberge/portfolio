@@ -35,20 +35,20 @@ public class UpdateProjectCommandHandler : IRequestHandler<UpdateProjectCommand,
             // Update project properties - entity handles validation in setters
             project.Title = request.Title;
             project.Description = request.Description;
-            project.GithubUrl = request.RepositoryUrl;
+            project.GithubUrl = request.GithubUrl;
             project.LiveUrl = request.LiveUrl;
-            project.IsDraft = !request.IsPublished;
+            project.IsDraft = !request.IsDraft;
             project.IsFeatured = request.IsFeatured;
             project.Technologies = request.Technologies.ToList();
 
             _logger.LogDebug("Project entity updated with ID: {ProjectId}", project.Id);
 
             // Save to repository
-            var savedProject = await _projectRepository.UpdateAsync(project, cancellationToken);
-            _logger.LogInformation("Successfully updated project with ID: {ProjectId}", savedProject.Id);
+            await _projectRepository.UpdateAsync(project, cancellationToken);
+            _logger.LogInformation("Successfully updated project with ID: {ProjectId}", project.Id);
 
             // Map to DTO and return
-            return _mapper.Map<ProjectDto>(savedProject);
+            return _mapper.Map<ProjectDto>(await _projectRepository.GetByIdAsync(project.Id));
         }
         catch (Exception ex)
         {

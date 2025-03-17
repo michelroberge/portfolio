@@ -14,6 +14,12 @@ public class BlogRepository : BaseRepository<Blog>, IBlogRepository
     {
     }
 
+    public async Task<Blog?> GetBySlugAsync(string slug, CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .FirstOrDefaultAsync(b => b.Slug.ToString() == slug, cancellationToken);
+    }
+
     public async Task<Blog?> GetByLinkAsync(string link, CancellationToken cancellationToken = default)
     {
         return await DbSet

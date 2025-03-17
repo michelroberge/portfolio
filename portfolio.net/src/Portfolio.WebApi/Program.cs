@@ -14,17 +14,15 @@ builder.Services
     .AddInfrastructureServices(builder.Configuration) // Infrastructure layer services (EF Core, PostgreSQL)
     .AddWebApiServices();        // API layer services (Controllers, Swagger)
 
+builder.Services.AddAuthorization();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwaggerWithUI();
-}
-
 app.UseCustomExceptionHandler();
 app.UseHttpsRedirection();
 app.UseAuthorization();
+
+app.UseSwaggerWithUI();
 
 // Configure endpoints using our fluent API
 app.MapEndpoints();

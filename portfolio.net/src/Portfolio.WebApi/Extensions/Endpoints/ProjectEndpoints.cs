@@ -5,7 +5,6 @@ using Portfolio.Application.UseCases.Projects.Commands.DeleteProject;
 using Portfolio.Application.UseCases.Projects.Commands.UpdateProject;
 using Portfolio.Application.UseCases.Projects.Queries.GetAllProjects;
 using Portfolio.Application.UseCases.Projects.Queries.GetProjectById;
-using Portfolio.Application.UseCases.Projects.Queries.GetProjectBySlug;
 
 namespace Portfolio.WebApi.Extensions.Endpoints;
 
@@ -94,21 +93,6 @@ public static class ProjectEndpoints
         })
         .WithName("GetProjectById")
         .WithDescription("Retrieves a project by its ID");
-
-        projects.MapGet("/by-slug/{slug}", async (IMediator mediator, string slug) =>
-        {
-            try
-            {
-                var result = await mediator.Send(new GetProjectBySlugQuery(slug));
-                return Results.Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BaseEndpoints.HandleException(ex);
-            }
-        })
-        .WithName("GetProjectBySlug")
-        .WithDescription("Retrieves a project by its slug");
 
         return app;
     }

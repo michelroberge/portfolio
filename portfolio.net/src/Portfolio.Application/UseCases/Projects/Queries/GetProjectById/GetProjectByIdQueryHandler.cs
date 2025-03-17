@@ -1,7 +1,8 @@
 using AutoMapper;
+using MediatR;
 using Portfolio.Application.Common.DTOs;
 using Portfolio.Application.Common.Exceptions;
-using Portfolio.Application.Common.Interfaces;
+using Portfolio.Application.Interfaces.Persistence;
 
 namespace Portfolio.Application.UseCases.Projects.Queries.GetProjectById;
 
@@ -19,7 +20,7 @@ public class GetProjectByIdQueryHandler : IRequestHandler<GetProjectByIdQuery, P
     public async Task<ProjectDto> Handle(GetProjectByIdQuery request, CancellationToken cancellationToken)
     {
         var project = await _projectRepository.GetByIdAsync(request.Id, cancellationToken)
-            ?? throw new NotFoundException($"Project with ID {request.Id} not found");
+            ?? throw new NotFoundException($"Project", request.Id);
 
         return _mapper.Map<ProjectDto>(project);
     }

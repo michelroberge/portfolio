@@ -1,5 +1,6 @@
 using Portfolio.Domain.Common;
 using Portfolio.Domain.Exceptions;
+using Portfolio.Domain.ValueObjects;
 using System.Text.RegularExpressions;
 
 namespace Portfolio.Domain.Entities;
@@ -7,6 +8,7 @@ namespace Portfolio.Domain.Entities;
 public class Blog : PublishableEntity
 {
     private string _title = string.Empty;
+    private Slug? _slug;
     public string Title 
     { 
         get => _title;
@@ -17,9 +19,11 @@ public class Blog : PublishableEntity
             if (value.Length > 200)
                 throw new DomainValidationException("Title cannot be longer than 200 characters");
             _title = value;
+            _slug = Slug.Create(value);
         }
     }
 
+    public Slug? Slug{ get =>_slug; }
     public string Excerpt { get; private init; } = string.Empty;
     public string Body { get; private init; } = string.Empty;
     public DateTime? PublishAt { get; private init; }

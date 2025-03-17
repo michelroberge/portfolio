@@ -7,6 +7,7 @@ namespace Portfolio.Application.Interfaces.Persistence;
 /// </summary>
 public interface IBlogRepository : IRepository<Blog>
 {
+    Task<Blog?> GetBySlugAsync(string slug, CancellationToken cancellationToken = default);
     Task<Blog?> GetByLinkAsync(string link, CancellationToken cancellationToken = default);
     Task<IEnumerable<Blog>> GetPublishedAsync(CancellationToken cancellationToken = default);
     Task<IEnumerable<Blog>> GetByTagAsync(string tag, CancellationToken cancellationToken = default);

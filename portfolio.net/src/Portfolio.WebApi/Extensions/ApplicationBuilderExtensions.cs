@@ -7,10 +7,6 @@ public static class ApplicationBuilderExtensions
 {
     public static IApplicationBuilder UseCustomMiddleware(this IApplicationBuilder app, IWebHostEnvironment env)
     {
-        if (env.IsDevelopment())
-        {
-            app.UseSwaggerWithUI();
-        }
 
         app.UseHttpsRedirection();
         app.UseCustomExceptionHandler();
@@ -18,10 +14,13 @@ public static class ApplicationBuilderExtensions
         return app;
     }
 
-    public static IApplicationBuilder UseSwaggerWithUI(this IApplicationBuilder app)
+    public static IApplicationBuilder UseSwaggerWithUI(this IApplicationBuilder app, IWebHostEnvironment env)
     {
-        app.UseSwagger();
-        app.UseSwaggerUI();
+        if (env.IsDevelopment())
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI();
+        }
         return app;
     }
 

@@ -1,7 +1,8 @@
 using AutoMapper;
+using MediatR;
 using Portfolio.Application.Common.DTOs;
 using Portfolio.Application.Common.Exceptions;
-using Portfolio.Application.Common.Interfaces;
+using Portfolio.Application.Interfaces.Persistence;
 
 namespace Portfolio.Application.UseCases.Users.Queries.GetUserById;
 
@@ -19,7 +20,7 @@ public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, UserDto
     public async Task<UserDto> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
     {
         var user = await _userRepository.GetByIdAsync(request.Id, cancellationToken)
-            ?? throw new NotFoundException($"User with ID {request.Id} not found");
+            ?? throw new NotFoundException("Project", request.Id);
 
         return _mapper.Map<UserDto>(user);
     }

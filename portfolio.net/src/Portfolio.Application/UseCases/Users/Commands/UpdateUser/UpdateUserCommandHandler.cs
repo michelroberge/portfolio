@@ -43,11 +43,11 @@ public class UpdateUserCommandHandler : IRequestHandler<UpdateUserCommand, UserD
             _logger.LogDebug("User entity updated with ID: {UserId}", user.Id);
 
             // Save to repository
-            var savedUser = await _userRepository.UpdateAsync(user, cancellationToken);
-            _logger.LogInformation("Successfully updated user with ID: {UserId}", savedUser.Id);
+            await _userRepository.UpdateAsync(user, cancellationToken);
+            _logger.LogInformation("Successfully updated user with ID: {UserId}", request.Id);
 
             // Map to DTO and return
-            return _mapper.Map<UserDto>(savedUser);
+            return _mapper.Map<UserDto>(await _userRepository.GetByIdAsync(request.Id));
         }
         catch (Exception ex)
         {

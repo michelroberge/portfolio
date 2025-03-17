@@ -46,11 +46,11 @@ public class UpdateBlogCommandHandler : IRequestHandler<UpdateBlogCommand, BlogD
             _logger.LogDebug("Blog entity updated with ID: {BlogId}", updatedBlog.Id);
 
             // Save to repository
-            var savedBlog = await _blogRepository.UpdateAsync(updatedBlog, cancellationToken);
-            _logger.LogInformation("Successfully updated blog with ID: {BlogId}", savedBlog.Id);
+            await _blogRepository.UpdateAsync(updatedBlog, cancellationToken);
+            _logger.LogInformation("Successfully updated blog with ID: {BlogId}", request.Id);
 
             // Map to DTO and return
-            return _mapper.Map<BlogDto>(savedBlog);
+            return _mapper.Map<BlogDto>(await _blogRepository.GetByIdAsync(request.Id));
         }
         catch (Exception ex)
         {

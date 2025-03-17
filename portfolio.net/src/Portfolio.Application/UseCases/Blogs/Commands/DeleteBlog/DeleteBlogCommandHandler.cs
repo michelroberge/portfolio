@@ -27,7 +27,7 @@ public class DeleteBlogCommandHandler : IRequestHandler<DeleteBlogCommand, Unit>
             var blog = await _blogRepository.GetByIdAsync(request.Id, cancellationToken)
                 ?? throw new NotFoundException("Blog", request.Id);
 
-            await _blogRepository.DeleteAsync(blog, cancellationToken);
+            await _blogRepository.DeleteAsync(request.Id, cancellationToken);
             _logger.LogInformation("Successfully deleted blog with ID: {BlogId}", request.Id);
 
             return Unit.Value;
