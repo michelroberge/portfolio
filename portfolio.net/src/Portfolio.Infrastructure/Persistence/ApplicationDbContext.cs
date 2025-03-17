@@ -1,15 +1,21 @@
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Portfolio.Domain.Common;
 using Portfolio.Domain.Entities;
+using Portfolio.Infrastructure.Identity;
 
 namespace Portfolio.Infrastructure.Persistence;
 
-public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
+public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 {
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        : base(options) { }
+
+    public ApplicationDbContext() { }
+
     public DbSet<Blog> Blogs { get; set; } = null!;
     public DbSet<Page> Pages { get; set; } = null!;
     public DbSet<Project> Projects { get; set; } = null!;
-    public DbSet<User> Users { get; set; } = null!;
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

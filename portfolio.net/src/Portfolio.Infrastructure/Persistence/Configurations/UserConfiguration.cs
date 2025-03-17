@@ -59,7 +59,7 @@ public class UserConfiguration : BaseConfiguration<User>
 
         builder.HasIndex(u => new { u.Provider, u.ProviderId })
             .IsUnique()
-            .HasFilter("[Provider] IS NOT NULL AND [ProviderId] IS NOT NULL")
+            .HasFilter("\"Provider\" IS NOT NULL AND \"ProviderId\" IS NOT NULL")
             .HasDatabaseName("IX_Users_Provider_ProviderId");
 
         builder.HasIndex(u => u.IsAdmin)

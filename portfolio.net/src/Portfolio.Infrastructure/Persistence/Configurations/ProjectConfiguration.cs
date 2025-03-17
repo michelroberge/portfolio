@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Portfolio.Domain.Entities;
 using System.Text.Json;
@@ -51,12 +52,17 @@ public class ProjectConfiguration : BaseConfiguration<Project>
         builder.Property(p => p.VectorId)
             .IsRequired();
 
-        // Configure technologies collection
-        builder.Property(p => p.Technologies)
-            .HasColumnName("Technologies")
+        builder.Property(b => b.Technologies)
             .HasConversion(
-                v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
-                v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions)null!)!);
+                v => string.Join(',', v),
+                v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList(),
+                new ValueComparer<List<string>>(
+                    (c1, c2) => c1!.SequenceEqual(c2!),
+                    c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                    c => c.ToList()
+                )
+            );
+
 
         // Configure indexes for performance and data integrity
         builder.HasIndex(p => p.Link)

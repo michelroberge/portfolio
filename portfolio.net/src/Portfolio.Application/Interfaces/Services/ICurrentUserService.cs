@@ -1,13 +1,20 @@
-namespace Portfolio.Application.Interfaces.Services;
-
-/// <summary>
-/// Interface for accessing current user information
-/// </summary>
-public interface ICurrentUserService
+namespace Portfolio.Application.Interfaces.Services
 {
-    string? UserId { get; }
-    string? UserName { get; }
-    bool IsAuthenticated { get; }
-    bool IsAdmin { get; }
-    IReadOnlyList<string> Roles { get; }
+    public interface ICurrentUserService
+    {
+        /// <summary>
+        /// Gets the current authenticated user ID or assigns an anonymous UID.
+        /// </summary>
+        string UserId { get; }
+
+        /// <summary>
+        /// Gets the current user's roles (if any).
+        /// </summary>
+        List<string> Roles { get; }
+
+        /// <summary>
+        /// Checks if the current user is authenticated.
+        /// </summary>
+        bool IsAuthenticated { get; }
+    }
 }

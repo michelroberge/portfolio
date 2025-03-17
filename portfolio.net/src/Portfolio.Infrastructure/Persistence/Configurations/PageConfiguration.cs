@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Portfolio.Domain.Entities;
 using System.Text.Json;
@@ -69,5 +70,16 @@ public class PageConfiguration : BaseConfiguration<Page>
         // Configure full-text search index
         builder.HasIndex(p => new { p.Title, p.Content })
             .HasDatabaseName("IX_Pages_FullText");
+
+        builder.Property(b => b.MetaKeywords)
+            .HasConversion(
+                v => string.Join(',', v),
+                v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList(),
+                new ValueComparer<List<string>>(
+                    (c1, c2) => c1!.SequenceEqual(c2!),
+                    c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                    c => c.ToList()
+                )
+            );
     }
 }
