@@ -2,6 +2,10 @@ const WebSocket = require("ws");
 const { executePipeline } = require("../services/pipelineService");
 const { generateResponseStream } = require("../services/ollamaService");
 
+const logColor = (message, colorCode = 94) => {
+    console.log(`\x1b[${colorCode}m${message}\x1b[0m`);
+};
+
 const setupWebSocketServer = (server) => {
     const wss = new WebSocket.Server({ server });
 
@@ -10,47 +14,92 @@ const setupWebSocketServer = (server) => {
 
         ws.on("message", async (message) => {
             try {
-                const { sessionId, query, history } = JSON.parse(message);
-                if (!sessionId || !query) {
-                    ws.send(JSON.stringify({ error: "sessionId and query are required." }));
+                logColor("Server: received socket message", 94);
+                const parsedMessage = JSON.parse(message);
+                const sessionId = parsedMessage.sessionId || "default";
+                const query = parsedMessage.message || parsedMessage.query; // Ensure correct field
+                const history = parsedMessage.history || [];
+        
+                if (!query) {
+                    logColor("Server: No query", 91);
+                    ws.send(JSON.stringify({ error: "Query is required." }));
                     return;
                 }
-
-                console.log(`📡 WebSocket received query: "${query}"`);
-
-                // Send pipeline updates step-by-step
-                const streamCallback = (update) => {
-                    ws.send(JSON.stringify(update));
-                };
-
+        
+                logColor(`📡 WebSocket received query: "${query}"`, 92);
+        
+                // **DEBUG LOG: Ensure WebSocket can write messages**
+                logColor("✅ Sending step response: Searching information...", 96);
+        
+                ws.send(JSON.stringify({
+                    response: "Searching information...",
+                    step: true
+                }));
+        
                 // Execute pipeline with streaming enabled
+                const streamCallback = (update) => {
+                    logColor(`📡 Step update: ${JSON.stringify(update)}`, 94);
+        
+                    ws.send(JSON.stringify({
+                        ...update,
+                        step: true
+                    }));
+                };
+        
+                // Call pipeline function with streaming
                 const responseData = await executePipeline("chat-response", {
                     userQuery: query,
                     chatHistory: JSON.stringify(history),
                 }, true, streamCallback);
-
-                // Stream the final AI response from Ollama
-                const responseStream = await generateResponseStream(responseData.response);
-                const reader = responseStream.getReader();
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) {
-                        ws.send(JSON.stringify({ done: true }));
-                        break;
+        
+                logColor("✅ Pipeline execution completed, sending final AI response", 96);
+        
+                // **STREAM FINAL AI RESPONSE**
+                setTimeout(async () => {
+                    try {
+                        const responseStream = await generateResponseStream(responseData.response);
+                        const reader = responseStream.getReader();
+                        let previousChunks = "";
+        
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) {
+                                logColor("✅ AI Response Streaming Completed", 96);
+                                ws.send(JSON.stringify({ done: true }));
+                                break;
+                            }
+        
+                            const chunk = value.trim();
+                            previousChunks += chunk;
+        
+                            // Send new bubble if a paragraph ends
+                            if (chunk.includes("\n\n") || chunk.includes("```")) {
+                                ws.send(JSON.stringify({ response: previousChunks, newBubble: true }));
+                                previousChunks = "";
+                            } else {
+                                ws.send(JSON.stringify({ response: chunk }));
+                            }
+                        }
+                    } catch (error) {
+                        logColor("❌ Error in AI streaming", 91);
+                        console.error(error);
+                        ws.send(JSON.stringify({ error: "Error streaming response", done: true }));
                     }
-
-                    // Enqueue the streamed JSON chunk
-                    ws.send(JSON.stringify({ response: value.trim() }));
-                }
+                }, 100);
+        
             } catch (error) {
-                console.error("❌ WebSocket error:", error);
-                ws.send(JSON.stringify({ error: "An error occurred while processing your request." }));
+                logColor("❌ WebSocket error in processing message", 91);
+                console.error(error);
+                ws.send(JSON.stringify({ error: "An error occurred while processing your request.", done: true }));
             }
         });
-
-        ws.on("close", () => {
-            console.log("❌ WebSocket connection closed.");
+        
+        ws.on("close", (code, reason) => {
+            logColor(`WebSocket connection closed. Code ${code}\nReason: ${reason}`, 92);
+        });
+        ws.on("error", (error) => {
+            logColor("❌ WebSocket encountered an error", 91);
+            console.error(error);
         });
     });
 

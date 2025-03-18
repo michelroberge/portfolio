@@ -37,13 +37,6 @@ public class UserConfiguration : BaseConfiguration<User>
             .HasMaxLength(500);
 
         // Configure authentication properties
-        builder.Property(u => u.Provider)
-            .HasMaxLength(50);
-
-        builder.Property(u => u.ProviderId)
-            .HasMaxLength(100);
-
-        // Configure role properties
         builder.Property(u => u.IsAdmin)
             .IsRequired()
             .HasDefaultValue(false);
@@ -56,11 +49,6 @@ public class UserConfiguration : BaseConfiguration<User>
         builder.HasIndex(u => u.Email)
             .IsUnique()
             .HasDatabaseName("IX_Users_Email");
-
-        builder.HasIndex(u => new { u.Provider, u.ProviderId })
-            .IsUnique()
-            .HasFilter("\"Provider\" IS NOT NULL AND \"ProviderId\" IS NOT NULL")
-            .HasDatabaseName("IX_Users_Provider_ProviderId");
 
         builder.HasIndex(u => u.IsAdmin)
             .HasDatabaseName("IX_Users_IsAdmin");

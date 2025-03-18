@@ -38,6 +38,7 @@ public static class InfrastructureServiceExtensions
 
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddSingleton<IIdentityService, IdentityService>();
 
         return services;
     }

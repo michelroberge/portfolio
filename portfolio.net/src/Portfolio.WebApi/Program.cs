@@ -13,7 +13,7 @@ builder.Services
     .AddWebApiServices();        // API layer services (Controllers, Swagger)
 
 
-builder.Services.AddCustomAuthentication();  
+builder.Services.AddCustomAuthentication();
 builder.Services.AddOAuthProviders(builder.Configuration);
 builder.Services.AddAuthorization();
 

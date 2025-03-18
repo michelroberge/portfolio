@@ -12,4 +12,6 @@ public record CreateUserCommand : ICommand<UserDto>
     public string? Provider { get; init; }
     public string? ProviderId { get; init; }
     public bool IsAdmin { get; init; }
+
+    public required string Password {  get; init; }
 }

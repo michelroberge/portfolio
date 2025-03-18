@@ -7,8 +7,8 @@ namespace Portfolio.Domain.Entities;
 public class User : Entity
 {
     private string _username = string.Empty;
-    public string Username 
-    { 
+    public string Username
+    {
         get => _username;
         set
         {
@@ -26,8 +26,8 @@ public class User : Entity
     }
 
     private string? _displayName;
-    public string? DisplayName 
-    { 
+    public string? DisplayName
+    {
         get => _displayName;
         set
         {
@@ -39,8 +39,8 @@ public class User : Entity
     }
 
     private string? _avatarUrl;
-    public string? AvatarUrl 
-    { 
+    public string? AvatarUrl
+    {
         get => _avatarUrl;
         set
         {
@@ -51,8 +51,6 @@ public class User : Entity
     }
 
     public Email Email { get; set; }
-    public string? Provider { get; set; }
-    public string? ProviderId { get; set; }
     public bool IsAdmin { get; set; }
 
     // For ORM
@@ -67,16 +65,12 @@ public class User : Entity
         Email email,
         string? displayName = null,
         string? avatarUrl = null,
-        string? provider = null,
-        string? providerId = null,
         bool isAdmin = false) : base(id)
     {
         Username = username;
         Email = email;
         DisplayName = displayName;
         AvatarUrl = avatarUrl;
-        Provider = provider;
-        ProviderId = providerId;
         IsAdmin = isAdmin;
     }
 
@@ -84,8 +78,7 @@ public class User : Entity
     {
         if (string.IsNullOrWhiteSpace(url))
             return;
-
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uriResult) || 
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uriResult) ||
             (uriResult.Scheme != Uri.UriSchemeHttp && uriResult.Scheme != Uri.UriSchemeHttps))
         {
             throw new DomainValidationException($"{paramName} must be a valid HTTP/HTTPS URL");

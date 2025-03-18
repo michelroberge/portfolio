@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Portfolio.Application.Interfaces.Persistence;
 using Portfolio.Domain.Entities;
+using Portfolio.Infrastructure.Identity;
 
 namespace Portfolio.Infrastructure.Persistence.Repositories;
 
@@ -14,6 +15,15 @@ public class UserRepository : BaseRepository<User>, IUserRepository
     {
     }
 
+    public override async Task<User> AddAsync(User entity, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+
+        await DbSet.AddAsync(entity, cancellationToken);
+        await Context.SaveChangesAsync(cancellationToken);
+        return entity;
+    }
+
     public async Task<User?> GetByUsernameAsync(string username, CancellationToken cancellationToken = default)
     {
         return await DbSet
@@ -24,12 +34,6 @@ public class UserRepository : BaseRepository<User>, IUserRepository
     {
         return await DbSet
             .FirstOrDefaultAsync(u => u.Email.Value == email, cancellationToken);
-    }
-
-    public async Task<User?> GetByProviderAsync(string provider, string providerId, CancellationToken cancellationToken = default)
-    {
-        return await DbSet
-            .FirstOrDefaultAsync(u => u.Provider == provider && u.ProviderId == providerId, cancellationToken);
     }
 
     public override async Task<IEnumerable<User>> GetAllAsync(CancellationToken cancellationToken = default)
