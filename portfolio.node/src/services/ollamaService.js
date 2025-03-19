@@ -69,73 +69,51 @@ async function generateResponse(prompt) {
 async function generateResponseStream(prompt, format = 'text') {
   const url = `${OLLAMA_URL}/api/generate`;
 
-  const options = format == 'text' ? 
-      {
-        model: PROMPT_MODEL,
-        prompt: prompt,
-        max_tokens: 200,
-        temperature: 0.7,
-        stream: true,  
-        options: {
-          skip_model_details: true 
-        }
-      } :
-    {
-      model: PROMPT_MODEL,
-      prompt: prompt,
-      max_tokens: 200,
-      temperature: 0.7,
-      format: format,
-      stream: false,  
-      options: {
-        num_ctx: 2048,  // Add any other options you need
-        skip_model_details: true  // This will exclude model details
-      }
-    };
+  const options = {
+    model: PROMPT_MODEL,
+    prompt,
+    max_tokens: 200,
+    temperature: 0.7,
+    format: format !== 'text' ? format : undefined, // Include format only if not 'text'
+    stream: format === 'text', // Enable streaming only for text format
+  };
 
   console.log(`REQUEST STREAMING`);
 
   const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(options),
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(options),
   });
 
   console.log(`START STREAMING`);
   const reader = response.body.getReader();
+  let accumulatedChunk = ""; // Store incomplete JSON chunks
 
   return new ReadableStream({
-      async start(controller) {
-          let accumulatedResponse = "";
+    async start(controller) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          controller.close();
+          break;
+        }
 
-          while (true) {
-              const { done, value } = await reader.read();
-              if (done) {
-                  controller.close();
-                  break;
-              }
+        accumulatedChunk += new TextDecoder().decode(value);
 
-              const chunk = new TextDecoder().decode(value);
-              chunk.split("\n").forEach((line) => {
-                  if (line.trim()) {
-                      try {
-                          const parsed = JSON.parse(line);
-                          if (parsed.response) {
-                              accumulatedResponse += parsed.response;
-                              controller.enqueue(parsed.response);
-                          }
-                      } catch (err) {
-                          // For text format, try to use the raw chunk
-                          if (format === 'text') {
-                              controller.enqueue(line.trim());
-                          } else {
-                              console.warn("Skipping invalid JSON chunk");
-                          }
-                      }
-                  }
-              });
+        try {
+          // Try to parse JSON, but wait until we have a full JSON object
+          const parsedData = JSON.parse(accumulatedChunk);
+          if (parsedData?.response) {
+            console.log(`Streaming: ${parsedData.response}`);
+            controller.enqueue(parsedData.response);
+            accumulatedChunk = ""; // Reset buffer after successful JSON parse
           }
+        } catch (e) {
+          // JSON not complete yet—keep accumulating chunks
+        }
       }
+    }
   });
 }
 
