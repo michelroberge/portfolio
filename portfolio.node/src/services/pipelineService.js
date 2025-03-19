@@ -25,8 +25,9 @@ async function executePipeline(promptName, parameters, isStreaming = false, stre
         if (isStreaming && streamCallback) streamCallback({ response: "✅ Data retrieval complete.", step: "starting" });
 
         // Step 4️⃣: Execute AI Query
-        if (isStreaming && streamCallback) streamCallback({ response: "🤖 Generating AI response..." });
-        const responseStream = await queryLLMByName(promptName, parameters, isStreaming);
+        if (isStreaming && streamCallback) streamCallback({ response: "🤖 Generating AI response...", step: true });
+
+        const responseStream = await queryLLMByName(promptName, parameters, true);
 
         const reader = responseStream.getReader();
         let responseBuffer = "";
@@ -34,19 +35,19 @@ async function executePipeline(promptName, parameters, isStreaming = false, stre
         while (true) {
             const { done, value } = await reader.read();
             if (done) {
-                streamCallback({ done: true });
+                streamCallback({ response: responseBuffer, done: true, step: false });
                 break;
             }
-
+            
             responseBuffer += value;
 
             // ✅ Stream words immediately but separate paragraphs
             if (value.includes(" ")) {
-                streamCallback({ response: value.trim() });
+                streamCallback({ response: value, step: false });
             }
 
             if (value.includes("\n\n")) {
-                streamCallback({ response: "🔽 New Paragraph 🔽" }); // Placeholder to mark paragraph shift
+                streamCallback({ response: "🔽 New Paragraph 🔽", step: false }); // Placeholder to mark paragraph shift
             }
         }
 

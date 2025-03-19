@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
-import { AUTH_API } from "@/lib/constants";
+import { PUBLIC_API } from "@/lib/constants";
 
 type ChatMessage = {
   id: string;
@@ -10,22 +10,20 @@ type ChatMessage = {
 };
 
 type ChatContextType = {
-  messages: ChatMessage[];
-  currentMessage: ChatMessage | null;
+  messages: React.RefObject<ChatMessage[]>;
   isStreaming: boolean;
-  
+  isStreamingRef: React.RefObject<boolean>;
+  getMessages : () => ChatMessage[];
   // Message management functions
   addUserMessage: (text: string) => string; // Returns message ID
   startAIMessage: () => string; // Returns message ID for the AI message
-  updateCurrentMessage: (text: string) => void;
   completeCurrentMessage: () => void;
   setCurrentMessageText: (text:string) => void;
   appendToCurrentMessage: (text:string) => void;
-  
-  // Advanced functions
-  createNewAIMessageBubble: () => string; // Creates a new bubble during streaming
   clearChat: () => void;
   currentMessageRef: React.RefObject<ChatMessage | null>;
+  streamingBuffer: React.RefObject<string>;
+  updateStreamingState: (newState: boolean) => void;
 };
 
 // Helper to generate unique IDs
@@ -34,15 +32,33 @@ const generateId = () => Math.random().toString(36).substring(2, 9);
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export function ChatProvider({ children }: { children: ReactNode }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+  const messagesRef = useRef<ChatMessage[]>([]); // ✅ Immediate updates
+  const forceRender = useState(0)[1]; // ✅ Forces re-renders
+
   const [currentMessage, setCurrentMessage] = useState<ChatMessage | null>(null);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
-
+  
+  // Track streaming state with both state and ref for UI updates and cross-component tracking
+  const isStreamingRef = useRef<boolean>(false);
   const currentMessageRef = useRef<ChatMessage | null>(null);
+  const streamingBuffer = useRef<string>("");
+
+  // Make sure state and ref stay in sync
+  useEffect(() => {
+    isStreamingRef.current = isStreaming;
+  }, [isStreaming]);
+  
+  // Function to update streaming state both in state and ref
+  const updateStreamingState = (newState: boolean) => {
+    isStreamingRef.current = newState;
+    setIsStreaming(newState);
+  };
 
   // Fetch greeting and context when chat initializes
   useEffect(() => {
     async function fetchChatData() {
+
       try {
         const greeting = await loadContext();
         
@@ -54,7 +70,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             status: "complete"
           };
           
-          setMessages([initialMessage]);
+          messagesRef.current = [initialMessage];
         } else {
           const defaultMessage: ChatMessage = {
             id: generateId(),
@@ -63,7 +79,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             status: "complete"
           };
           
-          setMessages([defaultMessage]);
+          messagesRef.current = [defaultMessage];
         }
       } catch (error) {
         console.error("Failed to fetch chat initialization data:", error);
@@ -73,16 +89,22 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           text: "Hello! Ask me anything about my projects or skills.",
           status: "complete"
         };
-        setMessages([fallbackMessage]);
+        messagesRef.current = [fallbackMessage];
       }
     }
     
     fetchChatData();
   }, []);
 
+  useEffect(()=>{
+    console.log(`new theoretical message count`, messagesRef.current?.length);
+  }, [ messagesRef.current ]);
+
+  const getMessages = () => messagesRef.current || [];
+
   const loadContext = async () => {
     try {
-      const greetingRes = await fetch(AUTH_API.chat, {
+      const greetingRes = await fetch(`${PUBLIC_API.chat}/greetings`, {
         credentials: "include",
       });
       
@@ -91,8 +113,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         throw new Error(error.message || "Failed to fetch chat greeting");
       }
       
-      const greeting = await greetingRes.json();
-      return greeting;
+      const data = await greetingRes.json();
+      return data.greeting;
     } catch (error) {
       console.error("Failed to load chat context:", error);
       return null;
@@ -109,7 +131,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       status: "complete"
     };
     
-    setMessages(prev => [...prev, newMessage]);
+    messagesRef.current = [...messagesRef.current, newMessage];
+    forceRender((prev) => prev + 1); 
+
     return messageId;
   };
 
@@ -120,115 +144,86 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         return currentMessageRef.current.id;
     }
 
-    console.log("🆕 Creating a new AI message...");
+    // console.log("🆕 Creating a new AI message...");
     const messageId = generateId();
     const newMessage: ChatMessage = {
         id: messageId,
         role: "ai",
-        text: "⏳", // Shows loading indicator
+        text: " ",
         status: "streaming"
     };
 
-    setMessages(prev => [...prev, newMessage]);
-    currentMessageRef.current = newMessage; // ✅ Instantly updates the ref
-    setIsStreaming(true);
+    console.log(`startAIMessage`);
 
+    messagesRef.current = [...messagesRef.current, newMessage]; 
+    currentMessageRef.current = newMessage; 
+    forceRender((prev) => prev + 1);
+    updateStreamingState(true);
     return messageId;
-};
-
-
-
-
-
-  // Update the current message during streaming
-  const updateCurrentMessage = (text: string) => {
-    if (!currentMessage) return;
-    
-    setCurrentMessage(prev => prev ? { ...prev, text } : null);
-    
-    setMessages(prev => 
-      prev.map(msg => 
-        msg.id === currentMessage.id 
-          ? { ...msg, text } 
-          : msg
-      )
-    );
   };
+
 
   const setCurrentMessageText = (text: string) => {
     if (!currentMessageRef.current) {
         console.warn("⚠️ No active AI message, creating one.");
-        startAIMessage();
+        currentMessageRef.current = {
+            id: startAIMessage(),
+            role: "ai",
+            text: "",
+            status: "streaming"
+        };
     }
+    if ( text){
+console.log(`setCurrentMessageText: ${text}`);
+      messagesRef.current = messagesRef.current.map(msg =>
+          msg.id === currentMessageRef.current?.id ? { ...msg, text } : msg
+      );
 
-    setMessages(prev =>
-        prev.map(msg =>
-            msg.id === currentMessageRef.current?.id ? { ...msg, text } : msg
-        )
-    );
+      forceRender(prev => prev + 1); // ✅ Ensure UI updates
+  }
 };
-
-
 
 const appendToCurrentMessage = (text: string) => {
   if (!currentMessageRef.current) {
       console.warn("⚠️ No active AI message, creating one.");
-      startAIMessage();
+      currentMessageRef.current = {
+          id: startAIMessage(),
+          role: "ai",
+          text: "",
+          status: "streaming"
+      };
   }
 
-  setMessages(prev =>
-      prev.map(msg =>
-          msg.id === currentMessageRef.current?.id ? { ...msg, text: msg.text + text } : msg
-      )
+  messagesRef.current = messagesRef.current.map(msg =>
+      msg.id === currentMessageRef.current?.id ? { ...msg, text: msg.text + text } : msg
   );
+
+console.log(`appendToCurrentMessageText: ${text}`);
+
+  forceRender(prev => prev + 1); // ✅ Ensure UI updates
 };
 
 
-
-
-  // Mark the current message as complete
   const completeCurrentMessage = () => {
-    if (!currentMessageRef.current) return;
-
-    setMessages(prev =>
-        prev.map(msg =>
-            msg.id === currentMessageRef.current?.id ? { ...msg, status: "complete" } : msg
-        )
-    );
-
-    currentMessageRef.current = null; // ✅ Reset the reference
-    setIsStreaming(false);
-};
-
-
-  // Create a new AI message bubble during an ongoing streaming session
-const createNewAIMessageBubble = () => {
-    if (currentMessage) {
-        setMessages(prev =>
-            prev.map(msg => 
-                msg.id === currentMessage.id 
-                    ? { ...msg, status: "complete" } 
-                    : msg
-            )
-        );
+    if (!currentMessageRef.current) {
+      console.warn("⚠️ Tried to complete a message, but none exists.");
+      return;
     }
+  
+    messagesRef.current = messagesRef.current.map(msg =>
+      msg.id === currentMessageRef.current?.id
+        ? { ...msg, text: msg.text, status: "complete" }
+        : msg
+    );
+  
+    // console.log("✅ Marked AI message as complete:", currentMessageRef.current.id);
+  console.log(`completeCurrentMessage`);
 
-    // Create a new message
-    const messageId = generateId();
-    const newMessage: ChatMessage = {
-        id: messageId,
-        role: "ai",
-        text: "",  // Ensure the new bubble starts empty
-        status: "streaming",
-    };
-
-    setMessages(prev => [...prev, newMessage]);
-    setCurrentMessage(newMessage);
-    setIsStreaming(true);
-
-    return messageId;
-};
-
+    currentMessageRef.current = null;
+    updateStreamingState(false);
+    forceRender(prev => prev + 1); // ✅ Ensure re-render
+  };
+  
 
   // Clear the chat history
   const clearChat = () => {
@@ -239,26 +234,28 @@ const createNewAIMessageBubble = () => {
       status: "complete"
     };
     
-    setMessages([defaultMessage]);
+    messagesRef.current = [defaultMessage];
     setCurrentMessage(null);
-    setIsStreaming(false);
+    currentMessageRef.current = null;
+    updateStreamingState(false);
   };
 
   return (
     <ChatContext.Provider 
       value={{ 
-        messages, 
-        currentMessage, 
+        messages : messagesRef, 
         isStreaming,
+        isStreamingRef,
+        getMessages,
         addUserMessage,
         startAIMessage,
-        updateCurrentMessage,
         completeCurrentMessage,
-        createNewAIMessageBubble,
         clearChat,
         setCurrentMessageText,
         appendToCurrentMessage,
-        currentMessageRef
+        currentMessageRef,
+        streamingBuffer,
+        updateStreamingState
       }}
     >
       {children}

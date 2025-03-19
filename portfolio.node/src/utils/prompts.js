@@ -37,11 +37,21 @@ const DEFAULT_METADATA_EXTRACTION = {
     "metadata": { "type": "metadata-extraction" }
 };
 
+const DEFAULT_CHAT_PROMPT = {
+    "name": "prompt",
+    "template": `You are an AI assistant. Here is the task: {userQuery}
+    # CONTEXT
+    {context}
+
+    # RESPONSE FORMAT
+    Provide a clear and concise answer that feels natural. You can use markdown if it is relevant.`,
+    "parameters": ["userquery", "context"]
+};
 const defaultPrompts = {
     "prompt": DEFAULT_PROMPT,
     "intent-detection": DEFAULT_INTENT_DETECTION,
     "metadata-extraction": DEFAULT_METADATA_EXTRACTION,
-    "chat-response": DEFAULT_PROMPT,
+    "chat-response": DEFAULT_CHAT_PROMPT,
 };
 
 module.exports = defaultPrompts;

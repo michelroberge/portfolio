@@ -68,18 +68,40 @@ async function generateResponse(prompt) {
  */
 async function generateResponseStream(prompt, format = 'text') {
   const url = `${OLLAMA_URL}/api/generate`;
+
+  const options = format == 'text' ? 
+      {
+        model: PROMPT_MODEL,
+        prompt: prompt,
+        max_tokens: 200,
+        temperature: 0.7,
+        stream: true,  
+        options: {
+          skip_model_details: true 
+        }
+      } :
+    {
+      model: PROMPT_MODEL,
+      prompt: prompt,
+      max_tokens: 200,
+      temperature: 0.7,
+      format: format,
+      stream: false,  
+      options: {
+        num_ctx: 2048,  // Add any other options you need
+        skip_model_details: true  // This will exclude model details
+      }
+    };
+
+  console.log(`REQUEST STREAMING`);
+
   const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-          model: PROMPT_MODEL,
-          prompt: prompt,
-          max_tokens: 200,
-          temperature: 0.7,
-          format: format
-      }),
+      body: JSON.stringify(options),
   });
 
+  console.log(`START STREAMING`);
   const reader = response.body.getReader();
 
   return new ReadableStream({

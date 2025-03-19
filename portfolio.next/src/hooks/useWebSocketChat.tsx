@@ -3,25 +3,30 @@ import { useChat } from "@/context/ChatContext";
 
 export function useWebSocketChat(isOpen: boolean) {
   const { 
-    messages,
+    getMessages,
     addUserMessage,
     startAIMessage,
-    updateCurrentMessage,
     completeCurrentMessage,
-    createNewAIMessageBubble,
     setCurrentMessageText,
     appendToCurrentMessage,
     currentMessageRef,
-    isStreaming: chatIsStreaming
+    isStreaming: chatIsStreaming,
+    isStreamingRef,
+    streamingBuffer,
+    updateStreamingState
   } = useChat();
   
   const wsRef = useRef<WebSocket | null>(null);
-  const [localStreamingState, setLocalStreamingState] = useState(false);
-  const streamingBuffer = useRef("");
-  const currentMessageId = useRef<string | null>(null);
   const hasConnectedSuccessfully = useRef(false);
   const sessionIdRef = useRef<string>(crypto.randomUUID());
+  // Track page visibility
+  const [isPageVisible, setIsPageVisible] = useState(true);
+  // Force re-renders when visibility changes
+  const [forceUpdate, setForceUpdate] = useState(0);
 
+  const[ connected, setConnected] = useState(false);
+
+  const stepCompleted = useRef(false);
 
   const wsUrl = useMemo(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -29,12 +34,31 @@ export function useWebSocketChat(isOpen: boolean) {
     return baseWsUrl;
   }, []);
 
+  // Listen for visibility changes
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const wasHidden = !isPageVisible;
+      setIsPageVisible(!document.hidden);
+      
+      // If page becomes visible and there were pending updates
+      if (wasHidden && !document.hidden) {
+        // Force a refresh of messages to ensure UI is updated
+        setForceUpdate(prev => prev + 1);
+        const currentMessages = getMessages();
+        console.log("Page visible again, checking messages:", currentMessages.length);
+      }
+    };
+    
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [isPageVisible, getMessages]);
+
   const connectWebSocket = useCallback(() => {
     if (wsRef.current) {
       console.log(`socket already opened`);
       return;
-      // wsRef.current.close();
-      // wsRef.current = null;
     }
 
     console.log(`Attempting to connect to WebSocket: ${wsUrl}`);
@@ -43,78 +67,87 @@ export function useWebSocketChat(isOpen: boolean) {
     websocket.onopen = () => {
       console.log("✅ Connected to WebSocket successfully");
       hasConnectedSuccessfully.current = true;
+      setConnected(true)
     };
 
     websocket.onmessage = (event) => {
-      console.log("📡 WebSocket Received:", event.data);
       const data = JSON.parse(event.data);
   
-      // 🛑 Ensure there’s ONLY ONE active AI message
+      // 🛑 Ensure there's ONLY ONE active AI message
       if (!currentMessageRef.current) {
           console.log("🆕 No active AI message, creating one.");
-          currentMessageId.current = startAIMessage();
+          startAIMessage();
+          updateStreamingState(true);
       }
   
       if (data.newBubble) {
           console.log("🔵 Creating a new AI message bubble...");
-          completeCurrentMessage(); // ✅ Finish previous AI response
+          if (currentMessageRef.current) {
+            completeCurrentMessage(); // ✅ Finish previous AI response
+          }
           streamingBuffer.current = "";
   
           // ✅ Create new AI message ONLY ONCE
-          currentMessageId.current = startAIMessage();
+          startAIMessage();
           setCurrentMessageText(data.response);
+          updateStreamingState(true);
       } 
       else if (data.step) {
-          console.log("🔄 Step update received, REPLACING text:", data.response);
-          setCurrentMessageText(data.response); // ✅ REPLACES existing message text
-      } 
+          setCurrentMessageText(data.response);
+      }
       else if (data.response) {
-          console.log("✍️ Appending streamed response:", data.response);
-          appendToCurrentMessage(data.response); // ✅ APPENDS text to the same AI bubble
+        if ( !stepCompleted.current){
+          stepCompleted.current = true;
+          completeCurrentMessage();
+        }
+        console.log("✍️ Appending streamed response:", data.response);
+        appendToCurrentMessage(data.response); // 
       }
-  
-      if (data.done) {
-          console.log("✅ Streaming complete.");
+    if (data.done) {
+        console.log("✅ Streaming complete, delaying 100ms to wrap up.");
+        setTimeout(() => {
+          setCurrentMessageText(data.response);
           completeCurrentMessage(); // ✅ Marks the AI message as done
-          setLocalStreamingState(false);
+          updateStreamingState(false);
           streamingBuffer.current = "";
-          currentMessageId.current = null; // ✅ Reset for next response
+          
+          // Force update for when page isn't focused
+          const messages = getMessages();
+          console.log("🛠 Checking messages after completion:", messages.length);
+          setForceUpdate(prev => prev + 1);
+          stepCompleted.current = false;
+        }, 100);
       }
-  };
-  
-  
-  
-  
-  
-  
+    };
 
     websocket.onerror = (error) => {
       console.error("❌ WebSocket connection error:", error);
-      if (currentMessageId.current) {
+      if (currentMessageRef.current) {
         completeCurrentMessage();
       }
+      updateStreamingState(false);
     };
 
     websocket.onclose = (event) => {
       console.log(`❌ WebSocket disconnected (code: ${event.code}, reason: ${event.reason})`);
       wsRef.current = null;
-      if (currentMessageId.current) {
+      if (currentMessageRef.current) {
         completeCurrentMessage();
       }
-      setLocalStreamingState(false);
+      updateStreamingState(false);
     };
 
     wsRef.current = websocket;
-  }, [wsUrl, startAIMessage, updateCurrentMessage, completeCurrentMessage, createNewAIMessageBubble]);
+  }, [wsUrl, startAIMessage, completeCurrentMessage, updateStreamingState, appendToCurrentMessage, setCurrentMessageText, getMessages]);
 
   // Connect/disconnect based on isOpen prop
   useEffect(() => {
     if (typeof window === "undefined"){
-      console.log(`not opening socker server side`);
+      console.log(`not opening socket server side`);
       return;
     }
 
-    if (!wsRef.current) {
+    if (!wsRef.current && isOpen) {
       console.log(`opening socket`);
       connectWebSocket();
     }
@@ -126,7 +159,23 @@ export function useWebSocketChat(isOpen: boolean) {
         wsRef.current = null;
       }
     };
-  }, [isOpen]);
+  }, [isOpen, connectWebSocket, connected]);
+
+  // Keep WebSocket alive during page visibility changes
+  useEffect(() => {
+    const pingInterval = setInterval(() => {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        try {
+          // Send a small ping to keep the connection alive
+          wsRef.current.send(JSON.stringify({ type: "ping" }));
+        } catch (e) {
+          console.warn("Failed to send ping:", e);
+        }
+      }
+    }, 30000); // Every 30 seconds
+    
+    return () => clearInterval(pingInterval);
+  }, []);
 
   // Function to send a user message through the WebSocket
   const sendMessage = useCallback((text: string) => {
@@ -139,7 +188,7 @@ export function useWebSocketChat(isOpen: boolean) {
     addUserMessage(text);
   
     // Retrieve chat history (excluding system messages)
-    const chatHistory = messages
+    const chatHistory = getMessages()
       .filter(msg => msg.role === "user" || msg.role === "ai")
       .map(msg => ({ role: msg.role, text: msg.text }));
   
@@ -151,14 +200,13 @@ export function useWebSocketChat(isOpen: boolean) {
         history: chatHistory,
       })
     );
-  }, [addUserMessage, messages]);
+  }, [addUserMessage, getMessages]);
   
-  
-
   return { 
     sendMessage,
     wsRef, 
-    isStreaming: localStreamingState || chatIsStreaming,
-    isConnected: wsRef.current?.readyState === WebSocket.OPEN
+    isStreaming: isStreamingRef.current || chatIsStreaming,
+    isConnected: wsRef.current?.readyState === WebSocket.OPEN,
+    forceUpdate // Add this to help with the re-rendering
   };
 }
