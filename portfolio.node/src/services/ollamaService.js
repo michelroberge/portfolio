@@ -78,7 +78,7 @@ async function generateResponseStream(prompt, format = 'text') {
     stream: format === 'text', // Enable streaming only for text format
   };
 
-  console.log(`REQUEST STREAMING`);
+  // console.log(`REQUEST STREAMING`);
 
   const response = await fetch(url, {
     method: "POST",
@@ -86,7 +86,7 @@ async function generateResponseStream(prompt, format = 'text') {
     body: JSON.stringify(options),
   });
 
-  console.log(`START STREAMING`);
+  // console.log(`START STREAMING`);
   const reader = response.body.getReader();
   let accumulatedChunk = ""; // Store incomplete JSON chunks
 
@@ -105,7 +105,7 @@ async function generateResponseStream(prompt, format = 'text') {
           // Try to parse JSON, but wait until we have a full JSON object
           const parsedData = JSON.parse(accumulatedChunk);
           if (parsedData?.response) {
-            console.log(`Streaming: ${parsedData.response}`);
+            // console.log(`Streaming: ${parsedData.response}`);
             controller.enqueue(parsedData.response);
             accumulatedChunk = ""; // Reset buffer after successful JSON parse
           }

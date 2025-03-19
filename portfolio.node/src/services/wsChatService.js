@@ -41,8 +41,6 @@ const setupWebSocketServer = (server) => {
         
                 // Execute pipeline with streaming enabled
                 const streamCallback = (update) => {
-                    logColor(`📡 Step update: ${JSON.stringify(update)}`, 94);
-        
                     ws.send(JSON.stringify({
                         ...update
                     }));
