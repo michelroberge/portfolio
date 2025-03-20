@@ -53,7 +53,7 @@ async function fetchRelevantData(parameters, intent) {
                       collectionIndex === 1 ? collectionLimits.secondary :
                                               collectionLimits.tertiary;
 
-        const minScore = 0.3 + (collectionIndex * 0.1); // Increase threshold for less relevant collections
+        const minScore = (collectionIndex * 0.1); // Increase threshold for less relevant collections
 
         console.log(`🔎 Searching Qdrant: Collection "${collection}" (Limit: ${limit}, MinScore: ${minScore})`);
         
