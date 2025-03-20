@@ -19,7 +19,7 @@ async function generateResponse(prompt) {
         prompt: `${prompt}`,
         max_tokens: 200,
         temperature: 0.7,
-        format: 'json'
+        format: 'json',
       }),
     });
 
