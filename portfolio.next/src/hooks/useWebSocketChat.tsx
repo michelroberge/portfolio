@@ -79,7 +79,6 @@ export function useWebSocketChat(isOpen: boolean) {
 
     websocket.onmessage = (event) => {
       const data = JSON.parse(event.data);
-  
       // 🛑 Ensure there's ONLY ONE active AI message
       if (!currentMessageRef.current) {
           logger.log("🆕 No active AI message, creating one.");
@@ -123,7 +122,7 @@ export function useWebSocketChat(isOpen: boolean) {
           logger.log("🛠 Checking messages after completion:", messages.length);
           setForceUpdate(prev => prev + 1);
           stepCompleted.current = false;
-        }, 100);
+        }, 250);
       }
     };
 

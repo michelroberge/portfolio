@@ -74,11 +74,9 @@ async function generateResponseStream(prompt, format = 'text') {
     prompt,
     max_tokens: 200,
     temperature: 0.7,
-    format: format !== 'text' ? format : undefined, // Include format only if not 'text'
-    stream: format === 'text', // Enable streaming only for text format
+    format: format !== 'text' ? format : undefined,
+    stream: format === 'text',
   };
-
-  // console.log(`REQUEST STREAMING`);
 
   const response = await fetch(url, {
     method: "POST",
@@ -86,15 +84,18 @@ async function generateResponseStream(prompt, format = 'text') {
     body: JSON.stringify(options),
   });
 
-  // console.log(`START STREAMING`);
   const reader = response.body.getReader();
-  let accumulatedChunk = ""; // Store incomplete JSON chunks
+  let accumulatedChunk = ""; // Stores raw chunk data
+  let responseBuffer = ""; // Stores words to send
 
   return new ReadableStream({
     async start(controller) {
       while (true) {
         const { done, value } = await reader.read();
         if (done) {
+          if (responseBuffer.trim().length > 0) {
+            controller.enqueue(responseBuffer); // Ensure final response is cleaned
+          }
           controller.close();
           break;
         }
@@ -102,19 +103,23 @@ async function generateResponseStream(prompt, format = 'text') {
         accumulatedChunk += new TextDecoder().decode(value);
 
         try {
-          // Try to parse JSON, but wait until we have a full JSON object
           const parsedData = JSON.parse(accumulatedChunk);
           if (parsedData?.response) {
-            // console.log(`Streaming: ${parsedData.response}`);
-            controller.enqueue(parsedData.response);
-            accumulatedChunk = ""; // Reset buffer after successful JSON parse
+            const cleanText = parsedData.response; // Remove leading/trailing spaces
+            responseBuffer += cleanText;
+            controller.enqueue(responseBuffer);
+            responseBuffer = ""; // Reset buffer to avoid duplication
           }
+          accumulatedChunk = ""; // Reset after parsing successful JSON
         } catch (e) {
-          // JSON not complete yet—keep accumulating chunks
+          // Keep accumulating if JSON is incomplete
         }
       }
     }
   });
 }
+
+
+
 
 module.exports = { generateResponse, generateResponseStream };

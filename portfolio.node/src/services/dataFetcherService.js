@@ -2,6 +2,7 @@ const { searchQdrant } = require("../services/qdrantService");
 const Project = require("../models/Project");
 const BlogEntry = require("../models/BlogEntry");
 const Page = require("../models/Page");
+const CareerTimeline = require("../models/CareerTimeline");
 
 // const { extractMetadataFromQuery } = require("../utils/queryUtils"); // Optional metadata extraction
 
@@ -26,6 +27,8 @@ const collectionOrder = {
 async function fetchRelevantData(parameters, intent) {
     console.log(`🔄 Fetching relevant data for intent: "${intent}"`);
 
+    // FOR NOW, WE HIJACK TO ALL CONTENT OF WEB SITE:
+    return await FetchDefaultContextData();
     // Step 1️⃣: Define collection search order based on intent
     const sortedCollections = collectionOrder[intent] || collectionOrder["general_knowledge"];
 
@@ -36,7 +39,7 @@ async function fetchRelevantData(parameters, intent) {
     const retrievedDocs = [];
     const targetDocCount = 10; // Define threshold for relevant results
     const queryVector = parameters.queryVector; // 🔹 Use pre-generated vector
-    
+
     if (!queryVector) {
         console.error("❌ Query vector is missing! Cannot search Qdrant.");
         return { userQuery: parameters.userQuery, retrievedDocs };
@@ -50,13 +53,13 @@ async function fetchRelevantData(parameters, intent) {
         if (retrievedDocs.length >= targetDocCount) break; // Stop if enough results found
 
         const limit = collectionIndex === 0 ? collectionLimits.primary :
-                      collectionIndex === 1 ? collectionLimits.secondary :
-                                              collectionLimits.tertiary;
+            collectionIndex === 1 ? collectionLimits.secondary :
+                collectionLimits.tertiary;
 
         const minScore = (collectionIndex * 0.1); // Increase threshold for less relevant collections
 
         console.log(`🔎 Searching Qdrant: Collection "${collection}" (Limit: ${limit}, MinScore: ${minScore})`);
-        
+
         const searchResults = await searchQdrant(queryVector, collection, limit, minScore);
 
         if (searchResults.length > 0) {
@@ -70,13 +73,13 @@ async function fetchRelevantData(parameters, intent) {
     console.log(`✅ Retrieved ${retrievedDocs.length} relevant document IDs from Qdrant.`);
 
     // Step 4️⃣: Fetch Full Documents from MongoDB
-    const fullDocuments = docIdsByCollection.length > 0 ? 
-        await fetchMongoDocs(docIdsByCollection) : await Page.find({slug: "about"}).lean();
+    const fullDocuments = docIdsByCollection.length > 0 ?
+        await fetchMongoDocs(docIdsByCollection) : await Page.find({ slug: "about" }).lean();
 
     console.log(`✅ Fetched ${fullDocuments.length} full documents from MongoDB.`);
 
     // Step 5️⃣: Return structured results with enriched context
-    return  JSON.stringify(fullDocuments, null, 2);
+    return JSON.stringify(fullDocuments, null, 2);
 }
 
 /**
@@ -130,6 +133,107 @@ async function fetchMongoDocs(docIdsByCollection) {
     }
 
     return allDocuments;
+}
+
+async function FetchDefaultContextData() {
+
+    let context = "";
+
+    const about = await Page.findOne({ slug: "about" });
+    if (about) {
+        context += `# General Information\n\n`;
+        context += `${about.content}\n\n`;
+    }
+
+    context += await FetchProjects();
+    context += await FetchBlogs();
+    context += await FetchCareerTimeline();
+
+    return context;
+}
+
+async function FetchProjects() {
+    let context = "# Projects\n\n";
+    const projects = await Project.find();
+    projects.forEach((p, i) => {
+        context += `## Project ${i + 1}\n\n### ${p.title}\n\n### Excerpt\n\n${p.excerpt}\n\n`;
+    });
+    
+    return context;
+}
+
+
+async function FetchBlogs() {
+    let context = "# Blog Entries\n\n";
+    const blogs = await BlogEntry.find();
+    blogs.forEach((b, i) => {
+        context += `## ${b.title}\n### Excerpt\n${b.excerpt}\n\n### Content\n${b.Body}`;
+    });
+    return context;
+}
+
+async function FetchBlogs() {
+    let context = "# Blog Entries\n\n";
+    const blogs = await BlogEntry.find();
+    blogs.forEach((b, i) => {
+        context += `Entry #${i + 1}: ${b.title}\n${b.excerpt}\n\n`;
+    });
+    return context;
+}
+
+async function FetchCareerTimeline() {
+    let context = "# Career Timeline\n\n";
+    const careerEntries = await CareerTimeline.find();
+
+    careerEntries.forEach((entry) => {
+        // Format dates
+        const startDate = entry.startDate ? new Date(entry.startDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short' }) : 'Unknown';
+        const endDate = entry.endDate ? new Date(entry.endDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short' }) : 'Present';
+        const duration = entry.endDate ?
+            calculateDuration(entry.startDate, entry.endDate) :
+            calculateDuration(entry.startDate, new Date());
+
+        context += `## ${entry.title} at ${entry.company}\n`;
+        context += `**Period**: ${startDate} to ${endDate} (${duration})\n\n`;
+
+        if (entry.description) {
+            context += `### Responsibilities & Achievements\n${entry.description}\n\n`;
+        }
+
+        if (entry.skills && entry.skills.length > 0) {
+            context += `### Skills Utilized\n${entry.skills.join(", ")}\n\n`;
+        }
+
+        // Add divider between entries
+        context += "---\n\n";
+        return context;
+    });
+    return context;
+}
+
+function calculateDuration(startDate, endDate) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const years = end.getFullYear() - start.getFullYear();
+    const months = end.getMonth() - start.getMonth();
+
+    let duration = '';
+    if (years > 0) {
+        duration += `${years} year${years > 1 ? 's' : ''}`;
+    }
+    if (months > 0 || (years > 0 && months < 0)) {
+        const adjustedMonths = months < 0 ? 12 + months : months;
+        if (duration.length > 0) duration += ', ';
+        duration += `${adjustedMonths} month${adjustedMonths > 1 ? 's' : ''}`;
+    }
+    if (duration === '') {
+        // For very short durations
+        const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+        duration = `${days} day${days > 1 ? 's' : ''}`;
+    }
+
+    return duration;
 }
 
 module.exports = { fetchRelevantData };
