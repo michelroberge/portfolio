@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useChat } from "@/context/ChatContext";
 import { useWebSocketChat } from "@/hooks/useWebSocketChat";
-
+import { marked } from "marked";
 export default function Chat() {
   const { messages, addUserMessage, currentMessageRef } = useChat();
   const [isOpen, setIsOpen] = useState(false);
@@ -54,11 +54,12 @@ export default function Chat() {
                 className={`p-2 rounded-lg text-sm ${
                   msg.role === "user" 
                     ? "bg-blue-500 text-white self-end" 
-                    : "bg-gray-200 dark:bg-gray-600 text-black dark:text-white self-start"
+                    : " prose bg-gray-200 dark:bg-gray-600 text-black dark:text-white self-start"
                 }`}
-              >
-                {msg.text || "⏳"}
-              </div>
+
+                dangerouslySetInnerHTML={{ __html: marked.parse(msg.text || "⏳") }}
+
+              />
             ))}
           </div>
 

@@ -41,26 +41,25 @@ async function executePipeline(promptName, parameters, isStreaming = false, stre
         const responseStream = await queryLLMByName(promptName, parameters, true);
 
         const reader = responseStream.getReader();
-        let responseBuffer = "";
+let responseBuffer = "";
 
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-                streamCallback({ response: responseBuffer, done: true, step: false });
-                break;
-            }
-
-            responseBuffer += value;
-
-            // ✅ Stream words immediately but separate paragraphs
-            if (value.includes(" ")) {
-                streamCallback({ response: value, step: false });
-            }
-
-            if (value.includes("\n\n")) {
-                streamCallback({ response: "🔽 New Paragraph 🔽", step: false }); // Placeholder to mark paragraph shift
-            }
+while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+        if (responseBuffer.trim().length > 0) {
+            streamCallback({ response: responseBuffer, done: true, step: false });
         }
+        break;
+    }
+
+    responseBuffer += value; 
+
+    // ✅ Stream only when there's a space or punctuation, avoiding mid-word splits
+    if (value.includes(" ") || value.match(/[.,!?]/) || done === true) {
+        streamCallback({ response: responseBuffer, step: false });
+        responseBuffer = ""; // Reset buffer after sending
+    }
+}
 
         return { response: "Streaming response handled separately." };
     } catch (error) {

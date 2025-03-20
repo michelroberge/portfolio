@@ -41,11 +41,11 @@ const setupWebSocketServer = (server) => {
         
                 // Execute pipeline with streaming enabled
                 const streamCallback = (update) => {
-                    ws.send(JSON.stringify({
-                        ...update
-                    }));
+                    if (update.response && update.response.trim().length > 0) {
+                        ws.send(JSON.stringify({ response: update.response, step: update.step, done: update.done }));
+                    }
                 };
-        
+                                                        
                 // Call pipeline function with streaming
                 await executePipeline("chat-response", {
                     userQuery: query,
