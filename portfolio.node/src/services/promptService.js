@@ -19,6 +19,17 @@ async function getPromptById(id) {
 }
 
 /**
+ * Retrieves a specific prompt by name.
+ */
+async function getPromptByName(name) {
+    const prompt = await Prompt.findOne({ name });
+    if (!prompt) {
+        throw new Error("Prompt not found.");
+    }
+    return prompt;
+}
+
+/**
  * Creates a new AI prompt.
  */
 async function createPrompt({ name, template, metadata = {} }) {
@@ -54,6 +65,7 @@ async function deletePrompt(id) {
 module.exports = {
     getAllPrompts,
     getPromptById,
+    getPromptByName,
     createPrompt,
     updatePrompt,
     deletePrompt

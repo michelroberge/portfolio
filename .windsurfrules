@@ -1,27 +1,16 @@
-General information
-1. Frontend project is portfolio.next
-2. Backend project is portfolio.node
-3. Backend is supported by MongoDb, Qdrant and Ollama.
-4. Both projects have a ./src directory where the source code is located.
-5. Both projects have a __tests__ directory where the tests are located.
-
-
-Development Principles
-6. Use Domain Driven Design.
-7. Use Clean Architecture.
-8. Model source of truth is backend.
-9. Use TypeScript for Frontend
-10. Use .js for Backend
-11. Aim for reusability and scalability
-12. Use SOLID principles
-13. Do not over-engineer
-14. Be consistent from a feature to another (i.e. apply same patterns)
-15. Develop for testability (Jest)
-16. Models / entities / interfaces should be in their own scripts, never in a page implementation or in a service implementation.
+1. Use Domain Driven Design.
+2. Model source of truth is backend.
+3. Use Next with TypeScript for Frontend
+4. Aim for reusability and scalability
+5. Use SOLID principles
+6. Use Clean Architecture
+7. Do not over-engineer
+8. Be consistent from a feature to another (i.e. apply same patterns)
+9. Develop for testability (Jest)
+10. Models / entities / interfaces should be in their own scripts, never in a page implementation or in a service implementation.
 
 Frontend Specifics
-17. All API calls should use import from constants (i.e. API_ENDPOINTS) 
-18. The correct page initialization for SSR is promise params with await.
+11. The correct page initialization for SSR is promise params with await.
 Good Example:
 ```
 import { notFound } from "next/navigation";
@@ -45,40 +34,8 @@ export default async function BlogPage({ params }: { params: Promise<{ slug: str
 }
 
 ```
-19. All catch(err) should be followed by a console.error(err)
-20. Use tailwindcss for formatting
-21. Optimize Frontend for SSR
-22. Use .ts for Frontend
-23. Use Next.js 15.1.7+ best practices when applicable.
-24. Before any modification to a model, always verify the backend equivalent model. The backend is the source of truth.
-
-Backend Specifics
-25. Use Node.js 18+ best practices when applicable.
-26. Use MongoDB for data storage
-27. Use Qdrant for vector search
-28. Use Ollama for AI
-29. Use .js for Backend
-30. Before changing model, always ask if it is necessary and the correct way. 
-31. If a change to a model is necessary, always consider the frontend changes needed.
-
-Guiding Principle for Fixes and Improvements
-29. When addressing an issue, bug, or inconsistency, always consider the broader context of the system. 
-30. A fix should not only resolve the immediate problem but also align with the overall design principles, architecture, and coding guidelines. 
-31. Strive for solutions that are consistent, maintainable, and scalable, avoiding quick patches that may introduce technical debt or conflict with existing patterns.
-
-32. Before finalizing a fix, ask:
-
-- Does this align with the established design and architectural decisions?
-- Is this solution consistent with similar implementations elsewhere?
-- Will this fix create unexpected side effects in related components?
-- Can this be refactored into a more elegant and reusable solution?
-- Always prioritize long-term clarity and maintainability over short-term convenience.
-
-Testing
-- When writting unit tests, always check the component implementation that is being tested.
-- The tests should always use the appropriate props and dependencies (i.e. mock services, hooks, etc.)
-- Use jest.mock() for mocking dependencies.
-- Use waitFor() for async operations.
-
-IMPORTANT AND MANDATORY RULES
-A) Never make a design decision on your own. Always make a suggestion first for confirmation.
+12. All catch(err) should be followed by a console.error(err)
+13. Use tailwindcss for formatting
+14. Optimize Frontend for SSR
+15. Use Qdrant for vector search
+16. Use Ollama for AI

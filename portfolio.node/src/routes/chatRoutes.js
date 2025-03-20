@@ -43,9 +43,9 @@ router.get("/", async (req, res) => {
  * @route GET /api/chat/greeting
  * @desc Returns a random AI-generated greeting
  */
-router.get("/greeting", async (req, res) => {
+router.get("/greetings", async (req, res) => {
   try {
-      const greeting = await getRandomGreeting();
+    const greeting = await getRandomGreeting();
 
     console.log(`greeting`, greeting);
 

@@ -1,5 +1,5 @@
 const cache = require("../utils/cache");
-const { queryLLM } = require("./llmService");
+const { generateResponse } = require("./ollamaService");
 
 /**
  * Generates and caches warm-up data on backend start.
@@ -28,19 +28,11 @@ async function refreshGreetings() {
     console.log("🔄 Refreshing cached greetings...");
 
     try {
-        const greetingResponse = await queryLLM(
-            "AI Chat Assistant",
-            `Generate 10 unique and friendly greetings. Format as a JSON array like
-             {"greetings" : [  "Hi, how are you?", 
-                "Welcome!",
-              ]
-             }`,
-            {}
-        );
+        const greetingResponse = await generateResponse("AI Role: Butler. User query: generate 10 greetings in a string array json response.", {});
         const greetings = greetingResponse?.greetings || ["Hello! How can I assist you today?"];
+
         cache.set("chat_greetings", greetings, 14400); // Cache for 4 hours
         console.log(`✅ Cached ${greetings.length} greetings.`);
-
     } catch (error) {
         console.error("❌ Failed to refresh greetings:", error);
     }
@@ -53,9 +45,9 @@ async function refreshChatContext() {
     console.log("🔄 Generating default chat context...");
 
     try {
-        const contextResponse = await queryLLM(
-            "AI Knowledge Assistant",
-            "Provide a detailed general knowledge base for answering user questions about projects, skills, and technology. Keep it structured and useful as a starting point.",
+        const contextResponse = await generateResponse(
+            "AI Role: AI Knowledge Assistant",
+            "User query: Provide a detailed general knowledge base for answering user questions about projects, skills, and technology. Keep it structured and useful as a starting point.",
             {}
         );
 

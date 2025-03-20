@@ -6,6 +6,7 @@ const PROMPT_MODEL = process.env.PROMPT_MODEL || "mistral";
 /**
  * Sends a structured prompt to the Ollama AI model and retrieves a response.
  * @param {string} prompt - The structured prompt with context and user query.
+ * @param {string} format - Response format ('json' or 'text')
  * @returns {Promise<{ response: string }>} - AI-generated response.
  */
 async function generateResponse(prompt) {
@@ -15,14 +16,15 @@ async function generateResponse(prompt) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: PROMPT_MODEL,
-        prompt: prompt,
+        prompt: `${prompt}`,
         max_tokens: 200,
         temperature: 0.7,
+        format: 'json'
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`Ollama API returned an error: ${response.statusText}`);
+      throw new Error(`⚠️ API returned an error: ${response.statusText}`);
     }
 
     // Read the response as a stream
@@ -58,54 +60,61 @@ async function generateResponse(prompt) {
   }
 }
 
-async function generateResponseStream(prompt) {
-
+/**
+ * Streams a response from Ollama
+ * @param {string} prompt - The prompt to send to Ollama
+ * @param {string} format - Response format ('json' or 'text')
+ * @returns {ReadableStream} A stream of response chunks
+ */
+async function generateResponseStream(prompt, format = 'text') {
   const url = `${OLLAMA_URL}/api/generate`;
-  // console.log("calling ollama", url);
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "mistral",
-        prompt: prompt,
-        max_tokens: 200,
-        temperature: 0.7,
-      }),
-    });
-  
-    const reader = response.body.getReader();
-    
-    return new ReadableStream({
-      async start(controller) {
-        let accumulatedResponse = "";
-  
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            controller.close();
-            break;
+
+  const options = {
+    model: PROMPT_MODEL,
+    prompt,
+    max_tokens: 200,
+    temperature: 0.7,
+    format: format !== 'text' ? format : undefined, // Include format only if not 'text'
+    stream: format === 'text', // Enable streaming only for text format
+  };
+
+  // console.log(`REQUEST STREAMING`);
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(options),
+  });
+
+  // console.log(`START STREAMING`);
+  const reader = response.body.getReader();
+  let accumulatedChunk = ""; // Store incomplete JSON chunks
+
+  return new ReadableStream({
+    async start(controller) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          controller.close();
+          break;
+        }
+
+        accumulatedChunk += new TextDecoder().decode(value);
+
+        try {
+          // Try to parse JSON, but wait until we have a full JSON object
+          const parsedData = JSON.parse(accumulatedChunk);
+          if (parsedData?.response) {
+            // console.log(`Streaming: ${parsedData.response}`);
+            controller.enqueue(parsedData.response);
+            accumulatedChunk = ""; // Reset buffer after successful JSON parse
           }
-  
-          const chunk = new TextDecoder().decode(value);
-  
-          // Process streamed JSON lines
-          chunk.split("\n").forEach((line) => {
-            if (line.trim()) {
-              try {
-                const parsed = JSON.parse(line);
-                if (parsed.response) {
-                  accumulatedResponse += parsed.response;
-                  controller.enqueue(parsed.response); // Send each chunk immediately
-                }
-              } catch (err) {
-                console.warn("Skipping invalid JSON chunk (possibly end?)");
-              }
-            }
-          });
+        } catch (e) {
+          // JSON not complete yet—keep accumulating chunks
         }
       }
-    });
-  }
-  
+    }
+  });
+}
 
 module.exports = { generateResponse, generateResponseStream };

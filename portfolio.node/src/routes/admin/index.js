@@ -10,9 +10,10 @@ const adminAuth = require("../../middlewares/admin");
 const blogRoutes = require("./blogRoutes");
 const projectRoutes = require("./projectRoutes");
 const userRoutes = require("../../routes/userRoutes");
-const providerConfigRoutes = require("../../routes/providerConfigRoutes");
-const careerRoutes = require("../../routes/careerTimelineRoutes");
+const providerConfigRoutes = require("./providerConfigRoutes");
 const pageRoutes = require("./pageRoutes");
+const aiRoutes = require("./aiRoutes");
+const careerTimelineRoutes = require("./careerTimelineRoutes");
 
 const router = express.Router();
 
@@ -25,7 +26,8 @@ router.use("/blogs", blogRoutes);
 router.use("/projects", projectRoutes);
 router.use("/users", userRoutes);
 router.use("/provider-configs", providerConfigRoutes);
-router.use("/career", careerRoutes);
 router.use("/pages", pageRoutes);
+router.use("/ai", aiRoutes);
+router.use("/career", careerTimelineRoutes);
 
 module.exports = router;

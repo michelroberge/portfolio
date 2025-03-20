@@ -55,6 +55,7 @@ docs/2. development-plan.md
 docs/2.b.development-plan.v2.md
 docs/2.c.development-plan.v3.md
 docs/jobs.html
+docs/problem-prompt.md
 docs/prompts/default.md
 jenkins/Jenkinsfile.analysis
 jenkins/Jenkinsfile.build
@@ -124,6 +125,7 @@ portfolio.next/src/app/admin/embeddings/page.tsx
 portfolio.next/src/app/admin/files/page.tsx
 portfolio.next/src/app/admin/login/page.tsx
 portfolio.next/src/app/admin/page.tsx
+portfolio.next/src/app/admin/pages/edit/[id]/page.tsx
 portfolio.next/src/app/admin/pages/page.tsx
 portfolio.next/src/app/admin/projects/edit/[id]/page.tsx
 portfolio.next/src/app/admin/projects/new/page.tsx
@@ -156,6 +158,7 @@ portfolio.next/src/components/admin/CommentManagement.tsx
 portfolio.next/src/components/admin/CommentsList.tsx
 portfolio.next/src/components/admin/CreateUser.tsx
 portfolio.next/src/components/admin/EditBlogEntry.tsx
+portfolio.next/src/components/admin/EditPage.tsx
 portfolio.next/src/components/admin/EditProject.tsx
 portfolio.next/src/components/admin/FileList.tsx
 portfolio.next/src/components/admin/FileWrapper.tsx
@@ -320,9 +323,14 @@ portfolio.node/src/models/Project.js
 portfolio.node/src/models/Prompt.js
 portfolio.node/src/models/ProviderConfig.js
 portfolio.node/src/models/User.js
+portfolio.node/src/routes/admin/aiRoutes.js
 portfolio.node/src/routes/admin/blogRoutes.js
+portfolio.node/src/routes/admin/careerTimelineRoutes.js
 portfolio.node/src/routes/admin/index.js
+portfolio.node/src/routes/admin/pageRoutes.js
 portfolio.node/src/routes/admin/projectRoutes.js
+portfolio.node/src/routes/admin/providerConfigRoutes.js
+portfolio.node/src/routes/admin/userRoutes.js
 portfolio.node/src/routes/aiRoutes.js
 portfolio.node/src/routes/authRoutes.js
 portfolio.node/src/routes/blogRoutes.js
@@ -335,7 +343,6 @@ portfolio.node/src/routes/oauthRoutes.js
 portfolio.node/src/routes/pageRoutes.js
 portfolio.node/src/routes/projectRoutes.js
 portfolio.node/src/routes/promptRoutes.js
-portfolio.node/src/routes/providerConfigRoutes.js
 portfolio.node/src/routes/searchRoutes.js
 portfolio.node/src/routes/userRoutes.js
 portfolio.node/src/server.js
@@ -344,11 +351,13 @@ portfolio.node/src/services/blogService.js
 portfolio.node/src/services/chatService.js
 portfolio.node/src/services/commentService.js
 portfolio.node/src/services/counterService.js
+portfolio.node/src/services/dataFetcherService.js
 portfolio.node/src/services/embeddingService.js
 portfolio.node/src/services/fileService.js
 portfolio.node/src/services/llmService.js
 portfolio.node/src/services/ollamaService.js
 portfolio.node/src/services/pageService.js
+portfolio.node/src/services/pipelineService.js
 portfolio.node/src/services/projectService.js
 portfolio.node/src/services/promptService.js
 portfolio.node/src/services/providerConfigService.js
@@ -360,6 +369,9 @@ portfolio.node/src/services/wsChatService.js
 portfolio.node/src/tracing.js
 portfolio.node/src/utils/cache.js
 portfolio.node/src/utils/generatePrompt.js
+portfolio.node/src/utils/intents.js
+portfolio.node/src/utils/prompts.js
+portfolio.node/src/utils/queryUtils.js
 portfolio.node/src/validators/blogValidator.js
 README.md
 
@@ -3033,6 +3045,44 @@ File: docs/jobs.html
 </body>
 
 </html>
+
+================
+File: docs/problem-prompt.md
+================
+Background: I have this Chat component. It is meant to interact with a LLM. When it opens,
+- it shows up a greeting. 
+- User enter a prompt (we will refer to as userQuery). 
+- This goes to the backend.
+- The backend runs a pipeline for prompt optimization. 
+- For each step, it should stream back through websocket to the client. 
+
+Current Behavior: 
+Both the userQuery and the bot reply gets updated with streamed data. Gibberish data is also being streamed back. 
+
+Expected behavior: 
+The client should now see a new bubble, being updated with the current step, so it looks like something is happening. 
+When the pipeline finishes and the final response is streamed, it should be streamed on the client side as the chat response, in a single bubble. Only the answer is to be streamed.
+
+Task:
+- in portfolio.next
+  - analyze @/component/Chat
+  - analyze @/hooks/useWebSocketChat
+  - analyze @/context/ChatContext
+- in portfolio.node
+  - analyze .src/services/wsChatService
+  - analyze .src/services/pipelineService
+  - analyze .src/services/ollamaService
+  - analyze .src/services/llmService
+  - analyze .src/services/embeddingService
+  - analyze .src/services/dataFetcherService
+  - analyze .src/utils/generatePrompt.js
+  - analyze .src/utils/queryUtils.js
+  - analyze .src/utils/prompts.js
+
+You should get a full understanding of the e2e process. Then, you should be able to fix the issue so it works with the expected behaviour.
+
+Specific rules:
+- If you change something on the backend, you need to consider the other scripts that use the functions you change. There can be no orphan scripts, they should still all work.
 
 ================
 File: docs/prompts/default.md
@@ -6412,7 +6462,7 @@ export default async function Analytics() {
 File: portfolio.next/src/app/admin/blogs/edit/[id]/page.tsx
 ================
 import { notFound } from "next/navigation";
-import { protectAdminRoute } from "@/lib/auth";
+import { protectAdminRoute, getAdminCookie } from "@/lib/auth";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import EditBlogEntry from "@/components/admin/EditBlogEntry";
 import { fetchBlogEntry } from "@/services/blogService";
@@ -6423,14 +6473,16 @@ interface Props {
 
 export default async function AdminBlogEditPage({ params }: Props) {
   // This will automatically redirect if not authenticated or not admin
-  await protectAdminRoute();
+  const { user } = await protectAdminRoute();
+  const { cookieHeader } = await getAdminCookie(user);
 
   const { id } = await params;
+  
   if (!id) return notFound();
 
   try {
     // Fetch blog data server-side for SSR
-    const blog = await fetchBlogEntry(id);
+    const blog = await fetchBlogEntry(id, true, cookieHeader) ;
     if (!blog) return notFound();
     
     return (
@@ -6468,23 +6520,19 @@ export default async function NewBlogPage() {
 ================
 File: portfolio.next/src/app/admin/blogs/page.tsx
 ================
-import { cookies } from "next/headers"; 
-import { protectAdminRoute } from "@/lib/auth";
+import { protectAdminRoute, getAdminCookie } from "@/lib/auth";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import BlogList from "@/components/admin/BlogList";
-import { fetchBlogEntries } from "@/services/blogService";
+import { fetchBlogEntries, } from "@/services/blogService";
 
 export default async function AdminBlogPage() {
   // This will automatically redirect if not authenticated or not admin
-  await protectAdminRoute();
-
-    // Get cookies from the request
-    const cookieStore = cookies();
-    const cookieHeader = cookieStore.toString(); 
+  const { user } = await protectAdminRoute();
+  const { cookieHeader } = await getAdminCookie(user);
 
   // Fetch blogs server-side for SSR
   const blogs = await fetchBlogEntries(true, cookieHeader);
-console.log('blogs', blogs);
+  
   return (
     <AdminLayout>
       <BlogList blogs={blogs} />
@@ -6540,16 +6588,21 @@ export default async function LinkedInImportPage() {
 ================
 File: portfolio.next/src/app/admin/career/page.tsx
 ================
-import { protectAdminRoute } from "@/lib/auth";
+import { protectAdminRoute, getAdminCookie } from "@/lib/auth";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import CareerTimelineManager from "@/components/admin/CareerTimelineManager";
+import { fetchCareerTimeline } from "@/services/careerService";
 
 export default async function CareerTimelinePage() {
-  await protectAdminRoute();
+  const { user } = await protectAdminRoute();
+  const { cookieHeader } = await getAdminCookie(user);
+  
+  // Fetch career timeline server-side for SSR
+  const timeline = await fetchCareerTimeline(true, cookieHeader);
 
   return (
     <AdminLayout>
-      <CareerTimelineManager />
+      <CareerTimelineManager initialTimeline={timeline} cookieHeader={cookieHeader} />
     </AdminLayout>
   );
 }
@@ -6557,22 +6610,23 @@ export default async function CareerTimelinePage() {
 ================
 File: portfolio.next/src/app/admin/comments/page.tsx
 ================
-import { protectAdminRoute } from "@/lib/auth";
+import { protectAdminRoute, getAdminCookie } from "@/lib/auth";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import CommentsList from "@/components/admin/CommentsList";
 import { fetchAllComments } from "@/services/commentService";
 
 export default async function CommentsManagementPage() {
-  await protectAdminRoute();
+  const { user } = await protectAdminRoute();
+  const { cookieHeader } = await getAdminCookie(user);
 
   // Fetch comments server-side for SSR optimization (rule #21)
-  const comments = await fetchAllComments();
+  const comments = await fetchAllComments(true, cookieHeader);
 
   return (
     <AdminLayout>
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-6">Comments Management</h1>
-        <CommentsList initialComments={comments} />
+        <CommentsList initialComments={comments} cookieHeader={cookieHeader} />
       </div>
     </AdminLayout>
   );
@@ -6598,19 +6652,20 @@ export default async function EmbeddingsManagement() {
 ================
 File: portfolio.next/src/app/admin/files/page.tsx
 ================
-import { protectAdminRoute } from "@/lib/auth";
+import { protectAdminRoute, getAdminCookie } from "@/lib/auth";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import FileWrapper from "@/components/admin/FileWrapper";
 
 export default async function FileManagement() {
-  await protectAdminRoute();
+  const { user } = await protectAdminRoute();
+  const { cookieHeader } = await getAdminCookie(user);
 
   return (
     <AdminLayout>
       <div className="p-6">
         <h1 className="text-3xl font-bold mb-4">Global Files Management</h1>
         <p>These files will be systematically included in the embedding contexts, unless they are media files (images, music, videos, etc.)</p>
-        <FileWrapper context="general" entityId="0" />
+        <FileWrapper context="general" entityId="0" cookieHeader={cookieHeader} />
       </div>
     </AdminLayout>
   );
@@ -6722,27 +6777,72 @@ export default async function AdminPage() {
 }
 
 ================
+File: portfolio.next/src/app/admin/pages/edit/[id]/page.tsx
+================
+// portfolio.next/src/app/admin/pages/edit/[id]/page.tsx
+import { notFound } from "next/navigation";
+import { protectAdminRoute, getAdminCookie } from "@/lib/auth";
+import AdminLayout from "@/components/layouts/AdminLayout";
+import EditPage from "@/components/admin/EditPage";
+import { fetchPageBySlug } from "@/services/pageService";
+
+export default async function EditPagePage({ params }: { params: Promise<{ id: string }> }) {
+  // This will automatically redirect if not authenticated or not admin
+  const { user } = await protectAdminRoute();
+  const { cookieHeader } = await getAdminCookie(user);
+
+  const { id } = await params;
+  if (!id) return notFound();
+
+  try {
+    // Fetch page data server-side for SSR
+    const page = await fetchPageBySlug(id, true, cookieHeader);
+    if (!page) return notFound();
+
+    return (
+      <AdminLayout>
+        <EditPage initialPage={page} />
+      </AdminLayout>
+    );
+  } catch (error) {
+    console.error('Failed to fetch page:', error);
+    return notFound();
+  }
+}
+
+================
 File: portfolio.next/src/app/admin/pages/page.tsx
 ================
-import { protectAdminRoute } from "@/lib/auth";
+import { protectAdminRoute, getAdminCookie } from "@/lib/auth";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import PagesList from "@/components/admin/PagesList";
+import {Page} from '@/models/Page'
+import { fetchPages } from "@/services/pageService";
 
-const PageContent = () => {
+interface PageContentProps {
+  pages: Page[];
+  cookieHeader: string;
+}
+
+const PageContent = ({ pages, cookieHeader }: PageContentProps) => {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Pages Management</h1>
-      <PagesList />
+      <PagesList initialPages={pages} cookieHeader={cookieHeader} />
     </div>
   );
 };
 
 export default async function PagesManagementPage() {
-  await protectAdminRoute();
+  const { user } = await protectAdminRoute();
+  const { cookieHeader } = await getAdminCookie(user);
+  
+  // Fetch pages server-side for SSR
+  const pages = await fetchPages(true, cookieHeader);
 
   return (
     <AdminLayout>
-      <PageContent />
+      <PageContent pages={pages} cookieHeader={cookieHeader} />
     </AdminLayout>
   );
 }
@@ -6752,21 +6852,22 @@ File: portfolio.next/src/app/admin/projects/edit/[id]/page.tsx
 ================
 // portfolio.next/src/app/admin/projects/edit/[id]/page.tsx
 import { notFound } from "next/navigation";
-import { protectAdminRoute } from "@/lib/auth";
+import { protectAdminRoute, getAdminCookie } from "@/lib/auth";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import EditProject from "@/components/admin/EditProject";
 import { fetchProject } from "@/services/projectService";
 
 export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   // This will automatically redirect if not authenticated or not admin
-  await protectAdminRoute();
+  const { user } = await protectAdminRoute();
+  const { cookieHeader } = await getAdminCookie(user);
 
   const { id } = await params;
   if (!id) return notFound();
 
   try {
     // Fetch project data server-side for SSR
-    const project = await fetchProject(id);
+    const project = await fetchProject(id, true, cookieHeader);
     if (!project) return notFound();
 
     return (
@@ -6806,17 +6907,18 @@ export default async function NewProjectPage() {
 ================
 File: portfolio.next/src/app/admin/projects/page.tsx
 ================
-import { protectAdminRoute } from "@/lib/auth";
+import { protectAdminRoute, getAdminCookie } from "@/lib/auth";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import ProjectList from "@/components/admin/ProjectList";
 import { fetchProjects } from "@/services/projectService";
 
 export default async function ProjectManagementPage() {
   // This will automatically redirect if not authenticated or not admin
-  await protectAdminRoute();
+  const { user } = await protectAdminRoute();
+  const { cookieHeader } = await getAdminCookie(user);
 
   // Fetch projects server-side for SSR
-  const projects = await fetchProjects();
+  const projects = await fetchProjects(true, cookieHeader);
 
   return (
     <AdminLayout>
@@ -7000,7 +7102,7 @@ export default async function NewUserPage() {
 ================
 File: portfolio.next/src/app/admin/users/page.tsx
 ================
-import { protectAdminRoute } from "@/lib/auth";
+import { protectAdminRoute, getAdminCookie } from "@/lib/auth";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import UserList from "@/components/admin/UserList";
 import { fetchUsers } from "@/services/userService";
@@ -7008,9 +7110,10 @@ import { fetchUsers } from "@/services/userService";
 export default async function UserManagementPage() {
   // This will automatically redirect if not authenticated or not admin
   const { user } = await protectAdminRoute();
+  const { cookieHeader } = await getAdminCookie(user);
 
   // Fetch users server-side for SSR
-  const users = await fetchUsers();
+  const users = await fetchUsers(true, cookieHeader);
 
   return (
     <AdminLayout>
@@ -7622,24 +7725,15 @@ File: portfolio.next/src/components/admin/BlogManagement.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from "next/navigation";
 import Link from 'next/link';
 import { type BlogEntry } from '@/models/BlogEntry';
 import { fetchBlogEntries, deleteBlogEntry } from '@/services/blogService';
 
 export default function BlogManagement() {
+  const router = useRouter();
   const [blogs, setBlogs] = useState<BlogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
-
-  const loadBlogs = async () => {
-    try {
-      const data = await fetchBlogEntries();
-      setBlogs(data);
-      setError(null);
-    } catch (err) {
-      console.error('Failed to load blogs:', err);
-      setError('Failed to load blogs');
-    }
-  };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this blog entry?')) return;
@@ -7648,6 +7742,7 @@ export default function BlogManagement() {
       await deleteBlogEntry(id);
       setBlogs(blogs.filter(blog => blog._id !== id));
       setError(null);
+      router.refresh(); // Forces Next.js to refetch SSR data
     } catch (err) {
       console.error('Failed to delete blog:', err);
       setError('Failed to delete blog');
@@ -7655,8 +7750,21 @@ export default function BlogManagement() {
   };
 
   useEffect(() => {
+
+    const loadBlogs = async () => {
+      try {
+        const data = await fetchBlogEntries();
+        setBlogs(data);
+        setError(null);
+        router.refresh(); // Forces Next.js to refetch SSR data
+      } catch (err) {
+        console.error('Failed to load blogs:', err);
+        setError('Failed to load blogs');
+      }
+    };
+  
     loadBlogs();
-  }, []);
+  }, [router]);
 
   return (
     <div className="space-y-4">
@@ -8043,28 +8151,36 @@ import Link from "next/link";
 import { CareerEntry } from "@/models/CareerEntry";
 import { fetchCareerTimeline, deleteCareerEntry } from "@/services/careerService";
 
-export default function CareerTimelineManager() {
-  const [timeline, setTimeline] = useState<CareerEntry[]>([]);
+interface CareerTimelineManagerProps {
+  initialTimeline?: CareerEntry[];
+  cookieHeader?: string;
+}
+
+export default function CareerTimelineManager({ initialTimeline = [], cookieHeader }: CareerTimelineManagerProps) {
+  const [timeline, setTimeline] = useState<CareerEntry[]>(initialTimeline);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadEntries();
-  }, []);
 
-  async function loadEntries() {
-    try {
-      const data = await fetchCareerTimeline();
-      setTimeline(data);
-    } catch (err) {
-      console.error('Failed to fetch career timeline:', err);
-      setError('Failed to load career timeline');
+    async function loadEntries() {
+      try {
+        const data = await fetchCareerTimeline(true, cookieHeader || null);
+        setTimeline(data);
+      } catch (err) {
+        console.error('Failed to fetch career timeline:', err);
+        setError('Failed to load career timeline');
+      }
     }
-  }
+
+    if (initialTimeline.length === 0) {
+      loadEntries();
+    }
+  }, [initialTimeline, cookieHeader]);
 
   async function handleDelete(id: string) {
     if (!confirm("Are you sure you want to delete this entry?")) return;
     try {
-      await deleteCareerEntry(id);
+      await deleteCareerEntry(id, cookieHeader || null);
       setTimeline((prev) => prev.filter((entry) => entry._id !== id)); 
     } catch (err) {
       console.error('Failed to delete career entry:', err);
@@ -8247,16 +8363,17 @@ import { redactComment } from "@/services/commentService";
 
 interface CommentsListProps {
   initialComments: Comment[];
+  cookieHeader?: string;
 }
 
-export default function CommentsList({ initialComments }: CommentsListProps) {
+export default function CommentsList({ initialComments, cookieHeader }: CommentsListProps) {
   const [comments, setComments] = useState<Comment[]>(initialComments);
   const [error, setError] = useState<string | null>(null);
 
   async function handleRedact(id: string) {
     if (!confirm("Are you sure you want to redact this comment? This action cannot be undone.")) return;
     try {
-      await redactComment(id);
+      await redactComment(id, true, cookieHeader || null);
       setComments(comments.map(comment => 
         comment._id === id ? { ...comment, redacted: true } : comment
       ));
@@ -8561,6 +8678,150 @@ export default function EditBlogEntry({ initialData }: Props) {
 }
 
 ================
+File: portfolio.next/src/components/admin/EditPage.tsx
+================
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Page, PageFormData } from '@/models/Page';
+import MarkdownEditor from '@/components/MarkdownEditor';
+import { createPage, updatePage } from '@/services/pageService';
+
+interface EditPageProps {
+  initialPage?: Page;
+}
+
+export default function EditPage({ initialPage }: EditPageProps) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState<PageFormData>({
+    title: initialPage?.title || '',
+    slug: initialPage?.slug || '',
+    content: initialPage?.content || '',
+    tags: initialPage?.tags || [],
+  });
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+
+    try {
+      if (initialPage) {
+        await updatePage(initialPage._id, formData);
+      } else {
+        // Create a new page without _id field
+        const newPage: Omit<Page, '_id'> = {
+          title: formData.title,
+          slug: formData.slug,
+          content: formData.content,
+          tags: formData.tags,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        await createPage(newPage);
+      }
+      router.push('/admin/pages');
+    } catch (err) {
+      console.error('Failed to save page:', err);
+      setError('Failed to save page');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleTagsChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const tags = e.target.value.split(',').map(tag => tag.trim()).filter(Boolean);
+    setFormData(prev => ({ ...prev, tags }));
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+          Title
+        </label>
+        <input
+          type="text"
+          value={formData.title}
+          onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+          Slug
+        </label>
+        <div className="flex items-center mt-1">
+          <span className="text-gray-500 mr-1">/</span>
+          <input
+            type="text"
+            value={formData.slug}
+            onChange={e => setFormData(prev => ({ ...prev, slug: e.target.value }))}
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            required
+            pattern="[a-z0-9-]+"
+            title="Lowercase letters, numbers, and hyphens only"
+          />
+        </div>
+        <p className="mt-1 text-sm text-gray-500">
+          Lowercase letters, numbers, and hyphens only
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+          Content (Markdown)
+        </label>
+        <MarkdownEditor
+          value={formData.content}
+          onChange={(value: string) => setFormData(prev => ({ ...prev, content: value }))}
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+          Tags (comma-separated)
+        </label>
+        <input
+          type="text"
+          value={formData.tags.join(', ')}
+          onChange={handleTagsChange}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+        />
+      </div>
+
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
+      )}
+
+      <div className="flex justify-end gap-4">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={saving}
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+        >
+          {saving ? 'Saving...' : initialPage ? 'Update Page' : 'Create Page'}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+================
 File: portfolio.next/src/components/admin/EditProject.tsx
 ================
 'use client';
@@ -8838,9 +9099,10 @@ interface FileListProps {
   entityId: string;
   context: string;
   refreshFiles: () => void;
+  cookieHeader?: string;
 }
 
-export default function FileList({ entityId, context, refreshFiles }: FileListProps) {
+export default function FileList({ entityId, context, refreshFiles, cookieHeader }: FileListProps) {
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -8849,7 +9111,7 @@ export default function FileList({ entityId, context, refreshFiles }: FileListPr
   useEffect(() => {
     async function loadFiles() {
       try {
-        const data = await fetchFiles(entityId, context);
+        const data = await fetchFiles(entityId, context, true, cookieHeader || null);
         setFiles(data);
       } catch (err) {
         console.error('Failed to load files:', err);
@@ -8859,13 +9121,13 @@ export default function FileList({ entityId, context, refreshFiles }: FileListPr
       }
     }
     loadFiles();
-  }, [entityId, context]);
+  }, [entityId, context, cookieHeader]);
 
   async function handleDelete(fileId: string) {
     if (!window.confirm("Are you sure you want to delete this file?")) return;
 
     try {
-      await deleteFile(fileId);
+      await deleteFile(fileId, true, cookieHeader || null);
       refreshFiles();
     } catch (err) {
       console.error('Failed to delete file:', err);
@@ -8923,10 +9185,16 @@ import { useState, useCallback } from "react";
 import UploadSpecificFile from "@/components/admin/UploadContextualFile";
 import FileList from "@/components/admin/FileList";
 
-export default function FileWrapper({ entityId, context }: { entityId: string; context: string }) {
+interface FileWrapperProps {
+  entityId: string;
+  context: string;
+  cookieHeader?: string;
+}
+
+export default function FileWrapper({ entityId, context, cookieHeader }: FileWrapperProps) {
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // ✅ Function to refresh file list
+  // Function to refresh file list
   const refreshFiles = useCallback(() => {
     setRefreshKey((prev) => prev + 1);
   }, []);
@@ -8934,8 +9202,8 @@ export default function FileWrapper({ entityId, context }: { entityId: string; c
   return (
     <div className="p-4 border rounded mt-4">
       <h2 className="text-lg font-bold mb-2">Manage Files</h2>
-      <UploadSpecificFile entityId={entityId} context={context} refreshFiles={refreshFiles} />
-      <FileList key={refreshKey} entityId={entityId} context={context} refreshFiles={refreshFiles} />
+      <UploadSpecificFile entityId={entityId} context={context} refreshFiles={refreshFiles} cookieHeader={cookieHeader} />
+      <FileList key={refreshKey} entityId={entityId} context={context} refreshFiles={refreshFiles} cookieHeader={cookieHeader} />
     </div>
   );
 }
@@ -9050,13 +9318,20 @@ import Link from "next/link";
 import { Page } from "@/models/Page";
 import { fetchPages, deletePage } from "@/services/pageService";
 
-export default function PagesList() {
-  const [pages, setPages] = useState<Page[]>([]);
+interface PagesListProps {
+  initialPages?: Page[];
+  cookieHeader?: string;
+}
+
+export default function PagesList({ initialPages = [], cookieHeader }: PagesListProps) {
+  const [pages, setPages] = useState<Page[]>(initialPages);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadPages();
-  }, []);
+    if (initialPages.length === 0) {
+      loadPages();
+    }
+  }, [initialPages]);
 
   async function loadPages() {
     try {
@@ -9071,7 +9346,7 @@ export default function PagesList() {
   async function handleDelete(id: string) {
     if (!confirm("Are you sure you want to delete this page?")) return;
     try {
-      await deletePage(id);
+      await deletePage(id, cookieHeader || null);
       setPages(pages.filter(page => page._id !== id));
     } catch (err) {
       console.error('Failed to delete page:', err);
@@ -9182,7 +9457,7 @@ export default function ProjectList({ initialProjects }: Props) {
                 Status: {project.status} • 
                 {project.startDate && `Started: ${new Date(project.startDate).toLocaleDateString()}`}
               </p>
-              {project.technologies.length > 0 && (
+              {project.technologies?.length > 0 && (
                 <div className="mt-2 flex gap-2">
                   {project.technologies.map(tech => (
                     <span 
@@ -9486,15 +9761,19 @@ File: portfolio.next/src/components/admin/UploadContextualFile.tsx
 import { useState } from "react";
 import { uploadFile } from "@/services/fileService";
 
+interface UploadSpecificFileProps {
+  entityId: string;
+  context: string;
+  refreshFiles: () => void;
+  cookieHeader?: string;
+}
+
 export default function UploadSpecificFile({
   entityId,
   context,
-  refreshFiles, // ✅ Accept refreshFiles as a prop
-}: {
-  entityId: string;
-  context: string;
-  refreshFiles: () => void; // ✅ Function to refresh file list
-}) {
+  refreshFiles,
+  cookieHeader,
+}: UploadSpecificFileProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isPublic, setIsPublic] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -9510,8 +9789,8 @@ export default function UploadSpecificFile({
     setError(null);
 
     try {
-      await uploadFile(file, entityId, context, isPublic);
-      refreshFiles(); // ✅ Trigger file list refresh
+      await uploadFile(file, entityId, context, isPublic, true, cookieHeader || null);
+      refreshFiles();
     } catch (err) {
       console.error(err);
       setError("Upload failed. Try again.");
@@ -9790,7 +10069,9 @@ export default function Chat() {
             ))}
 
             {isStreaming && (
-              <div className="p-2 rounded-lg text-sm bg-gray-200 text-black self-start">{streamingResponse}</div>
+              <div className="p-2 rounded-lg text-sm bg-gray-200 text-black self-start">
+                {streamingResponse || "⏳"}
+              </div>
             )}
           </div>
 
@@ -10686,6 +10967,7 @@ type ChatMessage = {
 type ChatContextType = {
   messages: ChatMessage[];
   addMessage: (message: ChatMessage) => void;
+  updateMessage: (index: number, newText: string) => void; // ✅ New function
   clearChat: () => void;
 };
 
@@ -10739,12 +11021,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     setMessages((prev) => [...prev, message]);
   };
 
+  // ✅ New function to update an existing message
+  const updateMessage = (index: number, newText: string) => {
+    setMessages((prev) =>
+      prev.map((msg, i) => (i === index ? { ...msg, text: newText } : msg))
+    );
+  };
+
   const clearChat = () => {
     setMessages([{ role: "ai", text: "Hello! Ask me anything about my projects or skills." }]);
   };
 
   return (
-    <ChatContext.Provider value={{ messages, addMessage, clearChat }}>
+    <ChatContext.Provider value={{ messages, addMessage, updateMessage, clearChat }}>
       {children}
     </ChatContext.Provider>
   );
@@ -10853,65 +11142,109 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useChat } from "@/context/ChatContext";
 
 export function useWebSocketChat(isOpen: boolean) {
-  const { addMessage } = useChat();
+  const { messages, addMessage, updateMessage } = useChat();
   const wsRef = useRef<WebSocket | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
-  const streamingResponseRef = useRef("");
+  const streamingResponseBuffer = useRef(""); // ✅ Buffer for AI response
   const [streamingResponse, setStreamingResponse] = useState("");
+  const currentMessageIndex = useRef<number | null>(null); // ✅ Track the latest AI message
+  const hasConnectedSuccessfully = useRef(false);
 
   const wsUrl = useMemo(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-    return apiUrl.replace(/^http/, "ws");
+    const baseWsUrl = apiUrl.replace(/^http/, "ws");
+    return baseWsUrl;
   }, []);
+
+  const connectWebSocket = useCallback(() => {
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+
+    console.log(`Attempting to connect to WebSocket: ${wsUrl}`);
+    const websocket = new WebSocket(wsUrl);
+
+    websocket.onopen = () => {
+      console.log("✅ Connected to WebSocket successfully");
+      hasConnectedSuccessfully.current = true;
+    };
+
+    websocket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
+      // ✅ Handle pipeline step updates separately
+      if (data.response && !data.done && data.step) {
+        setIsStreaming(true);
+        setStreamingResponse(data.response);
+
+        if (currentMessageIndex.current === null) {
+          // 🔹 Ensure pipeline messages do not overwrite user messages
+          const index = messages.length;
+          // addMessage({ role: "ai", text: data.response });
+          currentMessageIndex.current = index;
+        } else {
+          updateMessage(currentMessageIndex.current, data.response);
+        }
+      }
+
+      // ✅ Start AI response in a new message if needed
+      if (data.response && !data.done && !data.step) {
+        setIsStreaming(true);
+
+        // 🔹 Ensure AI response starts in a NEW message, not overwriting the user message
+        if (currentMessageIndex.current === null || messages[currentMessageIndex.current]?.role !== "ai") {
+          addMessage({ role: "ai", text: "" });
+          const index = messages.length;
+          currentMessageIndex.current = index;
+        }
+
+        // 🔹 Append streamed words to AI message
+        streamingResponseBuffer.current += ` ${data.response}`;
+        setStreamingResponse(streamingResponseBuffer.current.trim());
+        updateMessage(currentMessageIndex.current, streamingResponseBuffer.current.trim());
+      }
+
+      // ✅ When a paragraph is complete, finalize and start a new one
+      if (data.response && data.response.includes("\n\n")) {
+        setIsStreaming(false);
+        streamingResponseBuffer.current = "";
+        addMessage({ role: "ai", text: "" }); // Start new AI bubble
+        currentMessageIndex.current = messages.length; // Prepare for next paragraph
+      }
+
+      // ✅ When streaming is fully complete
+      if (data.done) {
+        setIsStreaming(false);
+        setStreamingResponse("");
+        currentMessageIndex.current = null; // Reset for next message
+      }
+    };
+
+    websocket.onerror = (error) => {
+      console.error("❌ WebSocket connection error:", error);
+    };
+
+    websocket.onclose = (event) => {
+      console.log(`❌ WebSocket disconnected (code: ${event.code}, reason: ${event.reason})`);
+      wsRef.current = null;
+    };
+
+    wsRef.current = websocket;
+  }, [wsUrl]);
 
   useEffect(() => {
     if (isOpen && !wsRef.current) {
-      const websocket = new WebSocket(wsUrl);
-
-      websocket.onopen = () => console.log("Connected to WebSocket");
-
-      websocket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-
-        if (data.response) {
-          setIsStreaming(true);
-          streamingResponseRef.current += data.response;
-          setStreamingResponse(streamingResponseRef.current);
-        }
-
-        if (data.done) {
-          setIsStreaming(false);
-        }
-      };
-
-      websocket.onclose = () => {
-        console.log("WebSocket disconnected");
-        wsRef.current = null;
-      };
-
-      wsRef.current = websocket;
+      connectWebSocket();
     }
 
     return () => {
-      wsRef.current?.close();
-      wsRef.current = null;
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
     };
-  }, [isOpen, wsUrl]);
-
-  const safeAddMessage = useCallback(
-    (message: { role: "user" | "ai"; text: string }) => {
-      addMessage(message);
-    },
-    [addMessage]
-  );
-
-  useEffect(() => {
-    if (!isStreaming && streamingResponseRef.current) {
-      safeAddMessage({ role: "ai", text: streamingResponseRef.current });
-      streamingResponseRef.current = "";
-      setStreamingResponse("");
-    }
-  }, [isStreaming, safeAddMessage]);
+  }, [isOpen, connectWebSocket]);
 
   return { wsRef, isStreaming, streamingResponse, setStreamingResponse, setIsStreaming };
 }
@@ -10958,7 +11291,7 @@ export async function getAuthStatus(): Promise<{ isAuthenticated: boolean; user:
  */
 export async function protectAdminRoute() {
     const { isAuthenticated, user, isAdmin } = await getAuthStatus();
-    
+
     console.log('🔍 [DEBUG] protectAdminRoute isAuthenticated:', isAuthenticated, 'isAdmin:', isAdmin);
 
     if (!isAuthenticated || !isAdmin) {
@@ -10966,6 +11299,22 @@ export async function protectAdminRoute() {
     }
 
     return { user };
+}
+
+/**
+ * Protect a route server-side, redirecting to login if not authenticated
+ * or not an admin
+ */
+export async function getAdminCookie(user : User | null = null) {
+
+    if (!user || !user.isAdmin) {
+        redirect(APP_ROUTES.auth.login);
+    }
+
+    const cookieStore = cookies();
+    const cookieHeader = cookieStore.toString(); 
+    
+    return { cookieHeader };
 }
 
 ================
@@ -11033,18 +11382,23 @@ export const AUTH_API = {
 export const ADMIN_API = {
   blog: {
     list:  `${REMOTE_URL}${API_BASE}/admin/blogs`,
+    get: (id: string) => `${REMOTE_URL}${API_BASE}/admin/blogs/${id}`,
     create: `${REMOTE_URL}${API_BASE}/admin/blogs`,
     update: (id: string) => `${REMOTE_URL}${API_BASE}/admin/blogs/${id}`,
     delete: (id: string) => `${REMOTE_URL}${API_BASE}/admin/blogs/${id}`,
     generateEmbeddings: `${REMOTE_URL}${API_BASE}/admin/blogs/generate-embeddings`,
   },
   project: {
+    list: `${REMOTE_URL}${API_BASE}/admin/projects`,
+    get: (id: string) => `${REMOTE_URL}${API_BASE}/admin/projects/${id}`,
     create: `${REMOTE_URL}${API_BASE}/admin/projects`,
     update: (id: string) => `${REMOTE_URL}${API_BASE}/admin/projects/${id}`,
     delete: (id: string) => `${REMOTE_URL}${API_BASE}/admin/projects/${id}`,
     archive: (id: string) => `${REMOTE_URL}${API_BASE}/admin/projects/${id}/archive`,
   },
   career: {
+    list: `${REMOTE_URL}${API_BASE}/admin/career/timeline`,
+    get: (id: string) => `${REMOTE_URL}${API_BASE}/admin/career/timeline/${id}`,
     create: `${REMOTE_URL}${API_BASE}/admin/career/timeline`,
     update: (id: string) => `${REMOTE_URL}${API_BASE}/admin/career/timeline/${id}`,
     delete: (id: string) => `${REMOTE_URL}${API_BASE}/admin/career/timeline/${id}`,
@@ -11053,17 +11407,22 @@ export const ADMIN_API = {
     bulkImport: `${REMOTE_URL}${API_BASE}/admin/career/timeline/bulk`,
   },
   file: {
+    list: `${REMOTE_URL}${API_BASE}/admin/files`,
+    get: (id: string) => `${REMOTE_URL}${API_BASE}/admin/files/${id}`,
     upload: `${REMOTE_URL}${API_BASE}/admin/files/upload`,
     update: (id: string) => `${REMOTE_URL}${API_BASE}/admin/files/${id}`,
     delete: (id: string) => `${REMOTE_URL}${API_BASE}/admin/files/${id}`,
   },
   page: {
+    list: `${REMOTE_URL}${API_BASE}/admin/pages`,
+    get: (id: string) => `${REMOTE_URL}${API_BASE}/admin/pages/${id}`,
     create: `${REMOTE_URL}${API_BASE}/admin/pages`,
-    update: (id: string) => `${REMOTE_URL}${API_BASE}/pages/${id}`,
-    delete: (id: string) => `${REMOTE_URL}${API_BASE}/pages/${id}`,
+    update: (id: string) => `${REMOTE_URL}${API_BASE}/admin/pages/${id}`,
+    delete: (id: string) => `${REMOTE_URL}${API_BASE}/admin/pages/${id}`,
   },
   user: {
     list: `${REMOTE_URL}${API_BASE}/admin/users`,
+    get: (id: string) => `${REMOTE_URL}${API_BASE}/admin/users/${id}`,
     create: `${REMOTE_URL}${API_BASE}/admin/users`,
     update: (id: string) => `${REMOTE_URL}${API_BASE}/admin/users/${id}`,
     delete: (id: string) => `${REMOTE_URL}${API_BASE}/admin/users/${id}`,
@@ -11093,6 +11452,7 @@ export const ADMIN_API = {
   },
   comment: {
     list: `${REMOTE_URL}${API_BASE}/admin/comments/all`,
+    get: (id: string) => `${REMOTE_URL}${API_BASE}/admin/comments/${id}`,
     delete: (id: string) => `${REMOTE_URL}${API_BASE}/admin/comments/${id}`,
   },
 } as const;
@@ -11108,26 +11468,31 @@ export const APP_ROUTES = {
       list: '/admin/blogs',
       create: '/admin/blogs/create',
       edit: (id: string) => `/admin/blogs/edit/${id}`,
+      get: (id: string) => `/admin/blogs/${id}`,
     },
     projects: {
       list: '/admin/projects',
       create: '/admin/projects/create',
       edit: (id: string) => `/admin/projects/edit/${id}`,
+      get: (id: string) => `/admin/projects/${id}`,
     },
     pages: {
       list: '/admin/pages',
       create: '/admin/pages/create',
       edit: (id: string) => `/admin/pages/edit/${id}`,
+      get: (id: string) => `/admin/pages/${id}`,
     },
     career: {
       list: '/admin/career',
       create: '/admin/career/create',
       edit: (id: string) => `/admin/career/edit/${id}`,
+      get: (id: string) => `/admin/career/${id}`,
     },
     users: {
       list: '/admin/users',
       create: '/admin/users/create',
       edit: (id: string) => `/admin/users/edit/${id}`,
+      get: (id: string) => `/admin/users/${id}`,
     },
     settings: '/admin/settings',
   },
@@ -12134,10 +12499,18 @@ export async function fetchBlogEntries(isAdmin: boolean = false, cookieHeader : 
 /**
  * Fetches a single blog entry by ID
  */
-export async function fetchBlogEntry(id: string): Promise<BlogEntry> {
+export async function fetchBlogEntry(id: string, isAdmin: boolean = false, cookieHeader: string|null=null): Promise<BlogEntry> {
   try {
-    const response = await fetch(PUBLIC_API.blog.get(id), {
+
+    const url = isAdmin? ADMIN_API.blog.get(id) : PUBLIC_API.blog.get(id);
+    const headers: HeadersInit = cookieHeader
+    ? { Cookie: cookieHeader } // Pass cookies for SSR requests
+    : {};
+
+    const response = await fetch(url, {
       credentials: "include",
+      headers,
+      cache: "no-store",
     });
 
     if (!response.ok) {
@@ -12244,10 +12617,18 @@ export interface LinkedInParseResult {
 /**
  * Fetch all career entries
  */
-export async function fetchCareerTimeline(): Promise<CareerEntry[]> {
+export async function fetchCareerTimeline(isAdmin: boolean = false, cookieHeader: string | null = null): Promise<CareerEntry[]> {
     try {
-        const res = await fetch(PUBLIC_API.career.list, {
+        const url = isAdmin ? ADMIN_API.career.create : PUBLIC_API.career.list;
+        
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader } // Pass cookies for SSR requests
+            : {};
+
+        const res = await fetch(url, {
             credentials: "include",
+            headers,
+            cache: "no-store",
         });
 
         if (!res.ok) {
@@ -12265,10 +12646,18 @@ export async function fetchCareerTimeline(): Promise<CareerEntry[]> {
 /**
  * Fetch a career entry by ID
  */
-export async function fetchCareerEntry(id: string): Promise<CareerEntry> {
+export async function fetchCareerEntry(id: string, isAdmin: boolean = false, cookieHeader: string | null = null): Promise<CareerEntry> {
     try {
-        const res = await fetch(PUBLIC_API.career.get(id), {
+        const url = isAdmin ? ADMIN_API.career.get(id) : PUBLIC_API.career.get(id);
+        
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader } // Pass cookies for SSR requests
+            : {};
+
+        const res = await fetch(url, {
             credentials: "include",
+            headers,
+            cache: "no-store",
         });
 
         if (!res.ok) {
@@ -12286,16 +12675,19 @@ export async function fetchCareerEntry(id: string): Promise<CareerEntry> {
 /**
  * Save (create or update) a career entry
  */
-export async function saveCareerEntry(entry: Partial<CareerEntry> & { _id?: string }): Promise<CareerEntry> {
+export async function saveCareerEntry(entry: Partial<CareerEntry> & { _id?: string }, cookieHeader: string | null = null): Promise<CareerEntry> {
     try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         if (entry._id) {
             // Update existing entry
             const res = await fetch(ADMIN_API.career.update(entry._id), {
                 method: "PUT",
                 credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers,
                 body: JSON.stringify(entry),
             });
 
@@ -12310,9 +12702,7 @@ export async function saveCareerEntry(entry: Partial<CareerEntry> & { _id?: stri
             const res = await fetch(ADMIN_API.career.create, {
                 method: "POST",
                 credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers,
                 body: JSON.stringify(entry),
             });
 
@@ -12332,11 +12722,16 @@ export async function saveCareerEntry(entry: Partial<CareerEntry> & { _id?: stri
 /**
  * Delete a career entry
  */
-export async function deleteCareerEntry(id: string): Promise<void> {
+export async function deleteCareerEntry(id: string, cookieHeader: string | null = null): Promise<void> {
     try {
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
         const res = await fetch(ADMIN_API.career.delete(id), {
             method: "DELETE",
             credentials: "include",
+            headers,
         });
 
         if (!res.ok) {
@@ -12352,14 +12747,17 @@ export async function deleteCareerEntry(id: string): Promise<void> {
 /**
  * Parse LinkedIn HTML data on the backend
  */
-export async function parseLinkedInHTMLBackend(rawHTML: string): Promise<LinkedInParseResult[]> {
+export async function parseLinkedInHTMLBackend(rawHTML: string, cookieHeader: string | null = null): Promise<LinkedInParseResult[]> {
     try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         const res = await fetch(ADMIN_API.career.parseLinkedIn, {
             method: "POST",
             credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify({ rawHTML }),
         });
 
@@ -12378,14 +12776,17 @@ export async function parseLinkedInHTMLBackend(rawHTML: string): Promise<LinkedI
 /**
  * Save parsed LinkedIn jobs to the backend
  */
-export async function saveParsedJobs(jobs: LinkedInParseResult[]): Promise<CareerEntry[]> {
+export async function saveParsedJobs(jobs: LinkedInParseResult[], cookieHeader: string | null = null): Promise<CareerEntry[]> {
     try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         const res = await fetch(ADMIN_API.career.bulkImport, {
             method: "POST",
             credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify(jobs),
         });
 
@@ -12404,16 +12805,23 @@ export async function saveParsedJobs(jobs: LinkedInParseResult[]): Promise<Caree
 ================
 File: portfolio.next/src/services/commentService.ts
 ================
-import { AUTH_API, ADMIN_API } from '@/lib/constants';
+import { AUTH_API, ADMIN_API, PUBLIC_API } from '@/lib/constants';
 import { Comment, CommentUpdate, CommentCreate } from '@/models/Comment';
 
 /**
  * Fetch all comments for admin management
  */
-export async function fetchAllComments(): Promise<Comment[]> {
+export async function fetchAllComments(isAdmin: boolean = false, cookieHeader: string | null = null): Promise<Comment[]> {
   try {
-    const res = await fetch(ADMIN_API.comment.list, {
+    const url = isAdmin ? ADMIN_API.comment.list : PUBLIC_API.comment.list;
+    const headers: HeadersInit = cookieHeader
+      ? { Cookie: cookieHeader }
+      : {};
+
+    const res = await fetch(url, {
       credentials: "include",
+      headers,
+      cache: "no-store",
     });
 
     if (!res.ok) {
@@ -12431,11 +12839,20 @@ export async function fetchAllComments(): Promise<Comment[]> {
 /**
  * Redact a comment by its ID (admin only)
  */
-export async function redactComment(id: string): Promise<void> {
+export async function redactComment(id: string, isAdmin: boolean = false, cookieHeader: string | null = null): Promise<void> {
   try {
+    if (!isAdmin) {
+      throw new Error("Unauthorized");
+    }
+
+    const headers: HeadersInit = cookieHeader
+      ? { Cookie: cookieHeader }
+      : {};
+
     const res = await fetch(ADMIN_API.comment.delete(id), {
       method: "DELETE",
       credentials: "include",
+      headers,
     });
 
     if (!res.ok) {
@@ -12451,13 +12868,16 @@ export async function redactComment(id: string): Promise<void> {
 /**
  * Create a new comment or reply (auth required)
  */
-export async function createComment(comment: CommentCreate): Promise<Comment> {
+export async function createComment(comment: CommentCreate, cookieHeader: string | null = null): Promise<Comment> {
   try {
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+      ...(cookieHeader ? { Cookie: cookieHeader } : {})
+    };
+
     const res = await fetch(AUTH_API.comment.create, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       credentials: "include",
       body: JSON.stringify(comment),
     });
@@ -12477,13 +12897,16 @@ export async function createComment(comment: CommentCreate): Promise<Comment> {
 /**
  * Update a user's own comment (auth required)
  */
-export async function updateComment(id: string, update: CommentUpdate): Promise<Comment> {
+export async function updateComment(id: string, update: CommentUpdate, cookieHeader: string | null = null): Promise<Comment> {
   try {
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+      ...(cookieHeader ? { Cookie: cookieHeader } : {})
+    };
+
     const res = await fetch(AUTH_API.comment.update(id), {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       credentials: "include",
       body: JSON.stringify(update),
     });
@@ -12503,11 +12926,16 @@ export async function updateComment(id: string, update: CommentUpdate): Promise<
 /**
  * Delete a user's own comment (auth required)
  */
-export async function deleteComment(id: string): Promise<void> {
+export async function deleteComment(id: string, cookieHeader: string | null = null): Promise<void> {
   try {
+    const headers: HeadersInit = cookieHeader
+      ? { Cookie: cookieHeader }
+      : {};
+
     const res = await fetch(AUTH_API.comment.delete(id), {
       method: "DELETE",
       credentials: "include",
+      headers,
     });
 
     if (!res.ok) {
@@ -12529,14 +12957,20 @@ import { FileInfo } from '@/models/FileInfo';
 /**
  * Fetch files with optional filtering
  */
-export async function fetchFiles(entityId?: string, context?: string): Promise<FileInfo[]> {
+export async function fetchFiles(entityId?: string, context?: string, isAdmin: boolean = false, cookieHeader: string | null = null): Promise<FileInfo[]> {
     try {
-        const url = new URL(PUBLIC_API.file.list);
+        const url = isAdmin ? new URL(ADMIN_API.file.list) : new URL(PUBLIC_API.file.list);
         if (entityId) url.searchParams.append("entityId", entityId);
         if (context) url.searchParams.append("context", context);
 
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
         const res = await fetch(url.toString(), {
-            credentials: "include", // Include for potential admin access
+            credentials: "include",
+            headers,
+            cache: "no-store",
         });
 
         if (!res.ok) {
@@ -12558,9 +12992,15 @@ export async function uploadFile(
     file: File,
     entityId: string,
     context: string,
-    isPublic: boolean = false
+    isPublic: boolean = false,
+    isAdmin: boolean = false,
+    cookieHeader: string | null = null
 ): Promise<FileInfo> {
     try {
+        if (!isAdmin) {
+            throw new Error("Unauthorized");
+        }
+
         const formData = new FormData();
         formData.append("file", file);
         formData.append("entityId", entityId);
@@ -12572,9 +13012,14 @@ export async function uploadFile(
         url.searchParams.append("context", context);
         url.searchParams.append("isPublic", isPublic.toString());
 
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
         const res = await fetch(url.toString(), {
             method: "POST",
             credentials: "include",
+            headers,
             body: formData,
         });
 
@@ -12593,14 +13038,21 @@ export async function uploadFile(
 /**
  * Update file metadata
  */
-export async function updateFile(id: string, metadata: Partial<FileInfo>): Promise<FileInfo> {
+export async function updateFile(id: string, metadata: Partial<FileInfo>, isAdmin: boolean = false, cookieHeader: string | null = null): Promise<FileInfo> {
     try {
+        if (!isAdmin) {
+            throw new Error("Unauthorized");
+        }
+
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         const res = await fetch(ADMIN_API.file.update(id), {
             method: "PUT",
             credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify(metadata),
         });
 
@@ -12619,11 +13071,20 @@ export async function updateFile(id: string, metadata: Partial<FileInfo>): Promi
 /**
  * Delete a file
  */
-export async function deleteFile(id: string): Promise<void> {
+export async function deleteFile(id: string, isAdmin: boolean = false, cookieHeader: string | null = null): Promise<void> {
     try {
+        if (!isAdmin) {
+            throw new Error("Unauthorized");
+        }
+
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
         const res = await fetch(ADMIN_API.file.delete(id), {
             method: "DELETE",
             credentials: "include",
+            headers,
         });
 
         if (!res.ok) {
@@ -12684,10 +13145,16 @@ import { Page } from "@/models/Page";
 /**
  * Fetch a page by slug
  */
-export async function fetchPageBySlug(slug: string, fromCache: boolean = true): Promise<Page> {
+export async function fetchPageBySlug(slug: string, isAdmin: boolean = false, cookieHeader: string | null = null, fromCache: boolean = true): Promise<Page> {
     try {
-        const res = await fetch(`${PUBLIC_API.page.list}/slug/${slug}`, {
-            credentials: "include", // Include for potential admin access
+        const url = isAdmin ? ADMIN_API.page.get(slug) : PUBLIC_API.page.get(slug);
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader } // Pass cookies for SSR requests
+            : {};
+
+        const res = await fetch(url, {
+            credentials: "include",
+            headers,
             ...(fromCache ? {} : { cache: "no-store" }),
         });
 
@@ -12706,10 +13173,17 @@ export async function fetchPageBySlug(slug: string, fromCache: boolean = true): 
 /**
  * Fetch all pages
  */
-export async function fetchPages(): Promise<Page[]> {
+export async function fetchPages(isAdmin: boolean = false, cookieHeader: string | null = null): Promise<Page[]> {
     try {
-        const res = await fetch(PUBLIC_API.page.list, {
-            credentials: "include", // Include for potential admin access
+        const url = isAdmin ? ADMIN_API.page.list : PUBLIC_API.page.list;
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader } // Pass cookies for SSR requests
+            : {};
+
+        const res = await fetch(url, {
+            credentials: "include",
+            headers,
+            cache: "no-store",
         });
 
         if (!res.ok) {
@@ -12727,14 +13201,17 @@ export async function fetchPages(): Promise<Page[]> {
 /**
  * Create a new page
  */
-export async function createPage(page: Omit<Page, '_id'>): Promise<Page> {
+export async function createPage(page: Omit<Page, '_id'>, cookieHeader: string | null = null): Promise<Page> {
     try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         const res = await fetch(ADMIN_API.page.create, {
             method: "POST",
             credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify(page),
         });
 
@@ -12753,14 +13230,17 @@ export async function createPage(page: Omit<Page, '_id'>): Promise<Page> {
 /**
  * Update an existing page
  */
-export async function updatePage(id: string, page: Partial<Page>): Promise<Page> {
+export async function updatePage(id: string, page: Partial<Page>, cookieHeader: string | null = null): Promise<Page> {
     try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         const res = await fetch(ADMIN_API.page.update(id), {
             method: "PUT",
             credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify(page),
         });
 
@@ -12779,11 +13259,16 @@ export async function updatePage(id: string, page: Partial<Page>): Promise<Page>
 /**
  * Delete a page
  */
-export async function deletePage(id: string): Promise<void> {
+export async function deletePage(id: string, cookieHeader: string | null = null): Promise<void> {
     try {
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
         const res = await fetch(ADMIN_API.page.delete(id), {
             method: "DELETE",
             credentials: "include",
+            headers,
         });
 
         if (!res.ok) {
@@ -12805,11 +13290,22 @@ import { PUBLIC_API, ADMIN_API } from "@/lib/constants";
 
 /**
  * Fetch a project by ID
+ * 
+ * Uses the admin endpoint when isAdmin is true, allowing admins to view
+ * draft/unpublished projects that aren't visible to public users.
  */
-export async function fetchProject(id: string): Promise<Project> {
+export async function fetchProject(id: string, isAdmin: boolean = false, cookieHeader: string | null = null): Promise<Project> {
     try {
-        const res = await fetch(PUBLIC_API.project.get(id), {
-            credentials: "include", // Include for potential admin access
+        const url = isAdmin ? ADMIN_API.project.get(id) : PUBLIC_API.project.get(id);
+        
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader } // Pass cookies for SSR requests
+            : {};
+
+        const res = await fetch(url, {
+            credentials: "include",
+            headers,
+            cache: "no-store",
         });
 
         if (!res.ok) {
@@ -12826,11 +13322,22 @@ export async function fetchProject(id: string): Promise<Project> {
 
 /**
  * Fetch all projects
+ * 
+ * Uses the admin endpoint when isAdmin is true, allowing admins to view
+ * draft/unpublished projects that aren't visible to public users.
  */
-export async function fetchProjects(): Promise<Project[]> {
+export async function fetchProjects(isAdmin: boolean = false, cookieHeader: string | null = null): Promise<Project[]> {
     try {
-        const res = await fetch(PUBLIC_API.project.list, {
-            credentials: "include", // Include for potential admin access
+        const url = isAdmin ? ADMIN_API.project.list : PUBLIC_API.project.list;
+        
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader } // Pass cookies for SSR requests
+            : {};
+
+        const res = await fetch(url, {
+            credentials: "include",
+            headers,
+            cache: "no-store",
         });
 
         if (!res.ok) {
@@ -12848,14 +13355,17 @@ export async function fetchProjects(): Promise<Project[]> {
 /**
  * Create a new project
  */
-export async function createProject(projectData: ProjectCreate): Promise<Project> {
+export async function createProject(projectData: ProjectCreate, cookieHeader: string | null = null): Promise<Project> {
     try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         const res = await fetch(ADMIN_API.project.create, {
             method: "POST",
             credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify({
                 ...projectData,
                 status: projectData.status || 'planned',
@@ -12878,14 +13388,17 @@ export async function createProject(projectData: ProjectCreate): Promise<Project
 /**
  * Update an existing project
  */
-export async function updateProject(id: string, projectData: Partial<Project>): Promise<Project> {
+export async function updateProject(id: string, projectData: Partial<Project>, cookieHeader: string | null = null): Promise<Project> {
     try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         const res = await fetch(ADMIN_API.project.update(id), {
             method: "PUT",
             credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify(projectData),
         });
 
@@ -12904,11 +13417,16 @@ export async function updateProject(id: string, projectData: Partial<Project>): 
 /**
  * Delete a project
  */
-export async function deleteProject(id: string): Promise<void> {
+export async function deleteProject(id: string, cookieHeader: string | null = null): Promise<void> {
     try {
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
         const res = await fetch(ADMIN_API.project.delete(id), {
             method: "DELETE",
             credentials: "include",
+            headers,
         });
 
         if (!res.ok) {
@@ -12924,11 +13442,16 @@ export async function deleteProject(id: string): Promise<void> {
 /**
  * Archive a project
  */
-export async function archiveProject(id: string): Promise<void> {
+export async function archiveProject(id: string, cookieHeader: string | null = null): Promise<void> {
     try {
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
         const res = await fetch(ADMIN_API.project.archive(id), {
             method: "PUT",
             credentials: "include",
+            headers,
         });
 
         if (!res.ok) {
@@ -12944,10 +13467,19 @@ export async function archiveProject(id: string): Promise<void> {
 /**
  * Search for projects
  */
-export async function searchProjects(query: string): Promise<Project[]> {
+export async function searchProjects(query: string, cookieHeader: string | null = null): Promise<Project[]> {
     try {
-        const res = await fetch(PUBLIC_API.project.search(query), {
-            credentials: "include", // Include for potential admin access
+        // For search operations, we only have PUBLIC_API endpoints
+        const url = PUBLIC_API.project.search(query);
+        
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
+        const res = await fetch(url, {
+            credentials: "include",
+            headers,
+            cache: "no-store",
         });
 
         if (!res.ok) {
@@ -13095,10 +13627,21 @@ import { User, UserCreate } from "@/models/User";
 /**
  * Fetch all users
  */
-export async function fetchUsers(): Promise<User[]> {
+export async function fetchUsers(isAdmin: boolean = false, cookieHeader: string | null = null): Promise<User[]> {
     try {
+
+        if ( !isAdmin){
+            throw new Error("Unauthorized");
+        }
+        
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader } // Pass cookies for SSR requests
+            : {};
+
         const response = await fetch(ADMIN_API.user.list, {
             credentials: "include",
+            headers,
+            cache: "no-store",
         });
 
         if (!response.ok) {
@@ -13116,14 +13659,17 @@ export async function fetchUsers(): Promise<User[]> {
 /**
  * Create a new user
  */
-export async function createUser(user: UserCreate): Promise<User> {
+export async function createUser(user: UserCreate, cookieHeader: string | null = null): Promise<User> {
     try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         const response = await fetch(ADMIN_API.user.create, {
             method: "POST",
             credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify(user),
         });
 
@@ -13142,14 +13688,17 @@ export async function createUser(user: UserCreate): Promise<User> {
 /**
  * Update an existing user
  */
-export async function updateUser(id: string, user: Partial<User>): Promise<User> {
+export async function updateUser(id: string, user: Partial<User>, cookieHeader: string | null = null): Promise<User> {
     try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         const response = await fetch(ADMIN_API.user.update(id), {
             method: "PUT",
             credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify(user),
         });
 
@@ -13168,14 +13717,17 @@ export async function updateUser(id: string, user: Partial<User>): Promise<User>
 /**
  * Update user admin status
  */
-export async function updateUserAdmin(id: string, isAdmin: boolean): Promise<User> {
+export async function updateUserAdmin(id: string, isAdmin: boolean, cookieHeader: string | null = null): Promise<User> {
     try {
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
         const response = await fetch(ADMIN_API.user.updateAdmin(id), {
             method: "PUT",
             credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify({ isAdmin }),
         });
 
@@ -13194,11 +13746,16 @@ export async function updateUserAdmin(id: string, isAdmin: boolean): Promise<Use
 /**
  * Delete a user
  */
-export async function deleteUser(id: string): Promise<void> {
+export async function deleteUser(id: string, cookieHeader: string | null = null): Promise<void> {
     try {
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader }
+            : {};
+
         const response = await fetch(ADMIN_API.user.delete(id), {
             method: "DELETE",
             credentials: "include",
+            headers,
         });
 
         if (!response.ok) {
@@ -15813,6 +16370,13 @@ async function createApp() {
   if ( process.env.LOG_HTTP_REQUESTS==="true"){
     app.use(requestLogger);
   }
+  else{
+      app.use((req, res, next) => {
+      console.log(`${req.method} ${req.url}`);
+      next();
+    });
+  }
+
 
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -15830,7 +16394,7 @@ setupStrategies()
   });
 
   app.use(passport.initialize());  
-
+  
   // Swagger Documentation
   app.use('/api/docs', swaggerMiddleware, swaggerSetup);
 
@@ -19499,11 +20063,25 @@ File: portfolio.node/src/models/Prompt.js
 ================
 const mongoose = require("mongoose");
 
-const PromptSchema = new mongoose.Schema({
+const PromptSchema = new mongoose.Schema(
+  {
     name: { type: String, required: true, unique: true }, // Unique identifier for the prompt
     template: { type: String, required: true }, // The actual text of the prompt
-    metadata: { type: Object, default: {} } // Optional metadata
-}, { timestamps: true });
+    metadata: { type: Object, default: {} }, // Optional metadata (e.g., retrieval method)
+    parameters: { type: [String], default: [] }, // Extracted parameters from template
+  },
+  { timestamps: true }
+);
+
+/**
+ * Pre-save hook to extract parameters from the template.
+ * Looks for `{paramName}` patterns and stores them in `parameters`.
+ */
+PromptSchema.pre("save", function (next) {
+  const paramMatches = this.template.match(/{(.*?)}/g) || [];
+  this.parameters = paramMatches.map(param => param.replace(/[{}]/g, ""));
+  next();
+});
 
 module.exports = mongoose.model("Prompt", PromptSchema);
 
@@ -19553,6 +20131,51 @@ UserSchema.methods.validatePassword = async function (password) {
 module.exports = mongoose.model("User", UserSchema);
 
 ================
+File: portfolio.node/src/routes/admin/aiRoutes.js
+================
+const express = require("express");
+const isAuth = require("../../middlewares/auth");
+const isAdmin = require("../../middlewares/admin");
+const providerConfigService = require("../../services/providerConfigService");
+
+const { initializeProjectEmbeddings } = require("../../services/projectService");
+const { initializeBlogEmbeddings } = require("../../services/blogService");
+const { initializePageEmbeddings } = require("../../services/pageService");
+const { initializeFileEmbeddings } = require("../../services/fileService");
+
+const router = express.Router();
+
+/**
+ * 📌 Initialize All Embeddings (Calls Each Service)
+ */
+router.post("/initialize", isAuth, isAdmin, async (req, res) => {
+    try {
+        console.log("🔄 Starting global embedding initialization...");
+        await initializeProjectEmbeddings();
+        await initializeBlogEmbeddings();
+        await initializePageEmbeddings();
+        await initializeFileEmbeddings();
+        console.log("✅ All embeddings initialized successfully!");
+        res.json({ message: "Embeddings initialization complete." });
+    } catch (error) {
+        console.error("❌ Error initializing embeddings:", error);
+        res.status(500).json({ error: "Failed to initialize embeddings" });
+    }
+});
+
+// GET /api/provider-configs: Retrieve all provider configurations.
+router.get("/config", isAuth, isAdmin, async (req, res) => {
+  try {
+    const configs = await providerConfigService.getAllConfigs();
+    res.json(configs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+module.exports = router;
+
+================
 File: portfolio.node/src/routes/admin/blogRoutes.js
 ================
 const express = require("express");
@@ -19565,8 +20188,22 @@ const router = express.Router();
 router.get("/", authMiddleware, adminAuth, async (req, res) => {
     try {
 
-        return await blogService.getAllBlogs({});
-        
+        const data = await blogService.getAllBlogs({});
+        res.status(200).json(data);
+
+    } catch (error) {
+        console.error("❌ Error fetching blogs:", error.message);
+        res.status(500).json({ error: "Failed to fetch blogs" }); // Generic error for public
+    }
+});
+
+router.get("/:id", authMiddleware, adminAuth, async (req, res) => {
+    const { id } = req.params;
+    try {
+
+        const data = await blogService.getBlogById(id);
+        res.status(200).json(data);
+
     } catch (error) {
         console.error("❌ Error fetching blogs:", error.message);
         res.status(500).json({ error: "Failed to fetch blogs" }); // Generic error for public
@@ -19638,6 +20275,165 @@ router.post("/generate-embeddings", authMiddleware, adminAuth, async (req, res) 
 module.exports = router;
 
 ================
+File: portfolio.node/src/routes/admin/careerTimelineRoutes.js
+================
+const express = require("express");
+const CareerTimeline = require("../../models/CareerTimeline");
+const router = express.Router();
+const isAuth = require("../../middlewares/auth");
+const isAdmin = require("../../middlewares/admin");
+const cheerio = require("cheerio");
+
+// GET all career timeline entries
+router.get("/timeline", isAuth, isAdmin, async (req, res) => {
+  try {
+    const entries = await CareerTimeline.find().sort({ startDate: -1 });
+    res.json(entries);
+  } catch (error) {
+    res.status(500).json({ error: "Server error while fetching career timeline entries." });
+  }
+});
+
+// GET a single timeline entry
+router.get("/timeline/:id", isAuth, isAdmin, async (req, res) => {
+  try {
+    const entry = await CareerTimeline.findById(req.params.id);
+    if (!entry) return res.status(404).json({ error: "Entry not found." });
+    res.json(entry);
+  } catch (error) {
+    res.status(500).json({ error: "Server error." });
+  }
+});
+
+// CREATE a new career timeline entry
+router.post("/timeline", isAuth, isAdmin, async (req, res) => {
+  try {
+    const newEntry = new CareerTimeline(req.body);
+    const savedEntry = await newEntry.save();
+    res.status(201).json(savedEntry);
+  } catch (error) {
+    res.status(400).json({ error: "Invalid data." });
+  }
+});
+
+// UPDATE an existing entry
+router.put("/timeline/:id", isAuth, isAdmin, async (req, res) => {
+  try {
+    const updatedEntry = await CareerTimeline.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updatedEntry) return res.status(404).json({ error: "Entry not found." });
+    res.json(updatedEntry);
+  } catch (error) {
+    res.status(400).json({ error: "Invalid update request." });
+  }
+});
+
+// DELETE an entry
+router.delete("/timeline/:id", isAuth, isAdmin, async (req, res) => {
+  try {
+    const deletedEntry = await CareerTimeline.findByIdAndDelete(req.params.id);
+    if (!deletedEntry) return res.status(404).json({ error: "Entry not found." });
+    res.json({ message: "Entry deleted successfully." });
+  } catch (error) {
+    res.status(500).json({ error: "Server error while deleting entry." });
+  }
+});
+
+// API to parse LinkedIn HTML
+router.post("/parse-linkedin", isAuth, isAdmin, async (req, res) => {
+  try {
+    const { rawHTML } = req.body;
+    if (!rawHTML) return res.status(400).json({ error: "No HTML provided" });
+
+    const $ = cheerio.load(rawHTML);
+    const jobs = [];
+
+    // Iterate over each job entry
+    $(".artdeco-list__item").each((_, element) => {
+      const company = $(element).find("a.optional-action-target-wrapper span[aria-hidden='true']").first().text().trim();
+      const companyLink = $(element).find("a.optional-action-target-wrapper").attr("href");
+      const companyLogo = $(element).find("img.ivm-view-attr__img--centered").attr("src");
+
+      // Extract job title
+      $(element).find("div.t-bold span[aria-hidden='true']").each((_, jobElement) => {
+        const title = $(jobElement).text().trim();
+
+        // Extract date range
+        const dateRange = $(element).find("span.pvs-entity__caption-wrapper").first().text().trim();
+        let startDate = "", endDate = "Present";
+        if (dateRange.includes(" - ")) {
+          const dates = dateRange.split(" - ");
+          startDate = dates[0]?.trim();
+          endDate = dates[1]?.trim() || "Present";
+        }
+
+        // Extract location
+        const location = $(element).find("span.t-14.t-normal.t-black--light").last().text().trim();
+
+        // Extract job description
+        const description = $(element).find("div.WcTepSkGpUVWbbheKPCszGxDQzmhiNFQ span[aria-hidden='true']").text().trim();
+
+        // Ensure valid job entry
+        if (title ) {
+          jobs.push({
+            title,
+            company,
+            companyLink: companyLink ? `https://www.linkedin.com${companyLink}` : null,
+            companyLogo,
+            startDate,
+            endDate,
+            location,
+            description,
+          });
+        }
+      });
+    });
+
+    res.json(jobs);
+  } catch (error) {
+    console.error("Error parsing LinkedIn data:", error);
+    res.status(500).json({ error: "Failed to parse LinkedIn data." });
+  }
+});
+
+function parseDate(dateStr) {
+  if (!dateStr || dateStr.toLowerCase().includes("present")) {
+    return null; // Store null for current jobs
+  }
+  
+  // Extract only the first part of the date (e.g., "Jan 2018" from "Jan 2018 · 4 yrs 7 mos")
+  const cleanDate = dateStr.split("·")[0].trim();
+
+  // Convert to a valid Date object
+  const parsedDate = new Date(cleanDate);
+  return isNaN(parsedDate) ? null : parsedDate;
+}
+
+// Bulk insert parsed jobs into the database
+router.post("/timeline/bulk", isAuth, isAdmin, async (req, res) => {
+  try {
+    const entries = req.body.map((entry) => ({
+      title: entry.title,
+      company: entry.company,
+      startDate: parseDate(entry.startDate),
+      endDate: parseDate(entry.endDate),
+      location: entry.location,
+      description: entry.description,
+      importedFromLinkedIn: true,
+    }));
+
+    await CareerTimeline.insertMany(entries);
+    res.json({ success: true, message: "Career entries imported successfully." });
+  } catch (error) {
+    console.error("Bulk import error:", error);
+    res.status(500).json({ error: "Failed to import LinkedIn data." });
+  }
+});
+
+
+
+module.exports = router;
+
+================
 File: portfolio.node/src/routes/admin/index.js
 ================
 /**
@@ -19652,9 +20448,10 @@ const adminAuth = require("../../middlewares/admin");
 const blogRoutes = require("./blogRoutes");
 const projectRoutes = require("./projectRoutes");
 const userRoutes = require("../../routes/userRoutes");
-const providerConfigRoutes = require("../../routes/providerConfigRoutes");
-const careerRoutes = require("../../routes/careerTimelineRoutes");
-const pageRoutes = require("../../routes/pageRoutes");
+const providerConfigRoutes = require("./providerConfigRoutes");
+const pageRoutes = require("./pageRoutes");
+const aiRoutes = require("./aiRoutes");
+const careerTimelineRoutes = require("./careerTimelineRoutes");
 
 const router = express.Router();
 
@@ -19667,8 +20464,117 @@ router.use("/blogs", blogRoutes);
 router.use("/projects", projectRoutes);
 router.use("/users", userRoutes);
 router.use("/provider-configs", providerConfigRoutes);
-router.use("/career", careerRoutes);
 router.use("/pages", pageRoutes);
+router.use("/ai", aiRoutes);
+router.use("/career", careerTimelineRoutes);
+
+module.exports = router;
+
+================
+File: portfolio.node/src/routes/admin/pageRoutes.js
+================
+const express = require("express");
+const authMiddleware = require("../../middlewares/auth");
+const adminAuth = require("../../middlewares/admin");
+const pageService = require("../../services/pageService");
+const Page = require("../../models/Page"); // For dynamic search
+const { searchEntitiesHybrid } = require("../../services/searchService");
+
+const router = express.Router();
+
+/**
+ * @route POST /api/pages
+ * @desc Create a new page
+ * @access Admin
+ */
+router.post("/", authMiddleware, adminAuth, async (req, res) => {
+    try {
+        const newPage = await pageService.createPage(req.body);
+        res.status(201).json(newPage);
+    } catch (error) {
+        console.error("❌ Error creating page:", error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @route GET /api/pages
+ * @desc Retrieve all pages
+ * @access Public
+ */
+router.get("/", authMiddleware, adminAuth, async (req, res) => {
+    try {
+        const pages = await pageService.getAllPages();
+        res.json(pages);
+    } catch (error) {
+        console.error("❌ Error fetching pages:", error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @route GET /api/pages/:id
+ * @desc Retrieve a single page by ID
+ * @access Public
+ */
+router.get("/:id", authMiddleware, adminAuth, async (req, res) => {
+    try {
+        const page = await pageService.getPageById(req.params.id);
+        if (!page) return res.status(404).json({ error: "Page not found" });
+        res.json(page);
+    } catch (error) {
+        console.error("❌ Error fetching page by ID:", error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @route PUT /api/pages/:id
+ * @desc Update a page by ID
+ * @access Admin
+ */
+router.put("/:id", authMiddleware, adminAuth, async (req, res) => {
+    try {
+        const updatedPage = await pageService.updatePage(req.params.id, req.body);
+        if (!updatedPage) return res.status(404).json({ error: "Page not found" });
+        res.json(updatedPage);
+    } catch (error) {
+        console.error("❌ Error updating page:", error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @route DELETE /api/pages/:id
+ * @desc Delete a page by ID
+ * @access Admin
+ */
+router.delete("/:id", authMiddleware, adminAuth, async (req, res) => {
+    try {
+        const deleted = await pageService.deletePage(req.params.id);
+        if (!deleted) return res.status(404).json({ error: "Page not found" });
+        res.json({ message: "Page deleted successfully" });
+    } catch (error) {
+        console.error("❌ Error deleting page:", error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @route POST /api/pages/generate-embeddings
+ * @desc Refresh page embeddings (delta or full)
+ * @access Admin
+ */
+router.post("/generate-embeddings", authMiddleware, adminAuth, async (req, res) => {
+    try {
+        const { fullRefresh = false } = req.body;
+        const result = await pageService.refreshPageEmbeddings(fullRefresh);
+        res.json(result);
+    } catch (error) {
+        console.error("❌ Error generating page embeddings:", error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
 
 module.exports = router;
 
@@ -19681,6 +20587,31 @@ const adminAuth = require("../../middlewares/admin");
 const projectService = require("../../services/projectService");
 
 const router = express.Router();
+
+router.get("/:id", authMiddleware, adminAuth, async (req, res) => {
+    const { id } = req.params;
+    try {
+
+        const data = await projectService.getProjectById(id);
+        res.status(200).json(data);
+
+    } catch (error) {
+        console.error("❌ Error fetching projects:", error.message);
+        res.status(500).json({ error: "Failed to fetch projects" }); // Generic error for public
+    }
+});
+
+router.get("/", authMiddleware, adminAuth, async (req, res) => {
+    try {
+
+        const data = await projectService.getAllProjects({});
+        res.status(200).json(data);
+
+    } catch (error) {
+        console.error("❌ Error fetching projects:", error.message);
+        res.status(500).json({ error: "Failed to fetch projects" }); // Generic error for public
+    }
+});
 
 /**
  * @route POST /api/admin/projects
@@ -19727,6 +20658,135 @@ router.delete("/:id", authMiddleware, adminAuth, async (req, res) => {
         console.error("❌ Error deleting project:", error.message);
         res.status(500).json({ error: error.message });
     }
+});
+
+module.exports = router;
+
+================
+File: portfolio.node/src/routes/admin/providerConfigRoutes.js
+================
+// portfolio.node/src/routes/providerConfigRoutes.js
+const express = require("express");
+const authMiddleware = require("../../middlewares/auth");
+const providerConfigService = require("../../services/providerConfigService");
+const router = express.Router();
+
+
+
+// PUT /api/provider-configs/:provider: Update configuration for a specific provider.
+router.put("/:provider", authMiddleware, async (req, res) => {
+  try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
+    const { provider } = req.params;
+    const configData = req.body;
+    const updatedConfig = await providerConfigService.updateConfig(provider, configData);
+    res.json(updatedConfig);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/provider-configs: Retrieve all provider configurations.
+router.get("/", authMiddleware, async (req, res) => {
+  try {
+    if (!req.user?.isAdmin) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    const configs = await providerConfigService.getAllConfigs();
+    res.json(configs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/provider-configs/ai: Retrieve AI model configuration.
+router.get("/ai", authMiddleware, async (req, res) => {
+  try {
+    const config = await providerConfigService.getAIConfig();
+    res.json(config);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch AI configuration" });
+  }
+});
+
+// PUT /api/provider-configs/ai: Update AI model configuration.
+router.put("/ai", authMiddleware, async (req, res) => {
+  try {
+    if (!req.user?.isAdmin) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const { provider, clientId, clientSecret } = req.body;
+    if (!["ollama", "openai"].includes(provider)) {
+      return res.status(400).json({ error: "Invalid provider" });
+    }
+
+    const updatedConfig = await providerConfigService.updateConfig(provider, { clientId, clientSecret });
+    res.json(updatedConfig);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update AI configuration" });
+  }
+});
+
+module.exports = router;
+
+================
+File: portfolio.node/src/routes/admin/userRoutes.js
+================
+const express = require("express");
+const userService = require("../../services/userService");
+const authMiddleware = require("../../middlewares/auth");
+const adminAuth = require('../../middlewares/admin');
+
+const router = express.Router();
+
+// Endpoint for adding user
+router.post("/", authMiddleware, adminAuth, async (req, res) => {
+  try {
+
+    if  (!req.user?.isAdmin === true){
+      res.status(403);
+    }
+
+    const { username, password } = req.body;
+
+    // Delegate the creation to the user service.
+    const newUser = await userService.createUser({ username, password });
+    console.log("New User Created:", newUser.username);
+    res.status(201).json({ message: "User created successfully" });
+  } catch (error) {
+    console.error("Error creating user:", error);
+    // Use 400 for client errors (e.g., missing fields or duplicate user)
+    res.status(error.message === "User already exists" || error.message === "Username and password are required" ? 400 : 500)
+       .json({ error: error.message });
+  }
+});
+
+router.get("/", authMiddleware, adminAuth, async (req, res) => {
+  const users = await userService.getAllUsers();
+  res.json(users);
+});
+
+router.get("/:id", authMiddleware, adminAuth, async (req, res) => {
+  const user = await userService.getUserById(req.params.id);
+  if (!user) return res.status(404).json({ message: "User not found" });
+  res.json(user);
+});
+
+router.put("/:id", authMiddleware, adminAuth, async (req, res) => {
+  const updatedUser = await userService.updateUser(req.params.id, req.body);
+  if (!updatedUser) return res.status(404).json({ message: "User not found" });
+  res.json(updatedUser);
+});
+
+router.delete("/:id", authMiddleware, adminAuth, async (req, res) => {
+  const deletedUser = await userService.deleteUser(req.params.id);
+  if (!deletedUser) return res.status(404).json({ message: "User not found" });
+  res.json({ message: "User deleted" });
 });
 
 module.exports = router;
@@ -19990,132 +21050,6 @@ router.get("/timeline/:id", async (req, res) => {
     res.status(500).json({ error: "Server error." });
   }
 });
-
-// CREATE a new career timeline entry
-router.post("/timeline", isAuth, isAdmin, async (req, res) => {
-  try {
-    const newEntry = new CareerTimeline(req.body);
-    const savedEntry = await newEntry.save();
-    res.status(201).json(savedEntry);
-  } catch (error) {
-    res.status(400).json({ error: "Invalid data." });
-  }
-});
-
-// UPDATE an existing entry
-router.put("/timeline/:id", isAuth, isAdmin, async (req, res) => {
-  try {
-    const updatedEntry = await CareerTimeline.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!updatedEntry) return res.status(404).json({ error: "Entry not found." });
-    res.json(updatedEntry);
-  } catch (error) {
-    res.status(400).json({ error: "Invalid update request." });
-  }
-});
-
-// DELETE an entry
-router.delete("/timeline/:id", isAuth, isAdmin, async (req, res) => {
-  try {
-    const deletedEntry = await CareerTimeline.findByIdAndDelete(req.params.id);
-    if (!deletedEntry) return res.status(404).json({ error: "Entry not found." });
-    res.json({ message: "Entry deleted successfully." });
-  } catch (error) {
-    res.status(500).json({ error: "Server error while deleting entry." });
-  }
-});
-
-// API to parse LinkedIn HTML
-router.post("/parse-linkedin", async (req, res) => {
-  try {
-    const { rawHTML } = req.body;
-    if (!rawHTML) return res.status(400).json({ error: "No HTML provided" });
-
-    const $ = cheerio.load(rawHTML);
-    const jobs = [];
-
-    // Iterate over each job entry
-    $(".artdeco-list__item").each((_, element) => {
-      const company = $(element).find("a.optional-action-target-wrapper span[aria-hidden='true']").first().text().trim();
-      const companyLink = $(element).find("a.optional-action-target-wrapper").attr("href");
-      const companyLogo = $(element).find("img.ivm-view-attr__img--centered").attr("src");
-
-      // Extract job title
-      $(element).find("div.t-bold span[aria-hidden='true']").each((_, jobElement) => {
-        const title = $(jobElement).text().trim();
-
-        // Extract date range
-        const dateRange = $(element).find("span.pvs-entity__caption-wrapper").first().text().trim();
-        let startDate = "", endDate = "Present";
-        if (dateRange.includes(" - ")) {
-          const dates = dateRange.split(" - ");
-          startDate = dates[0]?.trim();
-          endDate = dates[1]?.trim() || "Present";
-        }
-
-        // Extract location
-        const location = $(element).find("span.t-14.t-normal.t-black--light").last().text().trim();
-
-        // Extract job description
-        const description = $(element).find("div.WcTepSkGpUVWbbheKPCszGxDQzmhiNFQ span[aria-hidden='true']").text().trim();
-
-        // Ensure valid job entry
-        if (title ) {
-          jobs.push({
-            title,
-            company,
-            companyLink: companyLink ? `https://www.linkedin.com${companyLink}` : null,
-            companyLogo,
-            startDate,
-            endDate,
-            location,
-            description,
-          });
-        }
-      });
-    });
-
-    res.json(jobs);
-  } catch (error) {
-    console.error("Error parsing LinkedIn data:", error);
-    res.status(500).json({ error: "Failed to parse LinkedIn data." });
-  }
-});
-
-function parseDate(dateStr) {
-  if (!dateStr || dateStr.toLowerCase().includes("present")) {
-    return null; // Store null for current jobs
-  }
-  
-  // Extract only the first part of the date (e.g., "Jan 2018" from "Jan 2018 · 4 yrs 7 mos")
-  const cleanDate = dateStr.split("·")[0].trim();
-
-  // Convert to a valid Date object
-  const parsedDate = new Date(cleanDate);
-  return isNaN(parsedDate) ? null : parsedDate;
-}
-
-// Bulk insert parsed jobs into the database
-router.post("/timeline/bulk", isAuth, isAdmin, async (req, res) => {
-  try {
-    const entries = req.body.map((entry) => ({
-      title: entry.title,
-      company: entry.company,
-      startDate: parseDate(entry.startDate),
-      endDate: parseDate(entry.endDate),
-      location: entry.location,
-      description: entry.description,
-      importedFromLinkedIn: true,
-    }));
-
-    await CareerTimeline.insertMany(entries);
-    res.json({ success: true, message: "Career entries imported successfully." });
-  } catch (error) {
-    console.error("Bulk import error:", error);
-    res.status(500).json({ error: "Failed to import LinkedIn data." });
-  }
-});
-
-
 
 module.exports = router;
 
@@ -20653,111 +21587,17 @@ const { searchEntitiesHybrid } = require("../services/searchService");
 const router = express.Router();
 
 /**
- * @route POST /api/pages
- * @desc Create a new page
- * @access Admin
- */
-router.post("/", authMiddleware, adminAuth, async (req, res) => {
-    try {
-        const newPage = await pageService.createPage(req.body);
-        res.status(201).json(newPage);
-    } catch (error) {
-        console.error("❌ Error creating page:", error.message);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * @route GET /api/pages
- * @desc Retrieve all pages
- * @access Public
- */
-router.get("/", async (req, res) => {
-    try {
-        const pages = await pageService.getAllPages();
-        res.json(pages);
-    } catch (error) {
-        console.error("❌ Error fetching pages:", error.message);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * @route GET /api/pages/:id
- * @desc Retrieve a single page by ID
- * @access Public
- */
-router.get("/:id", async (req, res) => {
-    try {
-        const page = await pageService.getPageById(req.params.id);
-        if (!page) return res.status(404).json({ error: "Page not found" });
-        res.json(page);
-    } catch (error) {
-        console.error("❌ Error fetching page:", error.message);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * @route GET /api/pages/slug/:slug
+ * @route GET /api/pages/:slug
  * @desc Retrieve a single page by slug
  * @access Public
  */
-router.get("/slug/:slug", async (req, res) => {
+router.get("/:slug", async (req, res) => {
     try {
         const page = await pageService.getPageBySlug(req.params.slug);
         if (!page) return res.status(404).json({ error: "Page not found" });
         res.json(page);
     } catch (error) {
         console.error("❌ Error fetching page by slug:", error.message);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * @route PUT /api/pages/:id
- * @desc Update a page by ID
- * @access Admin
- */
-router.put("/:id", authMiddleware, adminAuth, async (req, res) => {
-    try {
-        const updatedPage = await pageService.updatePage(req.params.id, req.body);
-        if (!updatedPage) return res.status(404).json({ error: "Page not found" });
-        res.json(updatedPage);
-    } catch (error) {
-        console.error("❌ Error updating page:", error.message);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * @route DELETE /api/pages/:id
- * @desc Delete a page by ID
- * @access Admin
- */
-router.delete("/:id", authMiddleware, adminAuth, async (req, res) => {
-    try {
-        const deleted = await pageService.deletePage(req.params.id);
-        if (!deleted) return res.status(404).json({ error: "Page not found" });
-        res.json({ message: "Page deleted successfully" });
-    } catch (error) {
-        console.error("❌ Error deleting page:", error.message);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * @route POST /api/pages/generate-embeddings
- * @desc Refresh page embeddings (delta or full)
- * @access Admin
- */
-router.post("/generate-embeddings", authMiddleware, adminAuth, async (req, res) => {
-    try {
-        const { fullRefresh = false } = req.body;
-        const result = await pageService.refreshPageEmbeddings(fullRefresh);
-        res.json(result);
-    } catch (error) {
-        console.error("❌ Error generating page embeddings:", error.message);
         res.status(500).json({ error: error.message });
     }
 });
@@ -20816,10 +21656,7 @@ router.post("/", authMiddleware, adminAuth, async (req, res) => {
  */
 router.get("/", async (req, res) => {
     try {
-        let filter = {};
-        if (!req.cookies["auth-token"]) {
-            filter = { isDraft: false, publishAt: { $lte: new Date() } }; // Public filter
-        }
+        const filter = { isDraft: false, publishAt: { $lte: new Date() } }; // Public filter
         const projects = await projectService.getAllProjects(filter);
         res.json(projects);
     } catch (error) {
@@ -21000,91 +21837,6 @@ router.delete("/:id", isAdmin, async (req, res) => {
 module.exports = router;
 
 ================
-File: portfolio.node/src/routes/providerConfigRoutes.js
-================
-// portfolio.node/src/routes/providerConfigRoutes.js
-const express = require("express");
-const authMiddleware = require("../middlewares/auth");
-const providerConfigService = require("../services/providerConfigService");
-const router = express.Router();
-
-// GET /api/provider-configs: Retrieve all provider configurations.
-// router.get("/", authMiddleware, async (req, res) => {
-//   try {
-
-//     if  (!req.user?.isAdmin === true){
-//       res.status(403);
-//     }
-
-//     const configs = await providerConfigService.getAllConfigs();
-//     res.json(configs);
-//   } catch (error) {
-//     res.status(500).json({ error: error.message });
-//   }
-// });
-
-// PUT /api/provider-configs/:provider: Update configuration for a specific provider.
-router.put("/:provider", authMiddleware, async (req, res) => {
-  try {
-
-    if  (!req.user?.isAdmin === true){
-      res.status(403);
-    }
-
-    const { provider } = req.params;
-    const configData = req.body;
-    const updatedConfig = await providerConfigService.updateConfig(provider, configData);
-    res.json(updatedConfig);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// GET /api/provider-configs: Retrieve all provider configurations.
-router.get("/", authMiddleware, async (req, res) => {
-  try {
-    if (!req.user?.isAdmin) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
-    const configs = await providerConfigService.getAllConfigs();
-    res.json(configs);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// GET /api/provider-configs/ai: Retrieve AI model configuration.
-router.get("/ai", authMiddleware, async (req, res) => {
-  try {
-    const config = await providerConfigService.getAIConfig();
-    res.json(config);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch AI configuration" });
-  }
-});
-
-// PUT /api/provider-configs/ai: Update AI model configuration.
-router.put("/ai", authMiddleware, async (req, res) => {
-  try {
-    if (!req.user?.isAdmin) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
-
-    const { provider, clientId, clientSecret } = req.body;
-    if (!["ollama", "openai"].includes(provider)) {
-      return res.status(400).json({ error: "Invalid provider" });
-    }
-
-    const updatedConfig = await providerConfigService.updateConfig(provider, { clientId, clientSecret });
-    res.json(updatedConfig);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to update AI configuration" });
-  }
-});
-
-module.exports = router;
-
-================
 File: portfolio.node/src/routes/searchRoutes.js
 ================
 const express = require("express");
@@ -21154,6 +21906,13 @@ router.get("/admin-exists", async (req, res) => {
 
 // A simple GET endpoint that serves a registration form.
 router.get("/create", async (req, res) => {
+
+  const admin = await User.findOne({ isAdmin: true });
+  if ( admin ){
+    res.status(403).json({ message: "Admin user already exists." });
+    return;
+  }
+
   res.send(`
         <html>
         <head><title>Create User</title></head>
@@ -21170,7 +21929,7 @@ router.get("/create", async (req, res) => {
 });
 
 // Endpoint for user registration
-router.post("/", authMiddleware, async (req, res) => {
+router.post("/register", async (req, res) => {
   try {
 
     if  (!req.user?.isAdmin === true){
@@ -21191,28 +21950,6 @@ router.post("/", authMiddleware, async (req, res) => {
   }
 });
 
-router.get("/", authMiddleware, adminAuth, async (req, res) => {
-  const users = await userService.getAllUsers();
-  res.json(users);
-});
-
-router.get("/:id", authMiddleware, adminAuth, async (req, res) => {
-  const user = await userService.getUserById(req.params.id);
-  if (!user) return res.status(404).json({ message: "User not found" });
-  res.json(user);
-});
-
-router.put("/:id", authMiddleware, adminAuth, async (req, res) => {
-  const updatedUser = await userService.updateUser(req.params.id, req.body);
-  if (!updatedUser) return res.status(404).json({ message: "User not found" });
-  res.json(updatedUser);
-});
-
-router.delete("/:id", authMiddleware, adminAuth, async (req, res) => {
-  const deletedUser = await userService.deleteUser(req.params.id);
-  if (!deletedUser) return res.status(404).json({ message: "User not found" });
-  res.json({ message: "User deleted" });
-});
 
 module.exports = router;
 
@@ -21481,11 +22218,8 @@ File: portfolio.node/src/services/chatService.js
 ================
 // portfolio.node/src/services/chatService.js
 const ChatMessage = require("../models/ChatMessage");
-const providerConfigService = require("../services/providerConfigService");
-const ollamaService = require("../services/ollamaService"); // AI Model Integration
-const generatePrompt = require("../utils/generatePrompt");
-const {queryLLM} = require("../services/llmService");
 const cache = require("../utils/cache");
+const { executePipeline } = require("../services/pipelineService");
 
 /**
  * Processes a user query using the AI model.
@@ -21496,30 +22230,25 @@ const cache = require("../utils/cache");
  * @returns {Promise<{ response: string, sources: string[] }>} - AI response with sources.
  */
 async function processChat(sessionId, query, history = [], webContext = "") {
-  try {
-      // Generate AI prompt
-      const { formattedPrompt, sources } = await generatePrompt(query, history, webContext);
+    try {
+        console.log(`📡 Processing chat for session: ${sessionId}`);
 
-      const config = await providerConfigService.getAIConfig();
-      let response;
-      
-      if (config.provider === "ollama") {
-        response = await ollamaService.generateResponse(formattedPrompt);
-      } else if (config.provider === "openai") {
-        response = await requestOpenAIResponse(formattedPrompt, history, config.clientId, config.clientSecret);
-      } else {
-        throw new Error("Invalid AI provider configured");
-      }
+        // Use the AI pipeline for structured processing
+        const responseData = await executePipeline("chat-response", {
+            userQuery: query,
+            chatHistory: JSON.stringify(history),
+            context: webContext
+        }, true); // Enable search
 
-      // Store user message & AI response in chat history
-      await ChatMessage.create({ sessionId, role: "user", text: query });
-      await ChatMessage.create({ sessionId, role: "ai", text: response });
+        // Store chat messages
+        await ChatMessage.create({ sessionId, role: "user", text: query });
+        await ChatMessage.create({ sessionId, role: "ai", text: responseData.response });
 
-      return { response, sources };
-  } catch (error) {
-      console.error(`❌ Chat processing error:`, error.message);
-      return { response: "Sorry, I encountered an error.", sources: [] };
-  }
+        return responseData;
+    } catch (error) {
+        console.error("❌ Chat processing error:", error);
+        return { response: "Sorry, an error occurred.", sources: [] };
+    }
 }
 
 
@@ -21684,6 +22413,145 @@ async function getNextVectorId(name = "vectorId") {
 }
 
 module.exports = { getNextVectorId };
+
+================
+File: portfolio.node/src/services/dataFetcherService.js
+================
+const { searchQdrant } = require("../services/qdrantService");
+const Project = require("../models/Project");
+const BlogEntry = require("../models/BlogEntry");
+const Page = require("../models/Page");
+
+// const { extractMetadataFromQuery } = require("../utils/queryUtils"); // Optional metadata extraction
+
+const COLLECTION_NAMES = {
+    projects: Project.collection.collectionName,
+    blogs: BlogEntry.collection.collectionName,
+    pages: Page.collection.collectionName
+};
+
+const collectionOrder = {
+    "project_search": [COLLECTION_NAMES.projects, COLLECTION_NAMES.blogs, "files", COLLECTION_NAMES.pages],
+    "blog_lookup": [COLLECTION_NAMES.blogs, COLLECTION_NAMES.projects, COLLECTION_NAMES.pages, "files"],
+    "general_knowledge": [COLLECTION_NAMES.pages, COLLECTION_NAMES.blogs, COLLECTION_NAMES.projects, "files"]
+};
+
+/**
+ * Fetches relevant data based on intent using Qdrant search & retrieves full MongoDB documents.
+ * @param {object} parameters - User query parameters.
+ * @param {string} intent - The detected intent.
+ * @returns {Promise<object>} - Resolved parameter values.
+ */
+async function fetchRelevantData(parameters, intent) {
+    console.log(`🔄 Fetching relevant data for intent: "${intent}"`);
+
+    // Step 1️⃣: Define collection search order based on intent
+    const sortedCollections = collectionOrder[intent] || collectionOrder["general_knowledge"];
+
+    // Step 2️⃣: Extract metadata from query (Optional Enhancement)
+    // const metadata = extractMetadataFromQuery(parameters.userQuery) || {}; 
+
+    // Step 3️⃣: Query Qdrant Collections in Sorted Order Until We Have Enough Results
+    const retrievedDocs = [];
+    const targetDocCount = 10; // Define threshold for relevant results
+    const queryVector = parameters.queryVector; // 🔹 Use pre-generated vector
+    
+    if (!queryVector) {
+        console.error("❌ Query vector is missing! Cannot search Qdrant.");
+        return { userQuery: parameters.userQuery, retrievedDocs };
+    }
+
+    const collectionLimits = { primary: 5, secondary: 3, tertiary: 2 };
+    let collectionIndex = 0;
+    const docIdsByCollection = {}; // Store retrieved vector IDs by collection
+
+    for (const collection of sortedCollections) {
+        if (retrievedDocs.length >= targetDocCount) break; // Stop if enough results found
+
+        const limit = collectionIndex === 0 ? collectionLimits.primary :
+                      collectionIndex === 1 ? collectionLimits.secondary :
+                                              collectionLimits.tertiary;
+
+        const minScore = 0.3 + (collectionIndex * 0.1); // Increase threshold for less relevant collections
+
+        console.log(`🔎 Searching Qdrant: Collection "${collection}" (Limit: ${limit}, MinScore: ${minScore})`);
+        
+        const searchResults = await searchQdrant(queryVector, collection, limit, minScore);
+
+        if (searchResults.length > 0) {
+            docIdsByCollection[collection] = searchResults.map(doc => doc.id);
+        }
+
+        retrievedDocs.push(...searchResults);
+        collectionIndex++;
+    }
+
+    console.log(`✅ Retrieved ${retrievedDocs.length} relevant document IDs from Qdrant.`);
+
+    // Step 4️⃣: Fetch Full Documents from MongoDB
+    const fullDocuments = docIdsByCollection.length > 0 ? 
+        await fetchMongoDocs(docIdsByCollection) : await Page.find({slug: "about"}).lean();
+
+    console.log(`✅ Fetched ${fullDocuments.length} full documents from MongoDB.`);
+
+    // Step 5️⃣: Return structured results with enriched context
+    return  JSON.stringify(fullDocuments, null, 2);
+}
+
+/**
+ * Fetches full MongoDB documents based on Qdrant search results, including GridFS files.
+ * @param {object} docIdsByCollection - Mapping of collection names to arrays of vectorIds.
+ * @returns {Promise<object[]>} - Retrieved documents.
+ */
+async function fetchMongoDocs(docIdsByCollection) {
+    let allDocuments = [];
+
+    // Mapping of standard collections
+    const collectionMap = {
+        "projects": Project,
+        "blogs": BlogEntry,
+        "pages": Page
+    };
+
+    for (const [collection, docIds] of Object.entries(docIdsByCollection)) {
+        if (docIds.length === 0) continue; // Skip if no IDs were found
+
+        console.log(`📂 Fetching ${docIds.length} documents from "${collection}" collection...`);
+
+        // Handle standard MongoDB collections
+        if (collectionMap[collection]) {
+            const model = collectionMap[collection];
+            const documents = await model.find({ vectorId: { $in: docIds } }).lean();
+            allDocuments.push(...documents);
+            continue;
+        }
+
+        // Handle GridFS (for "files" collection)
+        if (collection === "files") {
+            console.log(`📂 Fetching ${docIds.length} file metadata from GridFS...`);
+            const gridFSBucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: "fs" });
+
+            const files = await mongoose.connection.db
+                .collection("fs.files")
+                .find({ "metadata.vectorId": { $in: docIds } }) // Match vectorId in metadata
+                .toArray();
+
+            // Extract only relevant metadata
+            const fileMetadata = files.map(file => ({
+                _id: file._id,
+                filename: file.filename,
+                vectorId: file.metadata.vectorId,
+                metadata: file.metadata || {}
+            }));
+
+            allDocuments.push(...fileMetadata);
+        }
+    }
+
+    return allDocuments;
+}
+
+module.exports = { fetchRelevantData };
 
 ================
 File: portfolio.node/src/services/embeddingService.js
@@ -22062,39 +22930,60 @@ module.exports = {
 ================
 File: portfolio.node/src/services/llmService.js
 ================
-// portfolio.node/src/services/llmService.js
-const { generateResponse } = require("./ollamaService"); // Assuming aiService handles both providers
+const { generateResponse, generateResponseStream } = require("./ollamaService");
+const Prompt = require("../models/Prompt");
+const defaultPrompts = require("../utils/prompts");
 
 /**
- * Calls the configured LLM with a given prompt and expected JSON output.
- * @param {string} systemRole - The role of the LLM (e.g., "Search Assistant", "Chat Assistant").
- * @param {string} userQuery - The user input or instruction.
- * @param {object} extraParams - Any additional data for context (e.g., available collections).
- * @returns {Promise<object>} - The LLM response as JSON.
+ * Calls the configured LLM with a named prompt and parameters.
+ * Supports streaming when `useStreaming` is true.
  */
-async function queryLLM(systemRole, userQuery, extraParams = {}) {
-    const promptObject  = {
-        role: systemRole,
-        task: userQuery,
-        context: extraParams,
-        output_format: "JSON"
-    };
-
-    const formattedPrompt = `You are an AI assistant. 
-    Please respond in JSON format. 
-    Here is the task:\n${JSON.stringify(promptObject, null, 2)}`;
-
+async function queryLLMByName(promptName, parameters = {}, useStreaming = false) {
     try {
-        // Choose the AI provider dynamically
-        const llmResponse =await generateResponse(formattedPrompt);
-        return JSON.parse(llmResponse.response); // Ensure response is parsed into JSON
+        if (!parameters || !parameters.userQuery) {
+            console.warn("⚠️ queryLLMByName called with no query.");
+            return null;
+        }
+
+        let promptDoc = await Prompt.findOne({ name: promptName });
+
+        if (!promptDoc) {
+            console.warn(`⚠️ Prompt "${promptName}" not found. Using fallback prompt.`);
+            promptDoc = defaultPrompts[promptName];
+            if (!promptDoc) {
+                throw new Error(`❌ Unknown prompt: ${promptName}`);
+            }
+        }
+
+        // 🟢 Restore parameter replacement
+        let formattedPrompt = promptDoc.template || "";
+
+        // Normalize parameter keys to lowercase
+        const normalizedParams = Object.fromEntries(
+            Object.entries(parameters).map(([key, value]) => [key.toLowerCase(), value])
+        );
+
+        // Replace placeholders dynamically
+        if (formattedPrompt.includes("{")) {
+            for (const [key, value] of Object.entries(normalizedParams)) {
+                formattedPrompt = formattedPrompt.replace(new RegExp(`{${key}}`, "gi"), value);
+            }
+        }
+
+        console.log(`🤖 Sending formatted prompt to LLM (Streaming: ${useStreaming}):\n${formattedPrompt}`);
+
+        if (useStreaming) {
+            return generateResponseStream(formattedPrompt); // ✅ Streamed response
+        } else {
+            return await generateResponse(formattedPrompt); // ✅ Full response
+        }
     } catch (error) {
-        console.error("LLM query failed:", error);
+        console.error("❌ LLM query failed:", error);
         return null;
     }
 }
 
-module.exports = { queryLLM };
+module.exports = { queryLLMByName };
 
 ================
 File: portfolio.node/src/services/ollamaService.js
@@ -22116,14 +23005,15 @@ async function generateResponse(prompt) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: PROMPT_MODEL,
-        prompt: prompt,
+        prompt: `${prompt}`,
         max_tokens: 200,
         temperature: 0.7,
+        format: "json"
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`Ollama API returned an error: ${response.statusText}`);
+      throw new Error(`⚠️ API returned an error: ${response.statusText}`);
     }
 
     // Read the response as a stream
@@ -22160,53 +23050,50 @@ async function generateResponse(prompt) {
 }
 
 async function generateResponseStream(prompt) {
-
   const url = `${OLLAMA_URL}/api/generate`;
-  // console.log("calling ollama", url);
-    const response = await fetch(url, {
+  const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "mistral",
-        prompt: prompt,
-        max_tokens: 200,
-        temperature: 0.7,
+          model: PROMPT_MODEL,
+          prompt: prompt,
+          max_tokens: 200,
+          temperature: 0.7,
       }),
-    });
-  
-    const reader = response.body.getReader();
-    
-    return new ReadableStream({
+  });
+
+  const reader = response.body.getReader();
+
+  return new ReadableStream({
       async start(controller) {
-        let accumulatedResponse = "";
-  
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            controller.close();
-            break;
-          }
-  
-          const chunk = new TextDecoder().decode(value);
-  
-          // Process streamed JSON lines
-          chunk.split("\n").forEach((line) => {
-            if (line.trim()) {
-              try {
-                const parsed = JSON.parse(line);
-                if (parsed.response) {
-                  accumulatedResponse += parsed.response;
-                  controller.enqueue(parsed.response); // Send each chunk immediately
-                }
-              } catch (err) {
-                console.warn("Skipping invalid JSON chunk (possibly end?)");
+          let accumulatedResponse = "";
+
+          while (true) {
+              const { done, value } = await reader.read();
+              if (done) {
+                  controller.close();
+                  break;
               }
-            }
-          });
-        }
+
+              const chunk = new TextDecoder().decode(value);
+              chunk.split("\n").forEach((line) => {
+                  if (line.trim()) {
+                      try {
+                          const parsed = JSON.parse(line);
+                          if (parsed.response) {
+                              accumulatedResponse += parsed.response;
+                              controller.enqueue(parsed.response);
+                          }
+                      } catch (err) {
+                          console.warn("Skipping invalid JSON chunk");
+                      }
+                  }
+              });
+          }
       }
-    });
-  }
+  });
+}
+
   
 
 module.exports = { generateResponse, generateResponseStream };
@@ -22387,6 +23274,70 @@ module.exports = {
     searchPages,
     initializePageEmbeddings
 };
+
+================
+File: portfolio.node/src/services/pipelineService.js
+================
+const { queryLLMByName } = require("../services/llmService");
+const { fetchRelevantData } = require("../services/dataFetcherService");
+const { generateEmbeddings } = require("../services/embeddingService");
+
+/**
+ * Executes an AI query pipeline.
+ */
+async function executePipeline(promptName, parameters, isStreaming = false, streamCallback = null) {
+    try {
+        // if (isStreaming && streamCallback) streamCallback({ response: "🔄 Starting AI pipeline...", step: "starting" });
+
+        // Step 1️⃣: Detect Intent
+        if (isStreaming && streamCallback) streamCallback({ response: "🔍 Detecting user intent...", step: "starting" });
+        const intentResponse = await queryLLMByName("intent-detection", { userQuery: parameters.userQuery }, false);
+        const intent = intentResponse?.intent || "general_knowledge"; 
+        if (isStreaming && streamCallback) streamCallback({ response: `🎯 Identified intent: ${intent}`, step: "starting" });
+
+        // Step 2️⃣: Convert User Query to Vector for Qdrant
+        if (isStreaming && streamCallback) streamCallback({ response: "🧠 Generating query embeddings...", step: "starting" });
+        parameters.queryVector = await generateEmbeddings(parameters.userQuery);
+
+        // Step 3️⃣: Fetch Relevant Data
+        if (isStreaming && streamCallback) streamCallback({ response: `📡 Retrieving relevant ${intent} data...`, step: "starting" });
+        parameters.context = await fetchRelevantData(parameters, intent);
+        if (isStreaming && streamCallback) streamCallback({ response: "✅ Data retrieval complete.", step: "starting" });
+
+        // Step 4️⃣: Execute AI Query
+        if (isStreaming && streamCallback) streamCallback({ response: "🤖 Generating AI response..." });
+        const responseStream = await queryLLMByName(promptName, parameters, isStreaming);
+
+        const reader = responseStream.getReader();
+        let responseBuffer = "";
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+                streamCallback({ done: true });
+                break;
+            }
+
+            responseBuffer += value;
+
+            // ✅ Stream words immediately but separate paragraphs
+            if (value.includes(" ")) {
+                streamCallback({ response: value.trim() });
+            }
+
+            if (value.includes("\n\n")) {
+                streamCallback({ response: "🔽 New Paragraph 🔽" }); // Placeholder to mark paragraph shift
+            }
+        }
+
+        return { response: "Streaming response handled separately." };
+    } catch (error) {
+        if (isStreaming && streamCallback) streamCallback({ response: `❌ Error: ${error.message}` });
+        return { response: "An error occurred while processing your request." };
+    }
+}
+
+module.exports = { executePipeline };
 
 ================
 File: portfolio.node/src/services/projectService.js
@@ -22578,6 +23529,17 @@ async function getPromptById(id) {
 }
 
 /**
+ * Retrieves a specific prompt by name.
+ */
+async function getPromptByName(name) {
+    const prompt = await Prompt.findOne({ name });
+    if (!prompt) {
+        throw new Error("Prompt not found.");
+    }
+    return prompt;
+}
+
+/**
  * Creates a new AI prompt.
  */
 async function createPrompt({ name, template, metadata = {} }) {
@@ -22613,6 +23575,7 @@ async function deletePrompt(id) {
 module.exports = {
     getAllPrompts,
     getPromptById,
+    getPromptByName,
     createPrompt,
     updatePrompt,
     deletePrompt
@@ -22731,15 +23694,18 @@ async function initCollection(collection) {
         console.log(`⚠️ Collection "${collection}" did not exist, proceeding with initialization.`);
     }
 
+    await ensureCollection(collection);
+}
+
+async function ensureCollection(collection){
     try {
         console.log(`📌 Creating new Qdrant collection: "${collection}"...`);
         await qdrantClient.createCollection(collection, {
             vectors: { size: VECTOR_SIZE, distance: "Cosine" },
         });
-        console.log(`✅ Collection "${collection}" reinitialized.`);
+        console.log(`✅ Collection "${collection}" created.`);
     } catch (error) {
-        console.error(`❌ Error creating collection "${collection}":`, error.message);
-        console.error(error);
+        console.error(`! Cannot create collection "${collection}":`, error.message);
     }
 }
 
@@ -22755,6 +23721,8 @@ async function storeEmbedding(collection, id, vectors, metadata = {}) {
     if (!Array.isArray(vectors) || vectors.length !== VECTOR_SIZE) {
         throw new Error(`❌ Invalid embedding vector: expected ${VECTOR_SIZE} dimensions.`);
     }
+
+    await ensureCollection(collection);
 
     console.log(`Storing embedding in Qdrant collection: "${collection}" with id: ${id}`, metadata  );
     try {
@@ -22788,10 +23756,10 @@ async function searchQdrant(queryVector, collection, limit = 5, minScore = 0.3) 
             return [];
         }
         console.log(`📡 Searching Qdrant in collection "${collection}"...`);
-        console.log(`collection: ${collection}`);
-        console.log(`vector count: ${queryVector.length}`);
-        console.log(`limit: ${limit}`);
-        console.log(`min score: ${minScore}`);
+        // console.log(`collection: ${collection}`);
+        // console.log(`vector count: ${queryVector.length}`);
+        // console.log(`limit: ${limit}`);
+        // console.log(`min score: ${minScore}`);
 
         const response = await qdrantClient.search(collection, {
             vector: queryVector,
@@ -22814,7 +23782,7 @@ async function searchQdrant(queryVector, collection, limit = 5, minScore = 0.3) 
                 metadata: doc.payload,
             }));
     } catch (error) {
-        console.error(`❌ Qdrant Search Error: ${error.message}`);
+        console.error(`❌ Qdrant Search on ${collection} Error: ${error.message}`);
         return [];
     }
 }
@@ -22862,10 +23830,8 @@ File: portfolio.node/src/services/searchService.js
 const Project = require("../models/Project");
 const BlogEntry = require("../models/BlogEntry");
 const Page = require("../models/Page");
-const { searchQdrant } = require("../services/qdrantService");
-const { generateEmbeddings } = require("../services/embeddingService");
-const { convertToText } = require('../utils/generatePrompt');
-const { queryLLM } = require("./llmService");
+const { queryLLMByName } = require("./llmService");
+const { executePipeline } = require("../services/pipelineService");
 const cache = require("../utils/cache");
 
 /**
@@ -22897,44 +23863,12 @@ function extractSchema(modelName, model) {
  * @returns {Promise<{ sources: Array, context: string }>}
  */
 async function performSearch(query) {
-    const queryEmbedding = await generateEmbeddings(query);
-    if (!queryEmbedding) throw new Error("Failed to generate query embedding.");
+    console.log(`🔍 Executing AI-powered search for query: "${query}"`);
 
-    // Define available collections
-    const collectionMappings = {
-        "projects": { model: Project, collectionName: Project.collection.collectionName, limit: 3 },
-        "blogs": { model: BlogEntry, collectionName: BlogEntry.collection.collectionName, limit: 3 },
-        "pages": { model: Page, collectionName: Page.collection.collectionName, limit: 2 },
-    };
+    // Use pipeline for structured search
+    const response = await executePipeline("search-intent", { userQuery: query }, true);
 
-    const availableCollections = Object.keys(collectionMappings);
-
-    // 1️⃣ Use LLM to determine most relevant collections
-    const sortedCollections = await sortCollectionsByRelevance(query, availableCollections);
-
-    // 2️⃣ Search Qdrant for relevant vector matches in order of LLM's ranking
-    const searchResults = {};
-    for (const collection of sortedCollections) {
-        const { model, collectionName, limit } = collectionMappings[collection];
-        searchResults[collection] = await searchQdrant(queryEmbedding, collectionName, limit);
-    }
-
-    // 3️⃣ Fetch full MongoDB documents using vectorId
-    const projects = await fetchMongoDocs(Project, searchResults["projects"] || []);
-    const blogs = await fetchMongoDocs(BlogEntry, searchResults["blogs"] || []);
-    const pages = await fetchMongoDocs(Page, searchResults["pages"] || []);
-
-    // 4️⃣ Merge results with type labels
-    const sources = [
-        ...projects.map(p => ({ ...p, type: "Project" })),
-        ...blogs.map(b => ({ ...b, type: "BlogEntry" })),
-        ...pages.map(p => ({ ...p, type: "Page" })),
-    ];
-
-    // 5️⃣ Convert sources to structured text
-    const context = sources.map(convertToText).join("\n\n");
-
-    return { sources, context };
+    return { sources: response.sources, context: response.response };
 }
 
 /**
@@ -22958,24 +23892,16 @@ async function fetchMongoDocs(model, qdrantResults) {
  * @returns {Promise<string[]>} - The collections sorted by relevance.
  */
 async function sortCollectionsByRelevance(userQuery, availableCollections) {
-    // Get schema definitions from cache or DB
-    const schemaDefinitions = {
-        projects: extractSchema("projects", Project),
-        blogs: extractSchema("blogs", BlogEntry),
-        pages: extractSchema("pages", Page),
-    };
-
-    // Query LLM with schema details
-    const response = await queryLLM(
-        "AI Search Assistant",
-        `Given the user query: "${userQuery}", rank these collections by relevance based on the following schema definitions. Each collection contains documents with the specified fields and types. Consider this when ranking the collections.`,
-        { availableCollections, schemaDefinitions }
-    );
+    const response = await queryLLMByName("search-intent", {
+        userQuery,
+        availableCollections: JSON.stringify(availableCollections)
+    });
 
     return response?.sorted_collections || availableCollections; // Fallback to default order
 }
 
-module.exports = { performSearch };
+
+module.exports = { performSearch, sortCollectionsByRelevance };
 
 ================
 File: portfolio.node/src/services/userService.js
@@ -23057,7 +23983,7 @@ module.exports = {
 File: portfolio.node/src/services/warmUpService.js
 ================
 const cache = require("../utils/cache");
-const { queryLLM } = require("./llmService");
+const { generateResponse } = require("./ollamaService");
 
 /**
  * Generates and caches warm-up data on backend start.
@@ -23086,19 +24012,11 @@ async function refreshGreetings() {
     console.log("🔄 Refreshing cached greetings...");
 
     try {
-        const greetingResponse = await queryLLM(
-            "AI Chat Assistant",
-            `Generate 10 unique and friendly greetings. Format as a JSON array like
-             {"greetings" : [  "Hi, how are you?", 
-                "Welcome!",
-              ]
-             }`,
-            {}
-        );
+        const greetingResponse = await generateResponse("AI Role: Butler. User query: generate 10 greetings in a string array json response.", {});
         const greetings = greetingResponse?.greetings || ["Hello! How can I assist you today?"];
+
         cache.set("chat_greetings", greetings, 14400); // Cache for 4 hours
         console.log(`✅ Cached ${greetings.length} greetings.`);
-
     } catch (error) {
         console.error("❌ Failed to refresh greetings:", error);
     }
@@ -23111,9 +24029,9 @@ async function refreshChatContext() {
     console.log("🔄 Generating default chat context...");
 
     try {
-        const contextResponse = await queryLLM(
-            "AI Knowledge Assistant",
-            "Provide a detailed general knowledge base for answering user questions about projects, skills, and technology. Keep it structured and useful as a starting point.",
+        const contextResponse = await generateResponse(
+            "AI Role: AI Knowledge Assistant",
+            "User query: Provide a detailed general knowledge base for answering user questions about projects, skills, and technology. Keep it structured and useful as a starting point.",
             {}
         );
 
@@ -23136,11 +24054,8 @@ module.exports = { warmupLLM, refreshGreetings, isWarmupComplete };
 File: portfolio.node/src/services/wsChatService.js
 ================
 const WebSocket = require("ws");
-const ChatMessage = require("../models/ChatMessage");
-const { generatePrompt } = require("../utils/generatePrompt");
-const { performSearch } = require("../services/searchService");
-const ollamaService = require("../services/ollamaService");
-const { queryLLM } = require("./llmService");
+const { executePipeline } = require("../services/pipelineService");
+const { generateResponseStream } = require("../services/ollamaService");
 
 const setupWebSocketServer = (server) => {
     const wss = new WebSocket.Server({ server });
@@ -23156,33 +24071,33 @@ const setupWebSocketServer = (server) => {
                     return;
                 }
 
-                console.log(`📡 Received query: "${query}" - Starting search`);
+                console.log(`📡 WebSocket received query: "${query}"`);
 
-                // 1️⃣ Notify user that search is starting
-                ws.send(JSON.stringify({ response: "⏳ Searching for relevant information..." }));
+                // Send pipeline updates step-by-step
+                const streamCallback = (update) => {
+                    ws.send(JSON.stringify(update));
+                };
 
-                // 2️⃣ Perform the search (Qdrant + MongoDB)
-                const { sources, context } = await performSearch(query);
-                console.log(`🔎 Search complete - Found ${sources.length} relevant documents.`);
+                // Execute pipeline with streaming enabled
+                const responseData = await executePipeline("chat-response", {
+                    userQuery: query,
+                    chatHistory: JSON.stringify(history),
+                }, true, streamCallback);
 
-                // 3️⃣ Notify user that AI is generating a response
-                ws.send(JSON.stringify({ response: "✨ Found useful information! Generating a response..." }));
+                // Stream the final AI response from Ollama
+                const responseStream = await generateResponseStream(responseData.response);
+                const reader = responseStream.getReader();
 
-                // 4️⃣ Generate AI prompt
-                const { formattedPrompt } = await generatePrompt(query, history, context);
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) {
+                        ws.send(JSON.stringify({ done: true }));
+                        break;
+                    }
 
-                // 5️⃣ Stream AI response
-                const responseStream = await ollamaService.generateResponseStream(formattedPrompt);
-                for await (const chunk of responseStream) {
-                    ws.send(JSON.stringify({ response: chunk }));
+                    // Enqueue the streamed JSON chunk
+                    ws.send(JSON.stringify({ response: value.trim() }));
                 }
-
-                ws.send(JSON.stringify({ done: true }));
-
-                // 6️⃣ Store chat messages in database
-                await ChatMessage.create({ sessionId, role: "user", text: query });
-                await ChatMessage.create({ sessionId, role: "ai", text: formattedPrompt });
-
             } catch (error) {
                 console.error("❌ WebSocket error:", error);
                 ws.send(JSON.stringify({ error: "An error occurred while processing your request." }));
@@ -23196,20 +24111,6 @@ const setupWebSocketServer = (server) => {
 
     return wss;
 };
-
-/**
- * Generates a random greeting message.
- * @returns {Promise<string>} - A friendly AI-generated greeting.
- */
-async function generateRandomGreeting() {
-    const response = await queryLLM(
-        "AI Chat Assistant",
-        "Generate a friendly greeting for a user who just started a conversation.",
-        {}
-    );
-
-    return response?.greeting || "Hello! How can I assist you today?";
-}
 
 module.exports = { setupWebSocketServer };
 
@@ -23357,6 +24258,102 @@ function getDefaultTemplate() {
 }
 
 module.exports = { generatePrompt, convertToText, getDefaultTemplate };
+
+================
+File: portfolio.node/src/utils/intents.js
+================
+const intents = {
+"project_search" : "maybe about something Michel has worked on",
+"blog_lookup" : "maybe about something Michel has written about",
+"general_knowledge" : "general knowledge Michel may have"
+};
+
+module.expors = intents;
+
+================
+File: portfolio.node/src/utils/prompts.js
+================
+const DEFAULT_PROMPT = {
+    "name": "prompt",
+    "template": `You are an AI assistant. Please respond in JSON format. Here is the task: {userQuery}
+    # CONTEXT
+    {context}
+
+    # RESPONSE FORMAT
+    Provide a structured JSON object with:
+    - "answer": A detailed response formatted in full paragraphs.
+    `,
+    "parameters": ["userquery", "context"]
+};
+
+
+
+const DEFAULT_INTENT_DETECTION = {
+    "name": "intent-detection",
+    "template": `Given the user query: \"{userQuery}\", classify the intent into one of the following categories: 
+                 - 'project_search' (for looking up projects)
+                 - 'blog_lookup' (for retrieving blog articles)
+                 - 'general_knowledge' (for open-ended questions)
+                 Return a JSON object with a single key 'intent' and its value.`,
+    "metadata": { "type": "intent-classification" },
+    "parameters": ["userquery"]
+};
+
+const DEFAULT_METADATA_EXTRACTION = {
+    "name": "metadata-extraction",
+    "template": `Analyze the user query: \"{userQuery}\" and extract structured metadata. 
+                 Identify:
+                 - 'category': One of ['projects', 'blogs', 'files', 'pages'] based on context.
+                 - 'technologies': Extract technology-related terms.
+                 - 'dates': Identify any dates in the query.
+                 - 'namedEntities': Identify specific names (organizations, people, frameworks, etc.).
+                 Return the result as a structured JSON object with properties category, technology, dates, namedEntities, as string arrays.
+                 If there is not enough context, the expectation is to have all props with empty arrays []`,
+    "metadata": { "type": "metadata-extraction" }
+};
+
+const defaultPrompts = {
+    "prompt": DEFAULT_PROMPT,
+    "intent-detection": DEFAULT_INTENT_DETECTION,
+    "metadata-extraction": DEFAULT_METADATA_EXTRACTION,
+    "chat-response": DEFAULT_PROMPT,
+};
+
+module.exports = defaultPrompts;
+
+================
+File: portfolio.node/src/utils/queryUtils.js
+================
+const { queryLLMByName } = require("../services/llmService");
+const defaultPrompts = require("./prompts");
+
+/**
+ * Uses LLM to extract structured metadata from a user query.
+ * @param {string} userQuery - The user's query input.
+ * @returns {Promise<object>} - Extracted metadata (category, technologies, dates, named entities).
+ */
+async function extractMetadataFromQuery(userQuery) {
+    console.log(`🔍 Extracting metadata using LLM for query: "${userQuery}"`);
+
+    try {
+        // Call LLM with structured metadata prompt
+        const response = await queryLLMByName("metadata-extraction", { userQuery });
+
+        // Ensure the response is structured JSON
+        if (response && typeof response === "object") {
+            console.log(`✅ Extracted Metadata:`, response);
+            return response;
+        }
+
+        console.warn("⚠️ LLM returned an unstructured response. Defaulting to empty metadata.");
+        return {};
+    } catch (error) {
+        console.error("❌ Metadata extraction via LLM failed:", error);
+        return {};
+    }
+}
+
+module.exports = { extractMetadataFromQuery };
 
 ================
 File: portfolio.node/src/validators/blogValidator.js

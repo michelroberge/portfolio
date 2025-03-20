@@ -35,6 +35,7 @@ export const PUBLIC_API = {
     get: (id: string) => `${REMOTE_URL}${API_BASE}/comments/${id}`,
   },
   search: `${REMOTE_URL}${API_BASE}/search`,
+  chat: `${REMOTE_URL}${API_BASE}/chat`,
 } as const;
 
 // Protected API endpoints (require authentication)
@@ -48,7 +49,6 @@ export const AUTH_API = {
       facebook: `${REMOTE_URL}${API_BASE}/auth/oauth2/facebook`,
     }
   },
-  chat: `${REMOTE_URL}${API_BASE}/chat`,
   comment: {
     create: `${REMOTE_URL}${API_BASE}/comments`,
     update: (id: string) => `${REMOTE_URL}${API_BASE}/comments/${id}`,

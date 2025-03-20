@@ -29,10 +29,7 @@ router.post("/", authMiddleware, adminAuth, async (req, res) => {
  */
 router.get("/", async (req, res) => {
     try {
-        let filter = {};
-        if (!req.cookies["auth-token"]) {
-            filter = { isDraft: false, publishAt: { $lte: new Date() } }; // Public filter
-        }
+        const filter = { isDraft: false, publishAt: { $lte: new Date() } }; // Public filter
         const projects = await projectService.getAllProjects(filter);
         res.json(projects);
     } catch (error) {
