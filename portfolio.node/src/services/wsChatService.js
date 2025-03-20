@@ -1,16 +1,17 @@
 const WebSocket = require("ws");
 const { executePipeline } = require("../services/pipelineService");
-const { generateResponseStream } = require("../services/ollamaService");
 
 const logColor = (message, colorCode = 94) => {
-    console.log(`\x1b[${colorCode}m${message}\x1b[0m`);
+    if ( process.env.NODE_ENV === 'development'){
+        console.log(`\x1b[${colorCode}m${message}\x1b[0m`);
+    }
 };
 
 const setupWebSocketServer = (server) => {
     const wss = new WebSocket.Server({ server });
 
     wss.on("connection", (ws) => {
-        console.log("✅ New WebSocket connection established.");
+        logColor("✅ New WebSocket connection established.");
 
         ws.on("message", async (message) => {
             try {
@@ -53,6 +54,7 @@ const setupWebSocketServer = (server) => {
                 }, true, streamCallback);
         
                 logColor("✅ Pipeline execution completed, sending final AI response", 96);
+                ws.send(JSON.stringify({done: true}));
         
             } catch (error) {
                 logColor("❌ WebSocket error in processing message", 91);

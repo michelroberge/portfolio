@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
 import { PUBLIC_API } from "@/lib/constants";
-
+import { logger } from "@/utils/logger";
 type ChatMessage = {
   id: string;
   role: "user" | "ai";
@@ -82,7 +82,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           messagesRef.current = [defaultMessage];
         }
       } catch (error) {
-        console.error("Failed to fetch chat initialization data:", error);
+        logger.error("Failed to fetch chat initialization data:", error);
         const fallbackMessage: ChatMessage = {
           id: generateId(),
           role: "ai",
@@ -97,7 +97,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(()=>{
-    console.log(`new theoretical message count`, messagesRef.current?.length);
+    logger.log(`new theoretical message count`, messagesRef.current?.length);
   }, [ messagesRef.current ]);
 
   const getMessages = () => messagesRef.current || [];
@@ -116,7 +116,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       const data = await greetingRes.json();
       return data.greeting;
     } catch (error) {
-      console.error("Failed to load chat context:", error);
+      logger.error("Failed to load chat context:", error);
       return null;
     }
   };
@@ -140,11 +140,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   // Start a new AI message (typically at the beginning of streaming)
   const startAIMessage = () => {
     if (currentMessageRef.current) {
-        console.warn("⚠️ AI message already exists, using the current one.");
+        logger.warn("⚠️ AI message already exists, using the current one.");
         return currentMessageRef.current.id;
     }
 
-    // console.log("🆕 Creating a new AI message...");
+    // logger.log("🆕 Creating a new AI message...");
     const messageId = generateId();
     const newMessage: ChatMessage = {
         id: messageId,
@@ -153,7 +153,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         status: "streaming"
     };
 
-    console.log(`startAIMessage`);
+    logger.log(`startAIMessage`);
 
     messagesRef.current = [...messagesRef.current, newMessage]; 
     currentMessageRef.current = newMessage; 
@@ -165,7 +165,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   const setCurrentMessageText = (text: string) => {
     if (!currentMessageRef.current) {
-        console.warn("⚠️ No active AI message, creating one.");
+        logger.warn("⚠️ No active AI message, creating one.");
         currentMessageRef.current = {
             id: startAIMessage(),
             role: "ai",
@@ -174,7 +174,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         };
     }
     if ( text){
-console.log(`setCurrentMessageText: ${text}`);
+logger.log(`setCurrentMessageText: ${text}`);
       messagesRef.current = messagesRef.current.map(msg =>
           msg.id === currentMessageRef.current?.id ? { ...msg, text } : msg
       );
@@ -185,7 +185,7 @@ console.log(`setCurrentMessageText: ${text}`);
 
 const appendToCurrentMessage = (text: string) => {
   if (!currentMessageRef.current) {
-      console.warn("⚠️ No active AI message, creating one.");
+      logger.warn("⚠️ No active AI message, creating one.");
       currentMessageRef.current = {
           id: startAIMessage(),
           role: "ai",
@@ -198,15 +198,13 @@ const appendToCurrentMessage = (text: string) => {
       msg.id === currentMessageRef.current?.id ? { ...msg, text: msg.text + text } : msg
   );
 
-console.log(`appendToCurrentMessageText: ${text}`);
-
   forceRender(prev => prev + 1); // ✅ Ensure UI updates
 };
 
 
   const completeCurrentMessage = () => {
     if (!currentMessageRef.current) {
-      console.warn("⚠️ Tried to complete a message, but none exists.");
+      logger.warn("⚠️ Tried to complete a message, but none exists.");
       return;
     }
   
@@ -216,9 +214,6 @@ console.log(`appendToCurrentMessageText: ${text}`);
         : msg
     );
   
-    // console.log("✅ Marked AI message as complete:", currentMessageRef.current.id);
-  console.log(`completeCurrentMessage`);
-
     currentMessageRef.current = null;
     updateStreamingState(false);
     forceRender(prev => prev + 1); // ✅ Ensure re-render
