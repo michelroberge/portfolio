@@ -15,7 +15,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
     return (
       <div className="max-w-3xl mx-auto p-6">
         <h1 className="text-4xl font-bold mb-4">{page.title}</h1>
-        <div className="prose" dangerouslySetInnerHTML={{ __html: marked.parse(page.content) }} />
+        <div className="lg:prose-lg xl:prose-xl" dangerouslySetInnerHTML={{ __html: marked.parse(page.content) }} />
       </div>
     );
   } catch (err) {
