@@ -32,6 +32,7 @@ const DEFAULT_PROMPT = {
     "name": "prompt",
     "template": `You are an AI assistant. Please respond in JSON format. Here is the task: {userQuery}
     # CONTEXT
+    We are in 2025.
     {context}
 
     # RESPONSE FORMAT
@@ -69,6 +70,7 @@ const DEFAULT_CHAT_PROMPT = {
     "name": "prompt",
     "template": `You are an AI assistant. Here is the task: {userQuery}
     # CONTEXT
+    We are in 2025.
     {context}
 
     # RESPONSE FORMAT
