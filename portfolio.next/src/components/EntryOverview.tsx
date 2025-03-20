@@ -14,7 +14,7 @@ interface EntryProps {
 const EntryOverview: React.FC<EntryProps> = ({ title, company, startDate, endDate, location, skills, onClick }) => {
   return (
     <div
-      className="border p-4 rounded-lg shadow-md bg-white cursor-pointer hover:bg-gray-100 transition"
+      className="border p-4 rounded-lg shadow-md bg-primary cursor-pointer hover:bg-primary-100 transition"
       onClick={onClick}
     >
       <h3 className="text-lg font-bold">{title}</h3>

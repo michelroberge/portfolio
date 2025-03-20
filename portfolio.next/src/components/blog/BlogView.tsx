@@ -22,7 +22,7 @@ export default function BlogView({ blog }: { blog: BlogEntry }) {
 
       {/* Markdown rendering */}
       <div
-        className="mt-4 prose lg:prose-lg xl:prose-xl max-w-none"
+        className="mt-4 lg:prose-lg xl:prose-xl max-w-none"
         dangerouslySetInnerHTML={{ __html: marked.parse(blog.body) }}
       />
 
