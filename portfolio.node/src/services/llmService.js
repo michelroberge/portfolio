@@ -16,8 +16,9 @@ async function queryLLMByName(promptName, parameters = {}, useStreaming = false)
         let promptDoc = await Prompt.findOne({ name: promptName });
 
         if (!promptDoc) {
-            console.warn(`⚠️ Prompt "${promptName}" not found. Using fallback prompt.`);
-            promptDoc = defaultPrompts[promptName];
+            promptDoc = new Prompt(defaultPrompts[promptName]);
+            await promptDoc.save();
+
             if (!promptDoc) {
                 throw new Error(`❌ Unknown prompt: ${promptName}`);
             }
@@ -38,7 +39,7 @@ async function queryLLMByName(promptName, parameters = {}, useStreaming = false)
             }
         }
 
-        console.log(`🤖 Sending formatted prompt to LLM (Streaming: ${useStreaming}):\n${formattedPrompt}`);
+        // console.log(`🤖 Sending formatted prompt to LLM (Streaming: ${useStreaming}):\n${formattedPrompt}`);
 
         if (useStreaming) {
             return generateResponseStream(formattedPrompt); // ✅ Streamed response

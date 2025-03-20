@@ -85,41 +85,45 @@ async function generateResponseStream(prompt, format = 'text') {
   });
 
   const reader = response.body.getReader();
-  let accumulatedChunk = ""; // Stores raw chunk data
-  let responseBuffer = ""; // Stores words to send
 
   return new ReadableStream({
     async start(controller) {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          if (responseBuffer.trim().length > 0) {
-            controller.enqueue(responseBuffer); // Ensure final response is cleaned
-          }
-          controller.close();
-          break;
-        }
-
-        accumulatedChunk += new TextDecoder().decode(value);
-
-        try {
-          const parsedData = JSON.parse(accumulatedChunk);
-          if (parsedData?.response) {
-            const cleanText = parsedData.response; // Remove leading/trailing spaces
-            responseBuffer += cleanText;
-            controller.enqueue(responseBuffer);
-            responseBuffer = ""; // Reset buffer to avoid duplication
-          }
-          accumulatedChunk = ""; // Reset after parsing successful JSON
-        } catch (e) {
-          // Keep accumulating if JSON is incomplete
-        }
-      }
+      processStream(reader, controller);
     }
   });
 }
 
+async function processStream(reader, controller){
 
+  let accumulatedChunk = ""; // Stores raw chunk data
+  let responseBuffer = ""; // Stores words to send
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      if (responseBuffer.trim().length > 0) {
+        controller.enqueue(responseBuffer); // Ensure final response is cleaned
+      }
+      controller.close();
+      break;
+    }
+
+    accumulatedChunk += new TextDecoder().decode(value);
+
+    try {
+      const parsedData = JSON.parse(accumulatedChunk);
+      if (parsedData?.response) {
+        const cleanText = parsedData.response; // Remove leading/trailing spaces
+        responseBuffer += cleanText;
+        controller.enqueue(responseBuffer);
+        responseBuffer = ""; // Reset buffer to avoid duplication
+      }
+      accumulatedChunk = ""; // Reset after parsing successful JSON
+    } catch (e) {
+      // Keep accumulating if JSON is incomplete
+    }
+  }
+}
 
 
 module.exports = { generateResponse, generateResponseStream };
