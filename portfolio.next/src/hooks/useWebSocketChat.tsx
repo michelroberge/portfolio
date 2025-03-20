@@ -31,7 +31,13 @@ export function useWebSocketChat(isOpen: boolean) {
   const wsUrl = useMemo(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
     const baseWsUrl = apiUrl.replace(/^http/, "ws");
-    return baseWsUrl;
+    if ( baseWsUrl.endsWith("/"))
+    {
+      return baseWsUrl;
+    }
+    else{
+      return `${baseWsUrl}/`; 
+    }
   }, []);
 
   // Listen for visibility changes
