@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useChat } from "@/context/ChatContext";
+import { logger } from "@/utils/logger";
 
 export function useWebSocketChat(isOpen: boolean) {
   const { 
@@ -51,7 +52,7 @@ export function useWebSocketChat(isOpen: boolean) {
         // Force a refresh of messages to ensure UI is updated
         setForceUpdate(prev => prev + 1);
         const currentMessages = getMessages();
-        console.log("Page visible again, checking messages:", currentMessages.length);
+        logger.log("Page visible again, checking messages:", currentMessages.length);
       }
     };
     
@@ -63,15 +64,15 @@ export function useWebSocketChat(isOpen: boolean) {
 
   const connectWebSocket = useCallback(() => {
     if (wsRef.current) {
-      console.log(`socket already opened`);
+      logger.log(`socket already opened`);
       return;
     }
 
-    console.log(`Attempting to connect to WebSocket: ${wsUrl}`);
+    logger.log(`Attempting to connect to WebSocket: ${wsUrl}`);
     const websocket = new WebSocket(wsUrl);
 
     websocket.onopen = () => {
-      console.log("✅ Connected to WebSocket successfully");
+      logger.log("✅ Connected to WebSocket successfully");
       hasConnectedSuccessfully.current = true;
       setConnected(true)
     };
@@ -81,13 +82,13 @@ export function useWebSocketChat(isOpen: boolean) {
   
       // 🛑 Ensure there's ONLY ONE active AI message
       if (!currentMessageRef.current) {
-          console.log("🆕 No active AI message, creating one.");
+          logger.log("🆕 No active AI message, creating one.");
           startAIMessage();
           updateStreamingState(true);
       }
   
       if (data.newBubble) {
-          console.log("🔵 Creating a new AI message bubble...");
+          logger.log("🔵 Creating a new AI message bubble...");
           if (currentMessageRef.current) {
             completeCurrentMessage(); // ✅ Finish previous AI response
           }
@@ -106,11 +107,11 @@ export function useWebSocketChat(isOpen: boolean) {
           stepCompleted.current = true;
           completeCurrentMessage();
         }
-        console.log("✍️ Appending streamed response:", data.response);
+        logger.log("✍️ Appending streamed response:", data.response);
         appendToCurrentMessage(data.response); // 
       }
     if (data.done) {
-        console.log("✅ Streaming complete, delaying 100ms to wrap up.");
+        logger.log("✅ Streaming complete, delaying 100ms to wrap up.");
         setTimeout(() => {
           setCurrentMessageText(data.response);
           completeCurrentMessage(); // ✅ Marks the AI message as done
@@ -119,7 +120,7 @@ export function useWebSocketChat(isOpen: boolean) {
           
           // Force update for when page isn't focused
           const messages = getMessages();
-          console.log("🛠 Checking messages after completion:", messages.length);
+          logger.log("🛠 Checking messages after completion:", messages.length);
           setForceUpdate(prev => prev + 1);
           stepCompleted.current = false;
         }, 100);
@@ -127,7 +128,7 @@ export function useWebSocketChat(isOpen: boolean) {
     };
 
     websocket.onerror = (error) => {
-      console.error("❌ WebSocket connection error:", error);
+      logger.error("❌ WebSocket connection error:", error);
       if (currentMessageRef.current) {
         completeCurrentMessage();
       }
@@ -135,7 +136,7 @@ export function useWebSocketChat(isOpen: boolean) {
     };
 
     websocket.onclose = (event) => {
-      console.log(`❌ WebSocket disconnected (code: ${event.code}, reason: ${event.reason})`);
+      logger.log(`❌ WebSocket disconnected (code: ${event.code}, reason: ${event.reason})`);
       wsRef.current = null;
       if (currentMessageRef.current) {
         completeCurrentMessage();
@@ -149,18 +150,18 @@ export function useWebSocketChat(isOpen: boolean) {
   // Connect/disconnect based on isOpen prop
   useEffect(() => {
     if (typeof window === "undefined"){
-      console.log(`not opening socket server side`);
+      logger.log(`not opening socket server side`);
       return;
     }
 
     if (!wsRef.current && isOpen) {
-      console.log(`opening socket`);
+      logger.log(`opening socket`);
       connectWebSocket();
     }
 
     return () => {
       if (!isOpen && wsRef.current) {
-        console.log(`closing socket`);
+        logger.log(`closing socket`);
         wsRef.current.close();
         wsRef.current = null;
       }
@@ -175,7 +176,7 @@ export function useWebSocketChat(isOpen: boolean) {
           // Send a small ping to keep the connection alive
           wsRef.current.send(JSON.stringify({ type: "ping" }));
         } catch (e) {
-          console.warn("Failed to send ping:", e);
+          logger.warn("Failed to send ping:", e);
         }
       }
     }, 30000); // Every 30 seconds
@@ -186,7 +187,7 @@ export function useWebSocketChat(isOpen: boolean) {
   // Function to send a user message through the WebSocket
   const sendMessage = useCallback((text: string) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      console.error("WebSocket not connected");
+      logger.error("WebSocket not connected");
       return;
     }
   
