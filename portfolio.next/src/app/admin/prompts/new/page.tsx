@@ -1,5 +1,3 @@
-'use client'
-import { fetchPrompt } from "@/services/promptService";
 import { notFound } from "next/navigation";
 import { protectAdminRoute, getAdminCookie } from "@/lib/auth";
 import EditPrompt from "@/components/admin/EditPrompt";

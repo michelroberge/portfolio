@@ -5,12 +5,12 @@ import { useChat } from "@/context/ChatContext";
 import { useWebSocketChat } from "@/hooks/useWebSocketChat";
 import { marked } from "marked";
 export default function Chat() {
-  const { messages, addUserMessage, currentMessageRef } = useChat();
+  const { messages, addUserMessage } = useChat();
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [input, setInput] = useState("");
 
-  const { wsRef, isStreaming } = useWebSocketChat(isOpen);
+  const { wsRef } = useWebSocketChat(isOpen);
 
   const sendMessage = () => {
     if (!input.trim() || !wsRef.current) return;

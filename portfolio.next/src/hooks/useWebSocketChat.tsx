@@ -144,7 +144,9 @@ export function useWebSocketChat(isOpen: boolean) {
     };
 
     wsRef.current = websocket;
-  }, [wsUrl, startAIMessage, completeCurrentMessage, updateStreamingState, appendToCurrentMessage, setCurrentMessageText, getMessages]);
+  }, [wsUrl, startAIMessage, completeCurrentMessage, 
+    updateStreamingState, appendToCurrentMessage, setCurrentMessageText, 
+    getMessages, currentMessageRef, streamingBuffer]);
 
   // Connect/disconnect based on isOpen prop
   useEffect(() => {

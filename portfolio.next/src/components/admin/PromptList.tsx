@@ -9,25 +9,26 @@ interface PromptsListProps {
   cookieHeader?: string;
 }
 
-export default function promptsList({ initialPrompts = [], cookieHeader }: PromptsListProps) {
+export default function PromptsList({ initialPrompts = [], cookieHeader }: PromptsListProps) {
   const [prompts, setPrompts] = useState<Prompt[]>(initialPrompts);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+
+    async function loadPrompts() {
+      try {
+        const data = await fetchPrompts(cookieHeader || "");
+        setPrompts(data);
+      } catch (err) {
+        console.error('Failed to fetch prompts:', err);
+        setError('Failed to load prompts');
+      }
+    }
+    
     if (initialPrompts.length === 0) {
       loadPrompts();
     }
-  }, [initialPrompts]);
-
-  async function loadPrompts() {
-    try {
-      const data = await fetchPrompts(cookieHeader || "");
-      setPrompts(data);
-    } catch (err) {
-      console.error('Failed to fetch prompts:', err);
-      setError('Failed to load prompts');
-    }
-  }
+  }, [initialPrompts, cookieHeader]);
 
   async function handleDelete(id: string) {
     if (!confirm("Are you sure you want to delete this prompt?")) return;
