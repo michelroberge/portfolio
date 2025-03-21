@@ -40,6 +40,9 @@ async function queryLLMByName(promptName, parameters = {}, useStreaming = false)
             }
         }
 
+        formattedPrompt += `\n\n[PROMPT ISO TIMESTAMP]\n${new Date().toISOString()}`;
+        formattedPrompt += `\n\n[REFERENCE DATE]\nAssume today's date is ${new Date().toDateString()}.`;
+
         // console.log(`🤖 Sending formatted prompt to LLM (Streaming: ${useStreaming}):\n${formattedPrompt}`);
 
         if (useStreaming) {

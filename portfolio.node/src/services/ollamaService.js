@@ -2,7 +2,7 @@
 
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://10.0.0.42:11434";
 const PROMPT_MODEL = process.env.PROMPT_MODEL || "mistral";
-
+const TEMPERATURE = 0.4;
 /**
  * Sends a structured prompt to the Ollama AI model and retrieves a response.
  * @param {string} prompt - The structured prompt with context and user query.
@@ -18,7 +18,7 @@ async function generateResponse(prompt) {
         model: PROMPT_MODEL,
         prompt: `${prompt}`,
         max_tokens: 200,
-        temperature: 0.7,
+        temperature: TEMPERATURE,
         format: 'json',
       }),
     });
@@ -73,7 +73,7 @@ async function generateResponseStream(prompt, format = 'text') {
     model: PROMPT_MODEL,
     prompt,
     max_tokens: 200,
-    temperature: 0.7,
+    temperature: TEMPERATURE,
     format: format !== 'text' ? format : undefined,
     stream: format === 'text',
   };
