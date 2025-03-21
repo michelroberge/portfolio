@@ -17,6 +17,7 @@ async function queryLLMByName(promptName, parameters = {}, useStreaming = false)
 
         if (!promptDoc) {
             promptDoc = new Prompt(defaultPrompts[promptName]);
+            promptDoc.name = promptName;
             await promptDoc.save();
 
             if (!promptDoc) {

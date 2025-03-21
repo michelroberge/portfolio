@@ -133,6 +133,14 @@ export const ADMIN_API = {
     get: (id: string) => `${REMOTE_URL}${API_BASE}/admin/comments/${id}`,
     delete: (id: string) => `${REMOTE_URL}${API_BASE}/admin/comments/${id}`,
   },
+  prompts: {
+    list:  `${REMOTE_URL}${API_BASE}/admin/prompts`,
+    get: (id: string) => `${REMOTE_URL}${API_BASE}/admin/prompts/${id}`,
+    create: `${REMOTE_URL}${API_BASE}/admin/prompts`,
+    update: (id: string) => `${REMOTE_URL}${API_BASE}/admin/prompts/${id}`,
+    delete: (id: string) => `${REMOTE_URL}${API_BASE}/admin/prompts/${id}`
+  },
+
 } as const;
 
 // Frontend routes
