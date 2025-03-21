@@ -37,7 +37,6 @@ async function executePipeline(promptName, parameters, isStreaming = false, stre
         }
 
         // Step 4️⃣: Execute AI Query
-
         const responseStream = await queryLLMByName(promptName, parameters, true);
 
         const reader = responseStream.getReader();

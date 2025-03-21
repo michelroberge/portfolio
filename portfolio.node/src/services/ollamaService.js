@@ -2,7 +2,7 @@
 
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://10.0.0.42:11434";
 const PROMPT_MODEL = process.env.PROMPT_MODEL || "mistral";
-
+const TEMPERATURE = 0.4;
 /**
  * Sends a structured prompt to the Ollama AI model and retrieves a response.
  * @param {string} prompt - The structured prompt with context and user query.
@@ -18,8 +18,8 @@ async function generateResponse(prompt) {
         model: PROMPT_MODEL,
         prompt: `${prompt}`,
         max_tokens: 200,
-        temperature: 0.7,
-        format: 'json'
+        temperature: TEMPERATURE,
+        format: 'json',
       }),
     });
 
@@ -73,7 +73,7 @@ async function generateResponseStream(prompt, format = 'text') {
     model: PROMPT_MODEL,
     prompt,
     max_tokens: 200,
-    temperature: 0.7,
+    temperature: TEMPERATURE,
     format: format !== 'text' ? format : undefined,
     stream: format === 'text',
   };
@@ -85,41 +85,45 @@ async function generateResponseStream(prompt, format = 'text') {
   });
 
   const reader = response.body.getReader();
-  let accumulatedChunk = ""; // Stores raw chunk data
-  let responseBuffer = ""; // Stores words to send
 
   return new ReadableStream({
     async start(controller) {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          if (responseBuffer.trim().length > 0) {
-            controller.enqueue(responseBuffer); // Ensure final response is cleaned
-          }
-          controller.close();
-          break;
-        }
-
-        accumulatedChunk += new TextDecoder().decode(value);
-
-        try {
-          const parsedData = JSON.parse(accumulatedChunk);
-          if (parsedData?.response) {
-            const cleanText = parsedData.response; // Remove leading/trailing spaces
-            responseBuffer += cleanText;
-            controller.enqueue(responseBuffer);
-            responseBuffer = ""; // Reset buffer to avoid duplication
-          }
-          accumulatedChunk = ""; // Reset after parsing successful JSON
-        } catch (e) {
-          // Keep accumulating if JSON is incomplete
-        }
-      }
+      processStream(reader, controller);
     }
   });
 }
 
+async function processStream(reader, controller){
 
+  let accumulatedChunk = ""; // Stores raw chunk data
+  let responseBuffer = ""; // Stores words to send
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      if (responseBuffer.trim().length > 0) {
+        controller.enqueue(responseBuffer); // Ensure final response is cleaned
+      }
+      controller.close();
+      break;
+    }
+
+    accumulatedChunk += new TextDecoder().decode(value);
+
+    try {
+      const parsedData = JSON.parse(accumulatedChunk);
+      if (parsedData?.response) {
+        const cleanText = parsedData.response; // Remove leading/trailing spaces
+        responseBuffer += cleanText;
+        controller.enqueue(responseBuffer);
+        responseBuffer = ""; // Reset buffer to avoid duplication
+      }
+      accumulatedChunk = ""; // Reset after parsing successful JSON
+    } catch (e) {
+      // Keep accumulating if JSON is incomplete
+    }
+  }
+}
 
 
 module.exports = { generateResponse, generateResponseStream };

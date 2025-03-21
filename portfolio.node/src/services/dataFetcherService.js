@@ -141,7 +141,7 @@ async function FetchDefaultContextData() {
 
     const about = await Page.findOne({ slug: "about" });
     if (about) {
-        context += `# General Information\n\n`;
+        context += `# ABOUT\n\n`;
         context += `${about.content}\n\n`;
     }
 
@@ -153,7 +153,7 @@ async function FetchDefaultContextData() {
 }
 
 async function FetchProjects() {
-    let context = "# Projects\n\n";
+    let context = "# PORTFOLIO PROJECTS \n\n";
     const projects = await Project.find();
     projects.forEach((p, i) => {
         context += `## Project ${i + 1}\n\n### ${p.title}\n\n### Excerpt\n\n${p.excerpt}\n\n`;
@@ -164,7 +164,7 @@ async function FetchProjects() {
 
 
 async function FetchBlogs() {
-    let context = "# Blog Entries\n\n";
+    let context = "# BLOG ENTRIES\n\n";
     const blogs = await BlogEntry.find();
     blogs.forEach((b, i) => {
         context += `## ${b.title}\n### Excerpt\n${b.excerpt}\n\n### Content\n${b.Body}`;
@@ -172,17 +172,8 @@ async function FetchBlogs() {
     return context;
 }
 
-async function FetchBlogs() {
-    let context = "# Blog Entries\n\n";
-    const blogs = await BlogEntry.find();
-    blogs.forEach((b, i) => {
-        context += `Entry #${i + 1}: ${b.title}\n${b.excerpt}\n\n`;
-    });
-    return context;
-}
-
 async function FetchCareerTimeline() {
-    let context = "# Career Timeline\n\n";
+    let context = "# PROFESSIONAL EXPERIENCE\n\n";
     const careerEntries = await CareerTimeline.find();
 
     careerEntries.forEach((entry) => {

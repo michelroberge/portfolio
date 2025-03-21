@@ -5,9 +5,9 @@ const {
     createPrompt,
     updatePrompt,
     deletePrompt
-} = require("../services/promptService");
+} = require("../../services/promptService");
 
-const isAdmin = require("../middlewares/admin"); // Ensure only admins manage prompts
+const isAdmin = require("../../middlewares/admin"); // Ensure only admins manage prompts
 const router = express.Router();
 
 /**

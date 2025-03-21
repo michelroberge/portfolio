@@ -2,11 +2,11 @@
 import { notFound } from "next/navigation";
 import { protectAdminRoute, getAdminCookie } from "@/lib/auth";
 import AdminLayout from "@/components/layouts/AdminLayout";
-import EditPage from "@/components/admin/EditPage";
-import { fetchPageBySlug } from "@/services/pageService";
-import { Page } from "@/models/Page";
+import EditPrompt from "@/components/admin/EditPrompt";
+import { fetchPrompt } from "@/services/promptService";
+import { Prompt } from "@/models/Prompt";
 
-export default async function EditPagePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditPromptPage({ params }: { params: Promise<{ id: string }> }) {
   // This will automatically redirect if not authenticated or not admin
   const { user } = await protectAdminRoute();
   const { cookieHeader } = await getAdminCookie(user);
@@ -16,16 +16,16 @@ export default async function EditPagePage({ params }: { params: Promise<{ id: s
 
   try {
     // Fetch page data server-side for SSR
-    let page : Page | undefined = undefined;
+    let prompt : Prompt | undefined = undefined;
     if ( id != 'new'){
-      page = await fetchPageBySlug(id, true, cookieHeader);
-      if (!page) return notFound();
+      prompt = await fetchPrompt(id, cookieHeader);
+      if (!prompt) return notFound();
     }
 
 
     return (
       <AdminLayout>
-        <EditPage initialPage={page} />
+        <EditPrompt initialPrompt={prompt} header={cookieHeader} />
       </AdminLayout>
     );
   } catch (error) {

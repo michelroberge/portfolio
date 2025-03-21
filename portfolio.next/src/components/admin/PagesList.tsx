@@ -48,7 +48,7 @@ export default function PagesList({ initialPages = [], cookieHeader }: PagesList
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Custom Pages</h2>
         <Link 
-          href="/admin/pages/new" 
+          href="/admin/pages/edit/new" 
           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
           + Add Page

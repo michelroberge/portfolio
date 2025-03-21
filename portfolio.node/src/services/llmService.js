@@ -16,8 +16,10 @@ async function queryLLMByName(promptName, parameters = {}, useStreaming = false)
         let promptDoc = await Prompt.findOne({ name: promptName });
 
         if (!promptDoc) {
-            console.warn(`⚠️ Prompt "${promptName}" not found. Using fallback prompt.`);
-            promptDoc = defaultPrompts[promptName];
+            promptDoc = new Prompt(defaultPrompts[promptName]);
+            promptDoc.name = promptName;
+            await promptDoc.save();
+
             if (!promptDoc) {
                 throw new Error(`❌ Unknown prompt: ${promptName}`);
             }
@@ -38,7 +40,10 @@ async function queryLLMByName(promptName, parameters = {}, useStreaming = false)
             }
         }
 
-        console.log(`🤖 Sending formatted prompt to LLM (Streaming: ${useStreaming}):\n${formattedPrompt}`);
+        formattedPrompt += `\n\n[PROMPT ISO TIMESTAMP]\n${new Date().toISOString()}`;
+        formattedPrompt += `\n\n[REFERENCE DATE]\nAssume today's date is ${new Date().toDateString()}.`;
+
+        // console.log(`🤖 Sending formatted prompt to LLM (Streaming: ${useStreaming}):\n${formattedPrompt}`);
 
         if (useStreaming) {
             return generateResponseStream(formattedPrompt); // ✅ Streamed response
