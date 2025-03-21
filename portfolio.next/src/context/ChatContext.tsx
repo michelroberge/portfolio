@@ -36,7 +36,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const messagesRef = useRef<ChatMessage[]>([]); // ✅ Immediate updates
   const forceRender = useState(0)[1]; // ✅ Forces re-renders
 
-  const [currentMessage, setCurrentMessage] = useState<ChatMessage | null>(null);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   
   // Track streaming state with both state and ref for UI updates and cross-component tracking
@@ -98,7 +97,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   useEffect(()=>{
     logger.log(`new theoretical message count`, messagesRef.current?.length);
-  }, [ messagesRef.current ]);
+  }, [ messagesRef ]);
 
   const getMessages = () => messagesRef.current || [];
 
@@ -230,7 +229,6 @@ const appendToCurrentMessage = (text: string) => {
     };
     
     messagesRef.current = [defaultMessage];
-    setCurrentMessage(null);
     currentMessageRef.current = null;
     updateStreamingState(false);
   };
