@@ -3,8 +3,7 @@ const Project = require("../models/Project");
 const BlogEntry = require("../models/BlogEntry");
 const Page = require("../models/Page");
 const CareerTimeline = require("../models/CareerTimeline");
-
-// const { extractMetadataFromQuery } = require("../utils/queryUtils"); // Optional metadata extraction
+const { extractMetadataFromQuery } = require("../utils/queryUtils"); // Optional metadata extraction
 
 const COLLECTION_NAMES = {
     projects: Project.collection.collectionName,
@@ -27,13 +26,11 @@ const collectionOrder = {
 async function fetchRelevantData(parameters, intent) {
     console.log(`🔄 Fetching relevant data for intent: "${intent}"`);
 
-    // FOR NOW, WE HIJACK TO ALL CONTENT OF WEB SITE:
-    return await FetchDefaultContextData();
     // Step 1️⃣: Define collection search order based on intent
     const sortedCollections = collectionOrder[intent] || collectionOrder["general_knowledge"];
 
     // Step 2️⃣: Extract metadata from query (Optional Enhancement)
-    // const metadata = extractMetadataFromQuery(parameters.userQuery) || {}; 
+    const metadata = extractMetadataFromQuery(parameters.userQuery) || {}; 
 
     // Step 3️⃣: Query Qdrant Collections in Sorted Order Until We Have Enough Results
     const retrievedDocs = [];

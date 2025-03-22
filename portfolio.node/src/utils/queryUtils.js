@@ -7,8 +7,8 @@ const defaultPrompts = require("./prompts");
  * @returns {Promise<object>} - Extracted metadata (category, technologies, dates, named entities).
  */
 async function extractMetadataFromQuery(userQuery) {
-    console.log(`🔍 Extracting metadata using LLM for query: "${userQuery}"`);
 
+    console.log(`🔍 Extracting tags using LLM for query: "${userQuery}"`);
     try {
         // Call LLM with structured metadata prompt
         const response = await queryLLMByName("metadata-extraction", { userQuery });
