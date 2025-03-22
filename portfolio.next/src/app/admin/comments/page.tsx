@@ -4,10 +4,9 @@ import CommentsList from "@/components/admin/CommentsList";
 import { fetchAllComments } from "@/services/commentService";
 
 export default async function CommentsManagementPage() {
+
   const { user } = await protectAdminRoute();
   const { cookieHeader } = await getAdminCookie(user);
-
-  // Fetch comments server-side for SSR optimization (rule #21)
   const comments = await fetchAllComments(true, cookieHeader);
 
   return (

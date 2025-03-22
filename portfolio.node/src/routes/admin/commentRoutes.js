@@ -1,18 +1,15 @@
 // portfolio.node/src/routes/commentRoutes.js
 const express = require("express");
-const authMiddleware = require("../middlewares/auth"); // Protect endpoints where necessary
-const commentService = require("../services/commentService");
-const Comment = require("../models/Comment");
+const commentService = require("../../services/commentService");
+const Comment = require("../../models/Comment");
 const router = express.Router();
-const adminAuth = require("../middlewares/admin");
 
 /**
  * Create a new comment.
  * Expected body: { author, text, blog, parent (optional) }
  */
-router.post("/", authMiddleware, async (req, res) => {
+router.post("/", async (req, res) => {
   try {
-
     const { author, text, blog, parent } = req.body;
     if (!author || !text || !blog) {
       return res.status(400).json({ error: "author, text, and blog fields are required" });
@@ -34,10 +31,14 @@ router.post("/", authMiddleware, async (req, res) => {
 /**
  * Retrieve comments for a specific blog post (including nested replies).
  */
-router.get("/blog/:blogId", async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
-    const comments = await commentService.getCommentsByBlog(req.params.blogId);
-    res.json(comments);
+    const comment = await commentService.getCommentById(req.params.id);
+    if ( comment){
+      res.json(comment);
+    }else{
+      res.status(404).json({message: `Comment ${id} does not exist`});
+    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -47,7 +48,7 @@ router.get("/blog/:blogId", async (req, res) => {
  * Update a comment by its ID.
  * Expected body may contain: { text (optional), redacted (optional) }
  */
-router.put("/:id", authMiddleware, async (req, res) => {
+router.put("/:id",  async (req, res) => {
   try {
 
     const { text, redacted } = req.body;
@@ -57,6 +58,26 @@ router.put("/:id", authMiddleware, async (req, res) => {
     const updatedComment = await commentService.updateComment(req.params.id, updateData);
     if (!updatedComment) return res.status(404).json({ error: "Comment not found" });
     res.json(updatedComment);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Redact (soft-delete) a comment by marking it as redacted.
+ */
+router.delete("/:id",  async (req, res) => {
+  const updatedComment = await commentService.redactComment(req.params.id);
+  if (!updatedComment) return res.status(404).json({ message: "Comment not found" });
+  res.json({ message: "Comment redacted", comment: updatedComment });
+});
+
+
+router.get("/",  async (req, res) => {
+  try {
+    console.log(`calling get all comments`);
+    const comments = await commentService.getAllComments();
+    res.json(comments);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

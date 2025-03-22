@@ -129,7 +129,7 @@ export const ADMIN_API = {
     initialize: `${REMOTE_URL}${API_BASE}/admin/ai/initialize`,
   },
   comment: {
-    list: `${REMOTE_URL}${API_BASE}/admin/comments/all`,
+    list: `${REMOTE_URL}${API_BASE}/admin/comments`,
     get: (id: string) => `${REMOTE_URL}${API_BASE}/admin/comments/${id}`,
     delete: (id: string) => `${REMOTE_URL}${API_BASE}/admin/comments/${id}`,
   },
