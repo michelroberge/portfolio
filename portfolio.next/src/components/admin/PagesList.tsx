@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Page } from "@/models/Page";
-import { fetchPages, deletePage } from "@/services/pageService";
+import { fetchPages, deletePage, convertPageBySlug } from "@/services/pageService";
 
 interface PagesListProps {
   initialPages?: Page[];
@@ -41,6 +41,16 @@ export default function PagesList({ initialPages = [], cookieHeader }: PagesList
     }
   }
 
+  async function handleConvert(slug: string) {
+    try {
+      await convertPageBySlug(slug, cookieHeader || null);
+      alert("Converted to book");
+    } catch (err) {
+      console.error('Failed to convert page to book:', err);
+      setError("Failed to convert page to book");
+    }
+  }
+
   if (error) return <div className="text-red-500">Error: {error}</div>;
 
   return (
@@ -64,6 +74,12 @@ export default function PagesList({ initialPages = [], cookieHeader }: PagesList
                 <p className="text-gray-500 text-sm">/{page.slug}</p>
               </div>
               <div className="flex space-x-2">
+              <button 
+                  onClick={() => handleConvert(page.slug)}
+                  className="text-green-500 hover:text-green-600"
+                >
+                  Convert
+                </button>
                 <Link 
                   href={`/admin/pages/edit/${page._id}`}
                   className="text-blue-500 hover:text-blue-600"

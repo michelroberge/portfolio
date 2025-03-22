@@ -97,6 +97,7 @@ export const ADMIN_API = {
     create: `${REMOTE_URL}${API_BASE}/admin/pages`,
     update: (id: string) => `${REMOTE_URL}${API_BASE}/admin/pages/${id}`,
     delete: (id: string) => `${REMOTE_URL}${API_BASE}/admin/pages/${id}`,
+    convert: (id: string) => `${REMOTE_URL}${API_BASE}/admin/pages/convert/${id}`,
   },
   user: {
     list: `${REMOTE_URL}${API_BASE}/admin/users`,
