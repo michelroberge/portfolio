@@ -12,7 +12,7 @@ export default function Search() {
         placeholder="Search projects, blogs, or skills..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
       />
       <button
         className="absolute right-2 top-2 px-4 py-1 bg-gray-800 hover:bg-gray-600 transition text-white rounded"
