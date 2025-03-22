@@ -40,14 +40,14 @@ export default function Header() {
         </Link>
         <div className="flex items-center gap-4">
 
-        <Link href="/pages/about" className="flex items-center gap-2 text-white hover:text-gray-300">
+        {/* <Link href="/pages/about" className="flex items-center gap-2 text-white hover:text-gray-300">
               <FontAwesomeIcon icon={faContactCard} className="w-6 h-6" />
               <span>About me</span>
-            </Link>
+            </Link> */}
 
         <Link href="/career" className="flex items-center gap-2 text-white hover:text-gray-300">
               <FontAwesomeIcon icon={faAlignLeft} className="w-6 h-6" />
-              <span>Experience</span>
+              <span>Resume</span>
             </Link>
 
 
