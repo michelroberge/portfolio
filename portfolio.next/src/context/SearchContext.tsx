@@ -1,12 +1,11 @@
 'use client';
 import { createContext, useContext, useState, ReactNode } from "react";
-import { Project } from "@/models/Project";
 import { PUBLIC_API } from "@/lib/constants";
 
 interface SearchResult {
   title: string;
   description: string;
-  type: "project" | "blog" | "career";
+  type: "project" | "blog" | "career" | "general";
   link: string;
 }
 
@@ -23,10 +22,11 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   const [query, setQuery] = useState<string>("");
   const [results, setResults] = useState<SearchResult[]>([]);
 
-  async function searchProjects(query: string): Promise<Project[]> {
+  async function search(userQuery: string): Promise<SearchResult[]> {
     try {
-      const response = await fetch(PUBLIC_API.project.search(query), {
-        method: "GET",
+      const response = await fetch(PUBLIC_API.search, {
+        method: "POST",
+        body: JSON.stringify({query: userQuery}),
         headers: {
           "Content-Type": "application/json",
         },
@@ -51,14 +51,14 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const projects = await searchProjects(query);
-      const searchResults: SearchResult[] = projects
-        .filter(project => project.link) // Only include projects with valid links
-        .map((project) => ({
-          title: project.title,
-          description: project.description,
-          type: "project",
-          link: project.link!, // Safe to use ! here as we filtered undefined links
+      const projects = await search(query);
+      const searchResults: SearchResult[] = results
+        .filter(result => result.link) // Only include projects with valid links
+        .map((result) => ({
+          title: result.title,
+          description: result.description,
+          type: result.type,
+          link: result.link!, // Safe to use ! here as we filtered undefined links
         }));
 
       setResults(searchResults);

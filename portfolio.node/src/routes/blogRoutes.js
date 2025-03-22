@@ -49,7 +49,8 @@ router.get("/", async (req, res) => {
         
         // Sanitize each blog for public consumption
         const sanitizedBlogs = blogs.map(blog => sanitizeBlogForPublic(blog))
-            .filter(blog => blog !== null); // Remove any null entries
+            .filter(blog => blog !== null)
+            .sort((a, b) => new Date(b.publishAt) - new Date(a.publishAt));
 
         res.json(sanitizedBlogs);
     } catch (error) {

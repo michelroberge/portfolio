@@ -72,4 +72,5 @@ async function sortCollectionsByRelevance(userQuery, availableCollections) {
 }
 
 
+
 module.exports = { performSearch, sortCollectionsByRelevance };
