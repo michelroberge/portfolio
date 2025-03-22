@@ -4,6 +4,7 @@ const adminAuth = require("../../middlewares/admin");
 const pageService = require("../../services/pageService");
 const Page = require("../../models/Page"); // For dynamic search
 const { searchEntitiesHybrid } = require("../../services/searchService");
+const bookService = require("../../services/bookService");
 
 const router = express.Router();
 
@@ -94,11 +95,25 @@ router.post("/generate-embeddings", authMiddleware, adminAuth, async (req, res) 
     try {
         const { fullRefresh = false } = req.body;
         const result = await pageService.refreshPageEmbeddings(fullRefresh);
-        res.json(result);
+        res.json({message: "success"});
     } catch (error) {
         console.error("❌ Error generating page embeddings:", error.message);
         res.status(500).json({ error: error.message });
     }
 });
 
+router.post("/convert/:slug", async (req, res) => {
+    await bookService.deleteBook(req.params.slug);
+    await bookService.extractAndStoreChapters(req.params.slug);
+
+    const bookChapters = await bookService.getBook(req.params.slug);
+
+    await Promise.all(
+        bookChapters.map(chapter => 
+            bookService.updateChapterEmbeddings(chapter)
+        )
+    );
+
+    res.json({message: "success"});
+});
 module.exports = router;

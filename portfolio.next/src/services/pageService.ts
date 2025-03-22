@@ -139,3 +139,30 @@ export async function deletePage(id: string, cookieHeader: string | null = null)
         throw error;
     }
 }
+
+export async function convertPageBySlug(slug: string, cookieHeader: string | null = null, fromCache: boolean = true): Promise<Page> {
+    try {
+        
+        const url = ADMIN_API.page.convert(slug);
+        const headers: HeadersInit = cookieHeader
+            ? { Cookie: cookieHeader } // Pass cookies for SSR requests
+            : {};
+
+        const res = await fetch(url, {
+            method: "POST",
+            credentials: "include",
+            headers,
+            ...(fromCache ? {} : { cache: "no-store" }),
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || "Failed to convert page");
+        }
+
+        return res.json();
+    } catch (error) {
+        console.error("Failed to convert page:", error);
+        throw error;
+    }
+}

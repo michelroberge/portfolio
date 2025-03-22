@@ -11,6 +11,10 @@ async function getAllComments() {
   );
 }
 
+async function getCommentById(id) {
+  return await Comment.findOne({ _id: id });
+}
+
 async function getNestedReplies(parentId, redacted) {
   const replies = await Comment.find({ parent: parentId, redacted: redacted }).sort({ createdAt: 1 });
   return Promise.all(
@@ -79,5 +83,6 @@ module.exports = {
   getCommentsByBlog,
   updateComment,
   redactComment,
-  getAllComments
+  getAllComments,
+  getCommentById
 };

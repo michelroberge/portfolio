@@ -140,3 +140,34 @@ export async function deleteComment(id: string, cookieHeader: string | null = nu
     throw err;
   }
 }
+
+/**
+ * Redact a comment by its ID (admin only)
+ */
+export async function readComment(id: string, isAdmin: boolean = false, cookieHeader: string | null = null): Promise<Comment> {
+  try {
+    if (!isAdmin) {
+      throw new Error("Unauthorized");
+    }
+
+    const headers: HeadersInit = cookieHeader
+      ? { Cookie: cookieHeader }
+      : {};
+
+    const res = await fetch(ADMIN_API.comment.get(id), {
+      method: "GET",
+      credentials: "include",
+      headers,
+    });
+
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || "Failed to read comment");
+    }
+    return res.json();
+
+  } catch (err) {
+    console.error("Failed to read comment:", err);
+    throw err;
+  }
+}
