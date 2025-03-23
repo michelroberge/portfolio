@@ -1,13 +1,7 @@
 'use client';
 import { createContext, useContext, useState, ReactNode } from "react";
 import { PUBLIC_API } from "@/lib/constants";
-
-interface SearchResult {
-  title: string;
-  description: string;
-  type: "project" | "blog" | "career" | "general";
-  link: string;
-}
+import { SearchResult } from "@/models/SearchResult";
 
 interface SearchContextType {
   query: string;
@@ -51,15 +45,9 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const projects = await search(query);
+      const results = await search(query);
       const searchResults: SearchResult[] = results
-        .filter(result => result.link) // Only include projects with valid links
-        .map((result) => ({
-          title: result.title,
-          description: result.description,
-          type: result.type,
-          link: result.link!, // Safe to use ! here as we filtered undefined links
-        }));
+        .filter(result => result.link);
 
       setResults(searchResults);
     } catch (error) {
