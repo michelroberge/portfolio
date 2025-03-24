@@ -16,6 +16,7 @@ const aiRoutes = require("./aiRoutes");
 const careerTimelineRoutes = require("./careerTimelineRoutes");
 const promptRoutes = require("./promptRoutes");
 const commentRoutes = require("./commentRoutes");
+const embeddingRoutes = require("./embeddings/index.js");
 
 const router = express.Router();
 
@@ -33,5 +34,6 @@ router.use("/ai", aiRoutes);
 router.use("/career", careerTimelineRoutes);
 router.use("/prompts", promptRoutes);
 router.use("/comments", commentRoutes);
+router.use("/embeddings", embeddingRoutes);
 
 module.exports = router;

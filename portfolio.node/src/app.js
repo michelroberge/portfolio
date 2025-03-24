@@ -22,7 +22,6 @@ const oauthRoutes = require("./routes/oauthRoutes");
 const commentRoutes = require("./routes/commentRoutes");
 const searchRoutes = require("./routes/searchRoutes");
 const chatRoutes = require("./routes/chatRoutes");
-const embeddingRoutes = require("./routes/embeddingRoutes");
 const fileRoutes = require("./routes/fileRoutes");
 const careerTimelineRoutes = require("./routes/careerTimelineRoutes");
 const pageRoutes = require("./routes/pageRoutes");
@@ -97,7 +96,6 @@ setupStrategies()
   // Protected Routes (require authentication)
   app.use("/api/comments", commentRoutes);
   app.use("/api/chat", chatRoutes);
-  app.use("/api/embeddings", embeddingRoutes);
   app.use("/api/ai", aiRoutes);
 
   // Admin Routes (require authentication and admin role)

@@ -1,14 +1,11 @@
 const express = require("express");
-const {
-    generateEmbeddings
-} = require("../services/embeddingService");
+const { generateEmbeddings } = require("../../../services/embeddingService");
 const {
     storeEmbedding,
     deleteEmbedding,
     searchQdrant,
     dropCollection
-} = require("../services/qdrantService");
-const isAdmin = require("../middlewares/admin");
+} = require("../../../services/qdrantService");
 
 const router = express.Router();
 
@@ -17,7 +14,7 @@ const router = express.Router();
  * @desc Generate embeddings for a given text (without storing)
  * @access Admin
  */
-router.post("/generate", isAdmin, async (req, res) => {
+router.post("/generate", async (req, res) => {
     try {
         const { text } = req.body;
         if (!text) return res.status(400).json({ error: "Text is required" });
@@ -35,7 +32,7 @@ router.post("/generate", isAdmin, async (req, res) => {
  * @desc Generate embeddings and store them in Qdrant
  * @access Admin
  */
-router.post("/", isAdmin, async (req, res) => {
+router.post("/", async (req, res) => {
     try {
         const { collection, id, text, metadata } = req.body;
         if (!collection || !id || !text) {
@@ -79,7 +76,7 @@ router.post("/search", async (req, res) => {
  * @desc Delete an embedding by ID
  * @access Admin
  */
-router.delete("/:collection/:id", isAdmin, async (req, res) => {
+router.delete("/:collection/:id", async (req, res) => {
     try {
         const { collection, id } = req.params;
         const success = await deleteEmbedding(collection, id);
@@ -97,7 +94,7 @@ router.delete("/:collection/:id", isAdmin, async (req, res) => {
  * @desc Drop an entire Qdrant collection
  * @access Admin
  */
-router.delete("/collection/:collection", isAdmin, async (req, res) => {
+router.delete("/collection/:collection", async (req, res) => {
     try {
         const { collection } = req.params;
         await dropCollection(collection);
