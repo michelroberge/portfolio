@@ -51,10 +51,20 @@ const getCollectionsWithStatsAsMap = async() =>{
     return collectionsWithStatsMap;
 }
 
+const getCollectionByName = async (collectionName) => {
+    const collections = await getCollections();
+    const matchedCollection = collections.find(
+        collection => collection.name === collectionName
+    );
+
+    return matchedCollection.collection;
+};
+
 const collections = {
     getCollectionsWithStatsAsMap,
     getCollectionsWithStats,
     getCollections,
+    getCollectionByName,
 };
 
 module.exports = collections;

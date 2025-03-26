@@ -10,7 +10,7 @@ const fetchDocuments = async (name: string, cookieHeader: string, stateFunction:
             ? { Cookie: cookieHeader } 
             : {};
 
-        const response = await fetch(`${ADMIN_API.base}/embeddings/collection/${name}`, {
+        const response = await fetch(`${ADMIN_API.base}/embeddings/documents/collection/${name}`, {
             credentials: "include",
             headers,
             cache: "no-store",
@@ -38,7 +38,7 @@ const fetchCollections = async (cookieHeader: string) => {
             ? { Cookie: cookieHeader } // Pass cookies for SSR requests
             : {};
 
-        const response = await fetch(`${ADMIN_API.base}/embeddings/collection`, {
+        const response = await fetch(`${ADMIN_API.base}/embeddings/collections`, {
             credentials: "include",
             headers,
             cache: "no-store",
@@ -121,11 +121,44 @@ const handleSearch = async (query: string, selectedCollections: string[], cookie
     }
 };
 
+const fetchCollectionVectors = async (collectionName:string, cookieHeader: string) : Promise<number[][]> => {
+    try {
+
+        const headers: HeadersInit = cookieHeader
+            ? {
+                Cookie: cookieHeader,
+                'Content-Type': 'application/json',
+            } // Pass cookies for SSR requests
+            : {};
+
+        const response = await fetch(`${ADMIN_API.base}/embeddings/collections/${collectionName}/vectors`, {
+            method: 'GET',
+            headers,
+        });
+
+        if (response.ok) {
+            return response.json();
+        } else {
+            const error = await response.json();
+            throw new Error(error.message);
+        }
+    } catch (error) {
+        console.error('Search error:', error);
+        throw error;
+    }
+}
+
+const getSearchVector = async (search : string) : Promise<number[]> => {
+    return [];
+}
+
 const embeddingService = {
     fetchCollections,
     handleRegenerateByCollection,
     handleSearch,
-    fetchDocuments
+    fetchDocuments,
+    fetchCollectionVectors,
+    getSearchVector
 };
 
 export default embeddingService;

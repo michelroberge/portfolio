@@ -1,103 +1,55 @@
-"use client"
 import { protectAdminRoute, getAdminCookie } from "@/lib/auth";
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import Link from 'next/link';
+
 import embeddingService from "@/services/embeddingService";
-import DocumentTable from "@/components/admin/embeddings/DocumentTable"
-import {Document} from "@/models/Embeddings/Document";
 import EmbeddingVisualizer from "@/components/admin/embeddings/EmbeddingVisualizer";
 
 interface Props {
-    params: Promise<{ name: string }>;
-  }
-  
+  params: { name: string };
+}
+
 export default async function CollectionPage({ params }: Props) {
   const { user } = await protectAdminRoute();
   const { cookieHeader } = await getAdminCookie(user);
   const { name } = await params;
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRegenerating, setIsRegenerating] = useState(false);
-  
-  useEffect(() => {
-    if (!name) return;
-    
-    const fetchDocuments = async () => {
-      try {
-        const data = await embeddingService.fetchDocuments(name, cookieHeader, setIsLoading);
-        if (data) {
-          setDocuments(data);
-        } else {
-          console.error('Failed to fetch documents');
-        }
-      } catch (error) {
-        console.error('Error fetching documents:', error);
-      } 
-    };
-    
-    fetchDocuments();
-  }, [name]);
-  
+
+  let documents = await embeddingService.fetchDocuments(name, cookieHeader, () => { });
+  if (!documents) documents = [];
+  const collectionVectors = await embeddingService.fetchCollectionVectors(name, cookieHeader);
+  const searchVector = undefined; //await embeddingService.getSearchVector(query);
+
   const handleRegenerateSelected = async (ids: string[]) => {
-    if (ids.length === 0) return;
-    
-    setIsRegenerating(true);
-    try {
-      const response = await fetch('/api/embeddings/regenerate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          documentIds: ids
-        }),
-      });
-      
-      if (response.ok) {
-        alert(`Started regenerating embeddings for ${ids.length} document(s)`);
-        // Refresh document list after a short delay
-        setTimeout(() => {
-          // router.reload();
-        }, 3000);
-      } else {
-        const error = await response.json();
-        alert(`Error: ${error.message}`);
-      }
-    } catch (error) {
-      console.error('Error regenerating embeddings:', error);
-      alert('An error occurred while regenerating embeddings');
-    } finally {
-      setIsRegenerating(false);
-    }
+    'use server';
+    // Implement server action for regenerating embeddings
+    // This would be similar to your existing server-side logic
   };
-  
+
   return (
-    <>
-      <div className="container mx-auto p-4">
-        <div className="flex items-center mb-6">
-          <a href=".."
-            className="mr-4 text-blue-600 hover:underline"
-          >
-            ← Back to Collections
-          </a>
-          <h1 className="text-3xl font-bold">{name} Collection</h1>
-        </div>
-        
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Documents</h2>
-          <DocumentTable 
-            documents={documents}
-            isLoading={isLoading || isRegenerating}
-            onRegenerateSelected={handleRegenerateSelected}
-          />
-        </div>
-        
-        {documents.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Embedding Visualization</h2>
-            <EmbeddingVisualizer documents={documents} />
-          </div>
-        )}
+    <div className="container mx-auto p-4">
+      <div className="mb-4">
+        <Link href="/embeddings/collections" className="text-blue-600 hover:underline">
+          ← Back to Collections
+        </Link>
       </div>
-    </>
+
+      <h1 className="text-2xl font-bold mb-4">{name} Collection</h1>
+
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold mb-4">Documents</h2>
+        <DocumentsView documents={documents} />
+
+        {documents.length > 0 && (
+          <EmbeddingComparisonView documents={documents} documentVectors={collectionVectors} />
+        )}
+
+        {documents.length > 0 && (
+          <EmbeddingVisualizer documents={documents} documentVectors={collectionVectors} />
+        )}
+
+        <EmbeddingsMetadataView documents={documents} />
+
+      </div>
+    </div>
   );
-};
+}

@@ -144,10 +144,50 @@ async function dropCollection(collection) {
     }
 }
 
+async function getVectorsByCollectionName(collectionName) {
+    try {
+        let vectors = [];
+        let offset = 0;
+        const limit = 1000;
+
+        while (true) {
+            const scrollResponse = await qdrantClient.scroll(collectionName, {
+                offset: offset,
+                with_payload: false,
+                with_vector: true
+            });
+
+            // Flatten the vectors extraction
+            const collectionVectors = scrollResponse.points.map(point => {
+                // Ensure we're getting a single-level array of numbers
+                return Array.isArray(point.vector) 
+                    ? (Array.isArray(point.vector[0]) 
+                        ? point.vector[0]  // If nested, take first level
+                        : point.vector)    // If already flat, use as-is
+                    : point.vector;        // Fallback
+            }).filter(vector => Array.isArray(vector)); // Ensure only array vectors
+
+            vectors = [...vectors, ...collectionVectors];
+
+            // Qdrant might not support limit in scroll, so check points length
+            if (collectionVectors.length === 0) {
+                break;
+            }
+
+            offset += collectionVectors.length;
+        }
+        return vectors;
+    } catch (error) {
+        console.error(`Error retrieving vectors for collection ${collectionName}:`, error);
+        throw error;
+    }
+}
+
 module.exports = {
     initCollection,
     storeEmbedding,
     searchQdrant,
     deleteEmbedding,
     dropCollection,
+    getVectorsByCollectionName,
 };

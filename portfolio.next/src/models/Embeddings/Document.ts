@@ -6,6 +6,9 @@ export interface Document {
     collection: string;
     slug?: string;
     content?: string;
+    vectorId?: number;
     embedding: Embedding;
     metadata?: Record<string, unknown>;
   };
+
+  

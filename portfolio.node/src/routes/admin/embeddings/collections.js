@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const collectionMap = require("../../../utils/collections");
+const {getProjected2DVectors} = require("../../../services/vectorDimensionReductionService");
 
 router.get("/", async (req, res) => {
     try {
@@ -27,6 +28,18 @@ router.get("/:collection", async (req, res) => {
     }
 });
 
+router.get("/:collectionName/vectors", async (req, res) => {
+    const collectionName = req.params.collectionName;
+    try {
+      const projectedVectors = await getProjected2DVectors(collectionName);
+    console.log(`projectedVectors`, projectedVectors);
+      res.json({ vectors: projectedVectors });
+    }
+    catch(error){
+      console.error(`Error fetching collection ${collectionName}:`, error);
+      res.status(500).json({ message: "error", error: error.message });
+    }
+});
 
 router.post("/:collectionName/search-test", async (req, res) => {
     res.json([]);

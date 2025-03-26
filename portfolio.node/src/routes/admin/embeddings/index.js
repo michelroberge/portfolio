@@ -7,7 +7,7 @@ const embeddingRoutes = require("./embeddingRoutes");
 const router = express.Router();
 
 router.use("/", embeddingRoutes);
-router.use("/collection", collectionRoutes);
-router.use("/document", documentRoutes);
+router.use("/collections", collectionRoutes);
+router.use("/documents", documentRoutes);
 
 module.exports = router;
