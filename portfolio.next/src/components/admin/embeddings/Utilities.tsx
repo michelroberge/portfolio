@@ -1,5 +1,5 @@
 import { Document } from "@/models/Embeddings/Document";
-import { DocumentVector } from "@/models/Embeddings/DocumentVector";
+import { DocumentVector } from "@/models/Embeddings/DocumentEmbedding";
 
 export const calculateCosineSimilarity = (vec1: number[], vec2: number[]): number => {
     if (vec1.length !== vec2.length) {

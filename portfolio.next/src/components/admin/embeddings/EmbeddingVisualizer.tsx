@@ -1,12 +1,7 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Document } from '@/models/Embeddings/Document';
-import { DocumentVector } from '@/models/Embeddings/DocumentVector';
-
-interface EmbeddingVisualizerProps {
-  documents: Document[];
-  documentVectors: DocumentVector[];
-}
+import { DocumentEmbedding } from '@/models/Embeddings/DocumentEmbedding';
 
 // Utility function for cosine similarity
 const calculateCosineSimilarity = (vec1: number[], vec2: number[]): number => {
@@ -21,94 +16,146 @@ const calculateCosineSimilarity = (vec1: number[], vec2: number[]): number => {
   return dotProduct / (magnitude1 * magnitude2);
 };
 
-export const EmbeddingVisualizer: React.FC<EmbeddingVisualizerProps> = ({ 
+interface EmbeddingWaveVisualizerProps {
+  documents: Document[];
+  documentVectors: DocumentEmbedding[];
+  optionalEmbedding?: number[];
+  selectedDocuments?: Document[]; // New prop for selected documents
+}
+
+export const EmbeddingWaveVisualizer: React.FC<EmbeddingWaveVisualizerProps> = ({ 
   documents,
-  documentVectors 
+  documentVectors,
+  optionalEmbedding,
+  selectedDocuments = [] // Default to empty array
 }) => {
-  const [searchPrompt, setSearchPrompt] = useState('');
-  const [promptEmbedding, setPromptEmbedding] = useState<number[] | null>(null);
-  const [similarDocuments, setSimilarDocuments] = useState<string[]>([]);
-
-  const handleAnalyzePrompt = async () => {
-    // Simulated prompt embedding generation
-    const simulatedPromptEmbedding = Array.from({ length: 4096 }, () => Math.random() * 2 - 1);
-    setPromptEmbedding(simulatedPromptEmbedding);
-
-    // Calculate similarities and find top similar documents
-    const similarities = documentVectors.map((docVector, index) => ({
-      documentId: documents[index]._id,
-      similarity: calculateCosineSimilarity(simulatedPromptEmbedding, docVector.vector)
-    })).sort((a, b) => b.similarity - a.similarity);
-
-    // Select top 3 similar documents
-    const topSimilarDocIds = similarities
-      .slice(0, 3)
-      .map(sim => sim.documentId);
-    
-    setSimilarDocuments(topSimilarDocIds);
+  // Normalize embeddings to a common scale
+  const normalizeEmbedding = (embedding: number[]) => {
+    const min = Math.min(...embedding);
+    const max = Math.max(...embedding);
+    return embedding.map(val => (val - min) / (max - min));
   };
 
-  // Prepare data for visualization
-  const chartData = documents[0].vectorId ? 
-    Array.from({ length: 4096 }, (_, dimIndex) => ({
-      dimension: dimIndex,
-      ...Object.fromEntries(
-        documents.map((doc, index) => [doc._id, documentVectors[index]?.vector[dimIndex]])
-      ),
-      promptEmbedding: promptEmbedding ? promptEmbedding[dimIndex] : null
-    })) : 
-    [];
+  // Calculate similarities if optional embedding is provided
+  const similarities = useMemo(() => {
+    if (!optionalEmbedding) return [];
+
+    return documentVectors.map((docVector, index) => ({
+      documentId: documents[index]._id,
+      similarity: calculateCosineSimilarity(optionalEmbedding, docVector.embedding)
+    })).sort((a, b) => b.similarity - a.similarity);
+  }, [optionalEmbedding, documentVectors, documents]);
+
+  // Prepare wave data
+  const waveData = useMemo(() => {
+    if (documentVectors.length === 0) return [];
+
+    // Take the first 100 dimensions for visualization (to keep it readable)
+    const dimensionCount = 100;
+
+    return Array.from({ length: dimensionCount }, (_, dimIndex) => {
+      const wavePoints = documentVectors.map((docVector, docIndex) => ({
+        documentId: documents[docIndex]?._id,
+        value: normalizeEmbedding(docVector.embedding)[dimIndex]
+      }));
+
+      return {
+        dimension: dimIndex,
+        wavePoints,
+        optionalEmbeddingValue: optionalEmbedding 
+          ? normalizeEmbedding(optionalEmbedding)[dimIndex] 
+          : null
+      };
+    });
+  }, [documentVectors, documents, optionalEmbedding]);
+
+  // Determine document colors based on selection and similarities
+  const getDocumentColor = (documentId: string) => {
+    // Check if document is in selectedDocuments
+    const isSelected = selectedDocuments.some(doc => doc._id === documentId);
+    if (isSelected) return 'green';
+
+    // Check for high similarity if optional embedding is provided
+    const highSimilarity = similarities.some(
+      sim => sim.documentId === documentId && sim.similarity > 0.7
+    );
+    if (highSimilarity) return 'blue';
+
+    return 'lightgray';
+  };
 
   return (
-    <div className="bg-white shadow-md rounded-lg overflow-hidden">
-      <div className="p-4 border-b">
-        <h2 className="text-xl font-semibold">Embedding Visualization</h2>
+    <div className="bg-white shadow-md rounded-lg p-4">
+      <h2 className="text-xl font-semibold mb-4">Embedding Wave Visualization</h2>
+      
+      <div className="w-full h-96 overflow-x-auto">
+        <div className="flex flex-col h-full">
+          {waveData.map((wave, waveIndex) => (
+            <div 
+              key={waveIndex} 
+              className="flex items-center h-3 w-full relative"
+            >
+              {wave.wavePoints.map((point) => (
+                <div
+                  key={point.documentId}
+                  className="h-full absolute"
+                  style={{
+                    width: '10px',
+                    left: `${point.value * 100}%`,
+                    backgroundColor: getDocumentColor(point.documentId),
+                    opacity: selectedDocuments.length > 0 
+                      ? (getDocumentColor(point.documentId) === 'green' ? 1 : 0.3)
+                      : (getDocumentColor(point.documentId) === 'lightgray' ? 0.3 : 1)
+                  }}
+                />
+              ))}
+              
+              {wave.optionalEmbeddingValue !== null && (
+                <div 
+                  className="absolute h-full w-1 bg-orange-500"
+                  style={{
+                    left: `${wave.optionalEmbeddingValue * 100}%`,
+                    opacity: 0.7
+                  }}
+                />
+              )}
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="p-4">
-        <div className="flex space-x-2 mb-4">
-          <input 
-            type="text"
-            placeholder="Enter prompt for embedding analysis"
-            className="flex-grow border rounded px-3 py-2"
-            value={searchPrompt}
-            onChange={(e) => setSearchPrompt(e.target.value)}
-          />
-          <button 
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-            onClick={handleAnalyzePrompt}
-          >
-            Analyze Prompt
-          </button>
-        </div>
 
-        {/* Simple line chart representation */}
-        <div className="w-full h-64 border rounded relative">
-          <div className="absolute inset-0 overflow-hidden">
-            {chartData.length > 0 && documents.map((doc, docIndex) => (
-              <div 
-                key={doc._id}
-                className="absolute w-full h-1"
-                style={{
-                  top: `${(docIndex / documents.length) * 100}%`,
-                  backgroundColor: similarDocuments.includes(doc._id) ? 'blue' : 'lightgray',
-                  opacity: similarDocuments.includes(doc._id) ? 1 : 0.5
-                }}
-              />
-            ))}
-            {promptEmbedding && (
-              <div 
-                className="absolute w-full h-2 bg-orange-500"
-                style={{
-                  top: '50%',
-                  opacity: 0.7
-                }}
-              />
-            )}
+      <div className="mt-4">
+        {similarities.length > 0 && (
+          <div>
+            <h3 className="font-semibold">Top Similar Documents:</h3>
+            <ul>
+              {similarities.slice(0, 3).map(sim => {
+                const doc = documents.find(d => d._id === sim.documentId);
+                return (
+                  <li key={sim.documentId} className="text-sm">
+                    {doc?.title} (Similarity: {sim.similarity.toFixed(4)})
+                  </li>
+                );
+              })}
+            </ul>
           </div>
-        </div>
+        )}
+
+        {selectedDocuments.length > 0 && (
+          <div className="mt-2">
+            <h3 className="font-semibold">Selected Documents:</h3>
+            <ul>
+              {selectedDocuments.map(doc => (
+                <li key={doc._id} className="text-sm">
+                  {doc.title}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-export default EmbeddingVisualizer;
+export default EmbeddingWaveVisualizer;

@@ -133,8 +133,9 @@ function projectVectorsTo2D(vectors, options = {}) {
 }
 
 const getProjected2DVectors = async (collectionName) => {
-    const embeddings = await getVectorsByCollectionName(collectionName);
-    return projectVectorsTo2D(embeddings, {gridSize: 100});
+    // const embeddings = await getVectorsByCollectionName(collectionName);
+    // return projectVectorsTo2D(embeddings, {gridSize: 100});
+    return await getVectorsByCollectionName(collectionName);
 }
 
 module.exports = {

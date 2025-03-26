@@ -1,7 +1,7 @@
 import { ADMIN_API } from "@/lib/constants";
 import { SearchResult } from '@/models/Embeddings/SearchResult';
 import { Document } from "@/models/Embeddings/Document";
-import { DocumentVector } from "@/models/Embeddings/DocumentVector";
+import { DocumentEmbedding } from "@/models/Embeddings/DocumentEmbedding";
 
 const fetchDocuments = async (name: string, cookieHeader: string, stateFunction: Function | undefined): Promise<Document[] | undefined> => {
 
@@ -122,7 +122,7 @@ const handleSearch = async (query: string, selectedCollections: string[], cookie
     }
 };
 
-const fetchCollectionVectors = async (collectionName:string, cookieHeader: string) : Promise<DocumentVector[]> => {
+const fetchCollectionVectors = async (collectionName:string, cookieHeader: string) : Promise<DocumentEmbedding[]> => {
     try {
 
         const headers: HeadersInit = cookieHeader
@@ -138,7 +138,7 @@ const fetchCollectionVectors = async (collectionName:string, cookieHeader: strin
         });
 
         if (response.ok) {
-            return response.json();
+            return response.json(); 
         } else {
             const error = await response.json();
             throw new Error(error.message);

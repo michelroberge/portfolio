@@ -1,20 +1,29 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Document } from '@/models/Embeddings/Document';
 
 interface DocumentsViewProps {
   documents: Document[];
   onRegenerateEmbeddings?: (ids: string[]) => Promise<void>;
+  onSelectionChange?: (ids: string[]) => void; // New prop
 }
 
-export const DocumentsView: React.FC<DocumentsViewProps> = ({ 
-  documents, 
-  onRegenerateEmbeddings 
+export const DocumentsView: React.FC<DocumentsViewProps> = ({
+  documents,
+  onRegenerateEmbeddings,
+  onSelectionChange // Add this
 }) => {
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
 
+  // Notify parent component about selection changes
+  useEffect(() => {
+    if (onSelectionChange) {
+      onSelectionChange(selectedDocuments);
+    }
+  }, [selectedDocuments, onSelectionChange]);
+
   const toggleDocumentSelection = (documentId: string) => {
-    setSelectedDocuments(prev => 
+    setSelectedDocuments(prev =>
       prev.includes(documentId)
         ? prev.filter(id => id !== documentId)
         : [...prev, documentId]
@@ -33,7 +42,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       <div className="flex justify-between items-center p-4 border-b">
         <h2 className="text-xl font-semibold">Documents List</h2>
         {selectedDocuments.length > 0 && (
-          <button 
+          <button
             className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
             onClick={handleRegenerateSelected}
           >
@@ -46,13 +55,13 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
           <thead>
             <tr className="bg-gray-100 border-b">
               <th className="p-3 text-left">
-                <input 
+                <input
                   type="checkbox"
                   checked={selectedDocuments.length === documents.length}
-                  onChange={() => 
+                  onChange={() =>
                     setSelectedDocuments(
-                      selectedDocuments.length === documents.length 
-                        ? [] 
+                      selectedDocuments.length === documents.length
+                        ? []
                         : documents.map(doc => doc._id)
                     )
                   }
@@ -66,12 +75,12 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
           </thead>
           <tbody>
             {documents.map((doc) => (
-              <tr 
-                key={doc._id} 
+              <tr
+                key={doc._id}
                 className="hover:bg-gray-50 border-b"
               >
                 <td className="p-3">
-                  <input 
+                  <input
                     type="checkbox"
                     checked={selectedDocuments.includes(doc._id)}
                     onChange={() => toggleDocumentSelection(doc._id)}
@@ -81,16 +90,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                 <td className="p-3">{doc.title}</td>
                 <td className="p-3">{doc.vectorId}</td>
                 <td className="p-3">
-                  {/* <div className="flex flex-wrap gap-1">
-                    {doc.metadata.map((tag) => (
-                      <span 
-                        key={tag} 
-                        className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div> */}
+                  {/* Optional tags rendering */}
                 </td>
               </tr>
             ))}
@@ -101,4 +101,4 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
   );
 };
 
-export default DocumentsView;
+export default DocumentsView; 

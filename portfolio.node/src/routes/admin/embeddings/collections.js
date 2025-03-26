@@ -32,8 +32,7 @@ router.get("/:collectionName/vectors", async (req, res) => {
     const collectionName = req.params.collectionName;
     try {
       const projectedVectors = await getProjected2DVectors(collectionName);
-    console.log(`projectedVectors`, projectedVectors);
-      res.json({ vectors: projectedVectors });
+      res.json(projectedVectors);
     }
     catch(error){
       console.error(`Error fetching collection ${collectionName}:`, error);

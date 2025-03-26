@@ -148,34 +148,46 @@ async function getVectorsByCollectionName(collectionName) {
     try {
         let vectors = [];
         let offset = 0;
-        const limit = 1000;
 
         while (true) {
             const scrollResponse = await qdrantClient.scroll(collectionName, {
                 offset: offset,
-                with_payload: false,
+                with_payload: true,  // Keep payload to get point ID
                 with_vector: true
             });
 
-            // Flatten the vectors extraction
-            const collectionVectors = scrollResponse.points.map(point => {
-                // Ensure we're getting a single-level array of numbers
-                return Array.isArray(point.vector) 
-                    ? (Array.isArray(point.vector[0]) 
-                        ? point.vector[0]  // If nested, take first level
-                        : point.vector)    // If already flat, use as-is
-                    : point.vector;        // Fallback
-            }).filter(vector => Array.isArray(vector)); // Ensure only array vectors
+            // Map points to vector objects with ID and embedding
+            const collectionVectors = scrollResponse.points
+                .map(point => {
+                    // Normalize vector extraction
+                    const embedding = Array.isArray(point.vector)
+                        ? (Array.isArray(point.vector[0])
+                            ? point.vector[0]  // If nested, take first level
+                            : point.vector)    // If already flat, use as-is
+                        : point.vector;        // Fallback
+
+                    // Ensure embedding is an array and has 4096 elements
+                    if (!Array.isArray(embedding) || embedding.length !== 4096) {
+                        return null;
+                    }
+
+                    return {
+                        vectorId: point.id,
+                        embedding: embedding
+                    };
+                })
+                .filter(vector => vector !== null);
 
             vectors = [...vectors, ...collectionVectors];
 
-            // Qdrant might not support limit in scroll, so check points length
+            // Break if no more vectors
             if (collectionVectors.length === 0) {
                 break;
             }
 
             offset += collectionVectors.length;
         }
+
         return vectors;
     } catch (error) {
         console.error(`Error retrieving vectors for collection ${collectionName}:`, error);
