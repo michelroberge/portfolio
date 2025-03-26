@@ -1,10 +1,8 @@
+"use client"
+
 import React, { useMemo } from 'react';
 import { Document } from '@/models/Embeddings/Document';
-
-interface DocumentVector {
-  vectorId: number;
-  vector: number[];
-}
+import { DocumentVector } from '@/models/Embeddings/DocumentVector';
 
 interface EmbeddingComparisonViewProps {
   documents: Document[];
@@ -30,10 +28,10 @@ export const EmbeddingComparisonView: React.FC<EmbeddingComparisonViewProps> = (
 }) => {
   const similarityMatrix = useMemo(() => {
     return documents.map((rowDoc, rowIndex) => {
-      const rowVector = documentVectors.find(v => v.vectorId === rowDoc.vectorId)?.vector;
+      const rowVector = Array.isArray(documentVectors) && documentVectors.find(v => v.vectorId === rowDoc.vectorId)?.vector;
       
       return documents.map((colDoc, colIndex) => {
-        const colVector = documentVectors.find(v => v.vectorId === colDoc.vectorId)?.vector;
+        const colVector = Array.isArray(documentVectors) && documentVectors.find(v => v.vectorId === colDoc.vectorId)?.vector;
         
         if (!rowVector || !colVector) return 0;
         
@@ -65,7 +63,7 @@ export const EmbeddingComparisonView: React.FC<EmbeddingComparisonViewProps> = (
 
           {/* Similarity Matrix */}
           {similarityMatrix.map((row, rowIndex) => (
-            <React.Fragment key={documents[rowIndex].id}>
+            <React.Fragment key={documents[rowIndex]._id}>
               <div className="text-xs text-right pr-2 truncate p-1">
                 {documents[rowIndex]._id}
               </div>

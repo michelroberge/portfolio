@@ -4,6 +4,9 @@ import Link from 'next/link';
 
 import embeddingService from "@/services/embeddingService";
 import EmbeddingVisualizer from "@/components/admin/embeddings/EmbeddingVisualizer";
+import DocumentsView from "@/components/admin/embeddings/DocumentView";
+import EmbeddingComparisonView from "@/components/admin/embeddings/EmbeddingComparisonView";
+import EmbeddingsMetadataView from "@/components/admin/embeddings/EmbeddingMetadataView";
 
 interface Props {
   params: { name: string };

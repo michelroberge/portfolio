@@ -9,6 +9,7 @@ export interface Document {
     vectorId?: number;
     embedding: Embedding;
     metadata?: Record<string, unknown>;
+    tags?: string[]; 
   };
 
   

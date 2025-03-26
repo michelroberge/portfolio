@@ -1,3 +1,4 @@
+"use client"
 import React, { useState } from 'react';
 import { Document } from '@/models/Embeddings/Document';
 import { DocumentVector } from '@/models/Embeddings/DocumentVector';
@@ -52,7 +53,7 @@ export const EmbeddingVisualizer: React.FC<EmbeddingVisualizerProps> = ({
     Array.from({ length: 4096 }, (_, dimIndex) => ({
       dimension: dimIndex,
       ...Object.fromEntries(
-        documents.map((doc, index) => [doc._id, documentVectors[index].vector[dimIndex]])
+        documents.map((doc, index) => [doc._id, documentVectors[index]?.vector[dimIndex]])
       ),
       promptEmbedding: promptEmbedding ? promptEmbedding[dimIndex] : null
     })) : 
