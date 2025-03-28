@@ -36,13 +36,13 @@ export const EmbeddingsMetadataView: React.FC<EmbeddingsMetadataViewProps> = ({
                 </span>
               ))}
             </div>
-            {doc.tags && Object.entries(doc.tags)
+            {/* {doc.tags && Object.entries(doc.tags)
               .filter(([key]) => key !== 'tags')
               .map(([key, value]) => (
                 <div key={key} className="text-sm text-gray-600 mt-1">
                   <strong>{key}:</strong> {JSON.stringify(value)}
                 </div>
-              ))}
+              ))} */}
           </div>
         ))}
       </div>

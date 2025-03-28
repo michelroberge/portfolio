@@ -19,7 +19,13 @@ const fetchDocuments = async (name: string, cookieHeader: string, stateFunction:
 
         if (response.ok) {
             const data = await response.json();
-            return data;
+            
+            const documentsWithEditLinks = data.map((doc: { _id: string; }) => ({
+                ...doc,
+                editLink: getEditLink(name, doc._id)
+            }));
+            return documentsWithEditLinks;
+
         } else {
             console.error('Failed to fetch documents');
             return [];
@@ -31,6 +37,19 @@ const fetchDocuments = async (name: string, cookieHeader: string, stateFunction:
         stateFunction && stateFunction(false);
     }
 };
+
+function getEditLink(collectionName: string, docId: string): string {
+    switch (collectionName) {
+        case 'pages':
+            return `/admin/pages/edit/${docId}`;
+        case 'projects':
+            return `/admin/projects/edit/${docId}`;
+        case 'blogentries':
+            return `/admin/blogs/edit/${docId}`;
+        default:
+            return `/admin/${collectionName}/edit/${docId}`;
+    }
+}
 
 const fetchCollections = async (cookieHeader: string) => {
     try {

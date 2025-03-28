@@ -27,4 +27,9 @@ BlogEntrySchema.pre('save', async function(next) {
   next();
 });
 
+BlogEntrySchema.post('find', function(docs) {
+  docs.forEach(doc => {
+    doc.editLink = `/admin/blogs/${doc._id}`;
+  });
+});
 module.exports = mongoose.model("BlogEntry", BlogEntrySchema);

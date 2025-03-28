@@ -4,6 +4,7 @@ export interface Document {
     _id: string;
     title: string;
     collection: string;
+    editLink: string;
     slug?: string;
     content?: string;
     vectorId?: number;

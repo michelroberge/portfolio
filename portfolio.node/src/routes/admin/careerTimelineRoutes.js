@@ -1,12 +1,30 @@
 const express = require("express");
 const CareerTimeline = require("../../models/CareerTimeline");
 const router = express.Router();
-const isAuth = require("../../middlewares/auth");
-const isAdmin = require("../../middlewares/admin");
 const cheerio = require("cheerio");
+const {generateEmbeddings} = require("../../services/embeddingService");
+const {storeEmbedding} = require("../../services/qdrantService");
+const counterService = require("../../services/counterService");
+
+router.post("/refresh-embeddings", async(req, res) => {
+
+      const careerEntries = await CareerTimeline.find();
+      const collectionName = CareerTimeline.collection.collectionName;
+
+      for (const entry of careerEntries) {
+        if ( ! entry.vectorId ){
+          entry.vectorId = await counterService.getNextVectorId("career_vectorid");
+          await entry.save();
+        }
+          const embeddings = await generateEmbeddings(JSON.stringify(entry));
+          await storeEmbedding(collectionName, entry.vectorId, embeddings, { tags: ["job", "career", "experience"] } );
+
+      }
+      res.status(201);
+});
 
 // GET all career timeline entries
-router.get("/timeline", isAuth, isAdmin, async (req, res) => {
+router.get("/timeline", async (req, res) => {
   try {
     const entries = await CareerTimeline.find().sort({ startDate: -1 });
     res.json(entries);
@@ -16,7 +34,7 @@ router.get("/timeline", isAuth, isAdmin, async (req, res) => {
 });
 
 // GET a single timeline entry
-router.get("/timeline/:id", isAuth, isAdmin, async (req, res) => {
+router.get("/timeline/:id", async (req, res) => {
   try {
     const entry = await CareerTimeline.findById(req.params.id);
     if (!entry) return res.status(404).json({ error: "Entry not found." });
@@ -27,18 +45,20 @@ router.get("/timeline/:id", isAuth, isAdmin, async (req, res) => {
 });
 
 // CREATE a new career timeline entry
-router.post("/timeline", isAuth, isAdmin, async (req, res) => {
+router.post("/timeline", async (req, res) => {
   try {
     const newEntry = new CareerTimeline(req.body);
+
     const savedEntry = await newEntry.save();
     res.status(201).json(savedEntry);
   } catch (error) {
+    console.error(error);
     res.status(400).json({ error: "Invalid data." });
   }
 });
 
 // UPDATE an existing entry
-router.put("/timeline/:id", isAuth, isAdmin, async (req, res) => {
+router.put("/timeline/:id", async (req, res) => {
   try {
     const updatedEntry = await CareerTimeline.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!updatedEntry) return res.status(404).json({ error: "Entry not found." });
@@ -49,7 +69,7 @@ router.put("/timeline/:id", isAuth, isAdmin, async (req, res) => {
 });
 
 // DELETE an entry
-router.delete("/timeline/:id", isAuth, isAdmin, async (req, res) => {
+router.delete("/timeline/:id", async (req, res) => {
   try {
     const deletedEntry = await CareerTimeline.findByIdAndDelete(req.params.id);
     if (!deletedEntry) return res.status(404).json({ error: "Entry not found." });
@@ -60,7 +80,7 @@ router.delete("/timeline/:id", isAuth, isAdmin, async (req, res) => {
 });
 
 // API to parse LinkedIn HTML
-router.post("/parse-linkedin", isAuth, isAdmin, async (req, res) => {
+router.post("/parse-linkedin", async (req, res) => {
   try {
     const { rawHTML } = req.body;
     if (!rawHTML) return res.status(400).json({ error: "No HTML provided" });
@@ -130,7 +150,7 @@ function parseDate(dateStr) {
 }
 
 // Bulk insert parsed jobs into the database
-router.post("/timeline/bulk", isAuth, isAdmin, async (req, res) => {
+router.post("/timeline/bulk", async (req, res) => {
   try {
     const entries = req.body.map((entry) => ({
       title: entry.title,

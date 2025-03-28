@@ -33,7 +33,11 @@ async function ensureCollection(collection){
         });
         console.log(`✅ Collection "${collection}" created.`);
     } catch (error) {
-        console.error(`! Cannot create collection "${collection}":`, error.message);
+        if (/Conflict/i.test(error.message)) {
+            // conflicts mean already exist
+        } else {
+            console.error(`! Cannot create collection "${collection}":`, error.message);
+        }
     }
 }
 
@@ -145,6 +149,7 @@ async function dropCollection(collection) {
 }
 
 async function getVectorsByCollectionName(collectionName) {
+    await ensureCollection(collectionName);
     try {
         let vectors = [];
         let offset = 0;

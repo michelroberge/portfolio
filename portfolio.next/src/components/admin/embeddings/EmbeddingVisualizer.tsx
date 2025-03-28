@@ -20,14 +20,14 @@ interface EmbeddingWaveVisualizerProps {
   documents: Document[];
   documentVectors: DocumentEmbedding[];
   optionalEmbedding?: number[];
-  selectedDocuments?: Document[]; // New prop for selected documents
+  selectedDocuments?: Document[];
 }
 
 export const EmbeddingWaveVisualizer: React.FC<EmbeddingWaveVisualizerProps> = ({ 
   documents,
   documentVectors,
   optionalEmbedding,
-  selectedDocuments = [] // Default to empty array
+  selectedDocuments = []
 }) => {
   // Normalize embeddings to a common scale
   const normalizeEmbedding = (embedding: number[]) => {
@@ -51,7 +51,7 @@ export const EmbeddingWaveVisualizer: React.FC<EmbeddingWaveVisualizerProps> = (
     if (documentVectors.length === 0) return [];
 
     // Take the first 100 dimensions for visualization (to keep it readable)
-    const dimensionCount = 100;
+    const dimensionCount = 256;
 
     return Array.from({ length: dimensionCount }, (_, dimIndex) => {
       const wavePoints = documentVectors.map((docVector, docIndex) => ({
@@ -71,69 +71,77 @@ export const EmbeddingWaveVisualizer: React.FC<EmbeddingWaveVisualizerProps> = (
 
   // Determine document colors based on selection and similarities
   const getDocumentColor = (documentId: string) => {
-    // Check if document is in selectedDocuments
     const isSelected = selectedDocuments.some(doc => doc._id === documentId);
-    if (isSelected) return 'green';
+    if (isSelected) return 'bg-green-500';
 
-    // Check for high similarity if optional embedding is provided
     const highSimilarity = similarities.some(
       sim => sim.documentId === documentId && sim.similarity > 0.7
     );
-    if (highSimilarity) return 'blue';
+    if (highSimilarity) return 'bg-blue-500';
 
-    return 'lightgray';
+    return 'bg-gray-200';
   };
 
   return (
     <div className="bg-white shadow-md rounded-lg p-4">
       <h2 className="text-xl font-semibold mb-4">Embedding Wave Visualization</h2>
       
-      <div className="w-full h-96 overflow-x-auto">
-        <div className="flex flex-col h-full">
+      <div className="w-full h-64 relative">
+        <div className="absolute inset-0 flex">
           {waveData.map((wave, waveIndex) => (
-            <div 
-              key={waveIndex} 
-              className="flex items-center h-3 w-full relative"
+            <div key={waveIndex} 
+              className="flex-1 relative"
             >
               {wave.wavePoints.map((point) => (
                 <div
                   key={point.documentId}
-                  className="h-full absolute"
+                  className="absolute w-full"
                   style={{
-                    width: '10px',
-                    left: `${point.value * 100}%`,
-                    backgroundColor: getDocumentColor(point.documentId),
+                    height: '4px',
+                    bottom: `${point.value * 100}%`,
                     opacity: selectedDocuments.length > 0 
-                      ? (getDocumentColor(point.documentId) === 'green' ? 1 : 0.3)
-                      : (getDocumentColor(point.documentId) === 'lightgray' ? 0.3 : 1)
+                      ? (getDocumentColor(point.documentId).includes('green') ? 1 : 0.3)
+                      : (getDocumentColor(point.documentId).includes('gray') ? 0.3 : 1)
                   }}
-                />
+                >
+                  <div 
+                    className={`h-full ${getDocumentColor(point.documentId)} rounded-full`}
+                  />
+                </div>
               ))}
               
               {wave.optionalEmbeddingValue !== null && (
                 <div 
-                  className="absolute h-full w-1 bg-orange-500"
+                  className="absolute w-full"
                   style={{
-                    left: `${wave.optionalEmbeddingValue * 100}%`,
-                    opacity: 0.7
+                    height: '2px',
+                    bottom: `${wave.optionalEmbeddingValue * 100}%`,
                   }}
-                />
+                >
+                  <div className="h-full bg-orange-500 rounded-full opacity-70" />
+                </div>
               )}
             </div>
           ))}
         </div>
       </div>
 
-      <div className="mt-4">
+      <div className="mt-4 grid grid-cols-2 gap-4">
         {similarities.length > 0 && (
           <div>
-            <h3 className="font-semibold">Top Similar Documents:</h3>
-            <ul>
+            <h3 className="font-semibold mb-2">Top Similar Documents:</h3>
+            <ul className="space-y-1">
               {similarities.slice(0, 3).map(sim => {
                 const doc = documents.find(d => d._id === sim.documentId);
                 return (
-                  <li key={sim.documentId} className="text-sm">
-                    {doc?.title} (Similarity: {sim.similarity.toFixed(4)})
+                  <li 
+                    key={sim.documentId} 
+                    className="text-sm flex justify-between"
+                  >
+                    <span className="truncate">{doc?.title}</span>
+                    <span className="text-gray-500 ml-2">
+                      {sim.similarity.toFixed(4)}
+                    </span>
                   </li>
                 );
               })}
@@ -142,11 +150,14 @@ export const EmbeddingWaveVisualizer: React.FC<EmbeddingWaveVisualizerProps> = (
         )}
 
         {selectedDocuments.length > 0 && (
-          <div className="mt-2">
-            <h3 className="font-semibold">Selected Documents:</h3>
-            <ul>
+          <div>
+            <h3 className="font-semibold mb-2">Selected Documents:</h3>
+            <ul className="space-y-1">
               {selectedDocuments.map(doc => (
-                <li key={doc._id} className="text-sm">
+                <li 
+                  key={doc._id} 
+                  className="text-sm truncate"
+                >
                   {doc.title}
                 </li>
               ))}

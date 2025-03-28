@@ -12,7 +12,7 @@ export interface BaseCareerEntry {
 }
 
 export interface CareerEntry extends BaseCareerEntry {
-  _id: string;
+  _id: string | undefined;
   type: 'job' | 'education' | 'certification';
   order?: number;
   createdAt: string;

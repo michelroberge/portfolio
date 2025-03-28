@@ -56,7 +56,7 @@ export const CollectionPageClient: React.FC<CollectionPageClientProps> = ({
             />
           </>
         )}
-        <EmbeddingsMetadataView documents={documents} />
+        {/* <EmbeddingsMetadataView documents={documents} /> */}
       </div>
     </div>
   );

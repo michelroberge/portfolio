@@ -71,6 +71,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
               <th className="p-3 text-left">Title</th>
               <th className="p-3 text-left">Vector ID</th>
               <th className="p-3 text-left">Tags</th>
+              <th className="p-3 text-left">Edit</th>
             </tr>
           </thead>
           <tbody>
@@ -89,9 +90,18 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                 <td className="p-3">{doc._id}</td>
                 <td className="p-3">{doc.title}</td>
                 <td className="p-3">{doc.vectorId}</td>
-                <td className="p-3">
-                  {/* Optional tags rendering */}
+                <td className="p-3 flex gap-2">
+                {doc.tags?.map((tag, i) => (
+                  <span
+                    key={i}
+                    className="px-2 py-1 bg-gray-100 text-sm rounded-full"
+                  >
+                    {tag}
+                  </span>
+                ))}
+
                 </td>
+                <td className="p-3"><a href={doc.editLink}>Edit</a></td>
               </tr>
             ))}
           </tbody>

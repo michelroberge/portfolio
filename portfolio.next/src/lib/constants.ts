@@ -76,6 +76,7 @@ export const ADMIN_API = {
     archive: (id: string) => `${REMOTE_URL}${API_BASE}/admin/projects/${id}/archive`,
   },
   career: {
+    regenerate: `${REMOTE_URL}${API_BASE}/admin/career/refresh-embeddings`,
     list: `${REMOTE_URL}${API_BASE}/admin/career/timeline`,
     get: (id: string) => `${REMOTE_URL}${API_BASE}/admin/career/timeline/${id}`,
     create: `${REMOTE_URL}${API_BASE}/admin/career/timeline`,

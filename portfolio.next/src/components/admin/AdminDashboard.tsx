@@ -2,96 +2,35 @@ import Link from "next/link";
 
 export default function AdminDashboard() {
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <h1 className="text-4xl font-semibold mb-4">Admin Dashboard</h1>
-      <p className="text-gray-600 mb-8">
+    <div className="p-8 max-w-5xl mx-auto bg-default text-default">
+      <h1 className="text-4xl font-semibold mb-4 text-primary">Admin Dashboard</h1>
+      <p className="text-secondary mb-8">
         Welcome to the admin panel. Use the options below to manage your site.
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Link
-          href="/admin/blogs"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">Manage Blogs</h2>
-          <p className="text-sm text-gray-500">Edit, create, and manage blog posts</p>
-        </Link>
-        <Link
-          href="/admin/projects"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">Manage Projects</h2>
-          <p className="text-sm text-gray-500">Edit, create, and manage projects</p>
-        </Link>
-        <Link
-          href="/admin/comments"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">Manage Comments</h2>
-          <p className="text-sm text-gray-500">Review and moderate user comments</p>
-        </Link>
-        <Link
-          href="/admin/analytics"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">Analytics Dashboard</h2>
-          <p className="text-sm text-gray-500">View site metrics and performance data</p>
-        </Link>
-        <Link
-          href="/admin/settings/provider-config"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">OAuth Provider Config</h2>
-          <p className="text-sm text-gray-500">Configure external identity providers</p>
-        </Link>
-        <Link
-          href="/admin/users"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">Manage Users</h2>
-          <p className="text-sm text-gray-500">Edit, create and manage users</p>
-        </Link>
-        <Link 
-          href="/admin/settings/ai-model"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">AI Model</h2>
-          <p className="text-sm text-gray-500">Configure Artificial Intelligence Model</p>
-        </Link>
-        <Link 
-          href="/admin/files"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">Global Files</h2>
-          <p className="text-sm text-gray-500">Manage the global files to include in context</p>
-        </Link>
-        <Link 
-          href="/admin/career"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">Manage Timeline</h2>
-          <p className="text-sm text-gray-500">Add and update events on your timeline.</p>
-        </Link>
-        <Link 
-          href="/admin/pages"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">Manage Custom Pages</h2>
-          <p className="text-sm text-gray-500">Add and update Pages.</p>
-        </Link>
-        <Link
-          href="/admin/embeddings"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">Refresh Embeddings</h2>
-          <p className="text-sm text-gray-500">Reset and update AI embeddings for blogs, projects, and files</p>
-        </Link>
-        <Link
-          href="/admin/prompts"
-          className="block p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-lg font-medium text-gray-800">Tune prompts</h2>
-          <p className="text-sm text-gray-500">Fine tune all prompts</p>
-        </Link>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 ">
+        {[
+          { href: "/admin/blogs", title: "Manage Blogs", description: "Edit, create, and manage blog posts" },
+          { href: "/admin/projects", title: "Manage Projects", description: "Edit, create, and manage projects" },
+          { href: "/admin/comments", title: "Manage Comments", description: "Review and moderate user comments" },
+          { href: "/admin/analytics", title: "Analytics Dashboard", description: "View site metrics and performance data" },
+          { href: "/admin/settings/provider-config", title: "OAuth Provider Config", description: "Configure external identity providers" },
+          { href: "/admin/users", title: "Manage Users", description: "Edit, create and manage users" },
+          { href: "/admin/settings/ai-model", title: "AI Model", description: "Configure Artificial Intelligence Model" },
+          { href: "/admin/files", title: "Global Files", description: "Manage the global files to include in context" },
+          { href: "/admin/career", title: "Manage Timeline", description: "Add and update events on your timeline." },
+          { href: "/admin/pages", title: "Manage Custom Pages", description: "Add and update Pages." },
+          { href: "/admin/embeddings", title: "Refresh Embeddings", description: "Reset and update AI embeddings for blogs, projects, and files" },
+          { href: "/admin/prompts", title: "Tune prompts", description: "Fine tune all prompts" }
+        ].map(({ href, title, description }) => (
+          <Link
+            key={href}
+            href={href}
+            className="block p-4 border border-gray-200 dark:border-gray-700 transition rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+          >
+            <h2 className="text-lg font-medium text-primary">{title}</h2>
+            <p className="text-sm text-secondary">{description}</p>
+          </Link>
+        ))}
       </div>
     </div>
   );
