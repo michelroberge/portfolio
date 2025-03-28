@@ -1,3 +1,5 @@
+// TODO : split routes and service
+
 const express = require("express");
 const CareerTimeline = require("../../models/CareerTimeline");
 const router = express.Router();

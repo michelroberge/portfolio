@@ -57,21 +57,21 @@ export default function EditPrompt({ initialPrompt, header }: EditPromptProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+      <div className="block p-4 border border-gray-200 dark:border-gray-700 transition rounded-lg dark:hover:bg-gray-700">
+        <label className="block text-sm font-medium ">
           Title
         </label>
         <input
           type="text"
           value={formData.name}
           onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800 px-2 py-1"
           required
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+        <label className="block text-sm font-medium">
           Template
         </label>
         <MarkdownEditor
@@ -81,14 +81,14 @@ export default function EditPrompt({ initialPrompt, header }: EditPromptProps) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+        <label className="block text-sm font-medium">
           Tags (comma-separated)
         </label>
         <input
           type="text"
           value={formData.parameters.join(', ')}
           onChange={handleParametersChange}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800 px-2 py-1"
         />
       </div>
 
