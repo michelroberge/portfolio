@@ -57,7 +57,7 @@ export default function PromptsList({ initialPrompts = [], cookieHeader }: Promp
 
       <div className="grid gap-4">
         {prompts.map((prompt) => (
-          <div key={prompt._id} className="bg-white p-4 rounded-lg shadow">
+          <div key={prompt._id} className="block p-4 border border-gray-200 dark:border-gray-700 transition rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="text-lg font-medium">{prompt.name}</h3>

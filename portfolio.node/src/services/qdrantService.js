@@ -33,7 +33,11 @@ async function ensureCollection(collection){
         });
         console.log(`✅ Collection "${collection}" created.`);
     } catch (error) {
-        console.error(`! Cannot create collection "${collection}":`, error.message);
+        if (/Conflict/i.test(error.message)) {
+            // conflicts mean already exist
+        } else {
+            console.error(`! Cannot create collection "${collection}":`, error.message);
+        }
     }
 }
 
@@ -144,10 +148,63 @@ async function dropCollection(collection) {
     }
 }
 
+async function getVectorsByCollectionName(collectionName) {
+    await ensureCollection(collectionName);
+    try {
+        let vectors = [];
+        let offset = 0;
+
+        while (true) {
+            const scrollResponse = await qdrantClient.scroll(collectionName, {
+                offset: offset,
+                with_payload: true,  // Keep payload to get point ID
+                with_vector: true
+            });
+
+            // Map points to vector objects with ID and embedding
+            const collectionVectors = scrollResponse.points
+                .map(point => {
+                    // Normalize vector extraction
+                    const embedding = Array.isArray(point.vector)
+                        ? (Array.isArray(point.vector[0])
+                            ? point.vector[0]  // If nested, take first level
+                            : point.vector)    // If already flat, use as-is
+                        : point.vector;        // Fallback
+
+                    // Ensure embedding is an array and has 4096 elements
+                    if (!Array.isArray(embedding) || embedding.length !== 4096) {
+                        return null;
+                    }
+
+                    return {
+                        vectorId: point.id,
+                        embedding: embedding
+                    };
+                })
+                .filter(vector => vector !== null);
+
+            vectors = [...vectors, ...collectionVectors];
+
+            // Break if no more vectors
+            if (collectionVectors.length === 0) {
+                break;
+            }
+
+            offset += collectionVectors.length;
+        }
+
+        return vectors;
+    } catch (error) {
+        console.error(`Error retrieving vectors for collection ${collectionName}:`, error);
+        throw error;
+    }
+}
+
 module.exports = {
     initCollection,
     storeEmbedding,
     searchQdrant,
     deleteEmbedding,
     dropCollection,
+    getVectorsByCollectionName,
 };

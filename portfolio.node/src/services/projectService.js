@@ -149,6 +149,36 @@ async function initializeProjectEmbeddings() {
     }
 }
 
+/**
+ * generic find with optional filters.
+ * @param {Object} [filter={}] - MongoDB filter object
+ * @returns {Promise<Object>} List of blogs
+ */
+async function findOne(filter = {}) {
+    return Project.findOne(filter);
+}
+
+/**
+ * generic find with optional filters.
+ * @param {Object} [filter={}] - MongoDB filter object
+ * @returns {Promise<Array>} List of blogs
+ */
+async function find(filter = {}) {
+    return Project.find(filter);
+}
+
+
+async function getSearchResultByVectorId(filter){
+    const project = await findOne(filter);
+    return {
+        _id: project._id,
+        title: project.title,
+        link: project.link,
+        excerpt: project.excerpt,
+        type: 'project',
+    };
+}
+
 module.exports = {
     createProject,
     updateProject,
@@ -158,5 +188,8 @@ module.exports = {
     updateProjectEmbeddings,
     refreshProjectEmbeddings,
     searchProjects,
-    initializeProjectEmbeddings
+    initializeProjectEmbeddings,
+    find,
+    findOne,
+    getSearchResultByVectorId
 };

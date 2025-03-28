@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CareerEntry } from "@/models/CareerEntry";
-import { fetchCareerTimeline, deleteCareerEntry } from "@/services/careerService";
+import { fetchCareerTimeline, deleteCareerEntry, refreshEmbeddings } from "@/services/careerService";
 
 interface CareerTimelineManagerProps {
   initialTimeline?: CareerEntry[];
@@ -42,6 +42,10 @@ export default function CareerTimelineManager({ initialTimeline = [], cookieHead
     }
   }
 
+  async function handleRegenerate(){
+    await refreshEmbeddings(cookieHeader || "");
+  }
+
   if (error) return <div className="text-red-500">Error: {error}</div>;
 
   return (
@@ -51,11 +55,14 @@ export default function CareerTimelineManager({ initialTimeline = [], cookieHead
         <Link href="/admin/career/new" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
           + Add Entry
         </Link>
+        <button onClick={() => handleRegenerate()} className="btn button text-blue-500 hover:text-blue-600">
+          Regenerate Embeddings
+        </button>
       </div>
 
       <div className="space-y-4">
         {timeline.map((entry) => (
-          <div key={entry._id} className="bg-white p-4 rounded-lg shadow">
+          <div key={entry._id} className="border border-gray-200 dark:border-gray-700 transition rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 p-4">
             <h2 className="text-xl font-semibold mb-2">{entry.title}</h2>
             <p className="text-gray-600 mb-2">{entry.company || "-"}</p>
             <p className="text-sm text-gray-500 mb-4">

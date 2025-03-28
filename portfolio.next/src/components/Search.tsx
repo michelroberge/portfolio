@@ -29,7 +29,8 @@ export default function Search() {
                 <a href={result.link} className="text-blue-500 hover:underline">
                   {result.title} ({result.type})
                 </a>
-                <p className="text-gray-600 text-sm">{result.description}</p>
+                <p className="text-gray-600 text-sm">{result.excerpt}</p>
+                <b>{result.score}</b>
               </li>
             ))}
           </ul>

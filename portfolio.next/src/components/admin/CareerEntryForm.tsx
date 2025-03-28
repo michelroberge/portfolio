@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { fetchCareerEntry, saveCareerEntry } from "@/services/careerService";
-import { type CareerEntry } from "@/models/CareerEntry";
+import { type CareerEntry, type CareerEntryCreate } from "@/models/CareerEntry";
 
 interface CareerEntryFormProps {
   initialId?: string;
@@ -11,7 +11,7 @@ interface CareerEntryFormProps {
 
 export default function CareerEntryForm({ initialId }: CareerEntryFormProps) {
   const router = useRouter();
-  const [entry, setEntry] = useState<CareerEntry>({
+  const [entry, setEntry] = useState<CareerEntry | CareerEntryCreate>({
     title: "",
     company: "",
     startDate: "",
@@ -32,7 +32,20 @@ export default function CareerEntryForm({ initialId }: CareerEntryFormProps) {
   useEffect(() => {
     async function loadData() {
       try {
-        if (initialId) {
+        if (initialId == 'new') {
+          const newEntry: CareerEntryCreate = {
+            title: '',
+            company: '',
+            location: '',
+            description: '',
+            startDate: '',
+            endDate: null,
+            skills: [],
+            type: 'job',             
+          };
+          setEntry(newEntry);
+        }
+        else if(initialId){
           const existingEntry = await fetchCareerEntry(initialId);
           if (existingEntry) {
             setEntry({
@@ -72,7 +85,7 @@ export default function CareerEntryForm({ initialId }: CareerEntryFormProps) {
           placeholder="Title"
           value={entry.title}
           onChange={(e) => setEntry({ ...entry, title: e.target.value })}
-          className="w-full p-2 border rounded"
+          className="w-full p-2 border rounded text-gray-700"
           required
         />
         <input
@@ -80,33 +93,33 @@ export default function CareerEntryForm({ initialId }: CareerEntryFormProps) {
           placeholder="Company"
           value={entry.company || ""}
           onChange={(e) => setEntry({ ...entry, company: e.target.value })}
-          className="w-full p-2 border rounded"
+          className="w-full p-2 border rounded text-gray-700"
         />
         <input
           type="date"
           value={entry.startDate}
           onChange={(e) => setEntry({ ...entry, startDate: e.target.value })}
-          className="w-full p-2 border rounded"
+          className="w-full p-2 border rounded text-gray-700"
           required
         />
         <input
           type="date"
           value={entry.endDate || ""}
           onChange={(e) => setEntry({ ...entry, endDate: e.target.value || null })}
-          className="w-full p-2 border rounded"
+          className="w-full p-2 border rounded text-gray-700"
         />
         <textarea
           placeholder="Description"
           value={entry.description || ""}
           onChange={(e) => setEntry({ ...entry, description: e.target.value })}
-          className="w-full p-2 border rounded"
+          className="w-full p-2 border rounded text-gray-700"
         />
         <input
           type="text"
           placeholder="Skills (comma-separated)"
           value={entry.skills.join(", ")}
           onChange={(e) => setEntry({ ...entry, skills: e.target.value.split(",").map((s) => s.trim()) })}
-          className="w-full p-2 border rounded"
+          className="w-full p-2 border rounded text-gray-700"
         />
 
         <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">

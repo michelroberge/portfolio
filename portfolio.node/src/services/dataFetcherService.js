@@ -3,18 +3,23 @@ const Project = require("../models/Project");
 const BlogEntry = require("../models/BlogEntry");
 const Page = require("../models/Page");
 const CareerTimeline = require("../models/CareerTimeline");
+const BookChapter = require("../models/BookChapter");
+
 const { extractMetadataFromQuery } = require("../utils/queryUtils"); // Optional metadata extraction
 
 const COLLECTION_NAMES = {
     projects: Project.collection.collectionName,
     blogs: BlogEntry.collection.collectionName,
-    pages: Page.collection.collectionName
+    pages: Page.collection.collectionName,
+    jobs: CareerTimeline.collection.collectionName,
+    books: BookChapter.collection.collectionName,
 };
 
 const collectionOrder = {
-    "project_search": [COLLECTION_NAMES.projects, COLLECTION_NAMES.blogs, "files", COLLECTION_NAMES.pages],
-    "blog_lookup": [COLLECTION_NAMES.blogs, COLLECTION_NAMES.projects, COLLECTION_NAMES.pages, "files"],
-    "general_knowledge": [COLLECTION_NAMES.pages, COLLECTION_NAMES.blogs, COLLECTION_NAMES.projects, "files"]
+    "project_search": [COLLECTION_NAMES.projects, COLLECTION_NAMES.blogs, COLLECTION_NAMES.jobs, "files", COLLECTION_NAMES.pages],
+    "blog_lookup": [COLLECTION_NAMES.blogs, COLLECTION_NAMES.projects, COLLECTION_NAMES.jobs, COLLECTION_NAMES.pages, "files"],
+    "professional_lookup": [COLLECTION_NAMES.jobs, COLLECTION_NAMES.projects,COLLECTION_NAMES.blogs, COLLECTION_NAMES.pages, "files"],
+    "general_knowledge": [COLLECTION_NAMES.pages, COLLECTION_NAMES.jobs, COLLECTION_NAMES.blogs, COLLECTION_NAMES.projects, "files"]
 };
 
 /**

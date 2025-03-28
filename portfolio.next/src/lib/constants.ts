@@ -58,6 +58,7 @@ export const AUTH_API = {
 
 // Admin API endpoints (require authentication and admin role)
 export const ADMIN_API = {
+  base: `${REMOTE_URL}${API_BASE}/admin`,
   blog: {
     list:  `${REMOTE_URL}${API_BASE}/admin/blogs`,
     get: (id: string) => `${REMOTE_URL}${API_BASE}/admin/blogs/${id}`,
@@ -75,6 +76,7 @@ export const ADMIN_API = {
     archive: (id: string) => `${REMOTE_URL}${API_BASE}/admin/projects/${id}/archive`,
   },
   career: {
+    regenerate: `${REMOTE_URL}${API_BASE}/admin/career/refresh-embeddings`,
     list: `${REMOTE_URL}${API_BASE}/admin/career/timeline`,
     get: (id: string) => `${REMOTE_URL}${API_BASE}/admin/career/timeline/${id}`,
     create: `${REMOTE_URL}${API_BASE}/admin/career/timeline`,

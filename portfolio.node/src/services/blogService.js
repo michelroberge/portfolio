@@ -67,6 +67,24 @@ async function getAllBlogs(filter = {}) {
 }
 
 /**
+ * generic find with optional filters.
+ * @param {Object} [filter={}] - MongoDB filter object
+ * @returns {Promise<Object>} List of blogs
+ */
+async function findOne(filter = {}) {
+    return BlogEntry.findOne(filter);
+}
+
+/**
+ * generic find with optional filters.
+ * @param {Object} [filter={}] - MongoDB filter object
+ * @returns {Promise<Array>} List of blogs
+ */
+async function find(filter = {}) {
+    return BlogEntry.find(filter);
+}
+
+/**
  * Generate embeddings for a single blog post and store them in Qdrant.
  * @param {Object} blog - Blog object
  */
@@ -147,6 +165,18 @@ async function initializeBlogEmbeddings() {
     }
 }
 
+async function getSearchResultByVectorId(filter) {
+  const blog = await findOne(filter);
+  return {
+    _id: blog._id,
+    title: blog.title,
+    link: `/blogs/${blog.link}`,
+    excerpt: blog.excerpt,
+    type: 'blog',
+  };
+}
+
+
 module.exports = {
     createBlog,
     updateBlog,
@@ -157,4 +187,7 @@ module.exports = {
     refreshBlogEmbeddings,
     searchBlogs,
     initializeBlogEmbeddings,
+    find,
+    findOne,
+    getSearchResultByVectorId,
 };

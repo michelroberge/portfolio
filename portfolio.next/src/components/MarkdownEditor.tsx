@@ -32,7 +32,7 @@ export default function MarkdownEditor({ value, onChange }: Props) {
         <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full min-h-[200px] p-4 border rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className="w-full min-h-[200px] p-4 border rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-800 px-2 py-1"
           placeholder="Write your content in Markdown..."
         />
       )}

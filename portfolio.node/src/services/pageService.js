@@ -159,6 +159,35 @@ async function initializePageEmbeddings() {
     }
 }
 
+/**
+ * generic find with optional filters.
+ * @param {Object} [filter={}] - MongoDB filter object
+ * @returns {Promise<Object>} List of blogs
+ */
+async function findOne(filter = {}) {
+    return Page.findOne(filter);
+}
+
+/**
+ * generic find with optional filters.
+ * @param {Object} [filter={}] - MongoDB filter object
+ * @returns {Promise<Array>} List of blogs
+ */
+async function find(filter = {}) {
+    return Page.find(filter);
+}
+
+async function getSearchResultByVectorId(filter){
+    const page = await findOne(filter);
+    return {
+        _id: page._id,
+        title: page.title,
+        link: `/pages/${page._id}`,
+        excerpt: page.excerpt,
+        type: 'page',
+    };
+}
+
 module.exports = {
     createPage,
     updatePage,
@@ -169,5 +198,8 @@ module.exports = {
     updatePageEmbeddings,
     refreshPageEmbeddings,
     searchPages,
-    initializePageEmbeddings
+    initializePageEmbeddings,
+    find,
+    findOne,
+    getSearchResultByVectorId
 };

@@ -15,7 +15,7 @@ const CareerTimelineSchema = new mongoose.Schema({
 
 // Generate slug and link from title.
 CareerTimelineSchema.pre('save', async function(next) {
-  this.vectorId = this.vectorId || await counterService.getNextVectorI("career_vectorid");
+  this.vectorId = this.vectorId || await counterService.getNextVectorId("career_vectorid");
   next();
 });
 

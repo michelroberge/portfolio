@@ -200,3 +200,27 @@ export async function saveParsedJobs(jobs: LinkedInParseResult[], cookieHeader: 
         throw error;
     }
 }
+
+export async function refreshEmbeddings(cookieHeader: string) {
+    try {
+        const headers: HeadersInit = {
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+        };
+
+        const res = await fetch(ADMIN_API.career.regenerate, {
+            method: "POST",
+            credentials: "include",
+            headers,
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || "Failed to save parsed jobs");
+        }
+
+        return res.json();
+    } catch (error) {
+        console.error("Failed to save parsed jobs:", error);
+        throw error;
+    }
+}
