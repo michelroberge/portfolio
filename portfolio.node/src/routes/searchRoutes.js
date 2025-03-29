@@ -17,13 +17,15 @@ router.post("/", async (req, res) => {
   if (!embedding) return res.status(500).json({ message: "Failed to generate query embedding" });
 
 
+  const coll = await collections.getCollections();
+
   const searchResults = await Promise.allSettled(
-    collections.map(async collection => {
+    coll.map(async collection => {
       try {
-        console.log(`searching collection ${collection.Name}`);
-        const results = await searchQdrant(embedding, collection.Name);
+        console.log(`searching collection ${collection.name}`);
+        const results = await searchQdrant(embedding, collection.name);
         return results.map(result => ({
-          collection: collection.Name,
+          collection: collection.name,
           score: result.score,
           vectorId: result.id
         }));

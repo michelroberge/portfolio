@@ -1,6 +1,9 @@
 "use client"
 import React, { useState, useEffect } from 'react';
 import { Document } from '@/models/Embeddings/Document';
+import { useLoading } from '@/context/LoadingContext';
+import { useTransition } from 'react';
+
 
 interface DocumentsViewProps {
   documents: Document[];
@@ -14,6 +17,17 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
   onSelectionChange // Add this
 }) => {
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+
+  const [isPending, startTransition] = useTransition();
+  const { showLoading, hideLoading } = useLoading();
+
+  useEffect(() => {
+    if (isPending) {
+      showLoading();
+    } else {
+      hideLoading();
+    }
+  }, [isPending, showLoading, hideLoading]);
 
   // Notify parent component about selection changes
   useEffect(() => {
@@ -31,14 +45,16 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
   };
 
   const handleRegenerateSelected = async () => {
-    if (onRegenerateEmbeddings && selectedDocuments.length > 0) {
-      await onRegenerateEmbeddings(selectedDocuments);
-      setSelectedDocuments([]); // Clear selection after regeneration
-    }
+    startTransition(async () => {
+      if (onRegenerateEmbeddings && selectedDocuments.length > 0) {
+        await onRegenerateEmbeddings(selectedDocuments);
+        setSelectedDocuments([]); // Clear selection after regeneration
+      }
+    });
   };
 
   return (
-    <div className="bg-white shadow-md rounded-lg overflow-hidden">
+    <div className="shadow-md rounded-lg overflow-hidden">
       <div className="flex justify-between items-center p-4 border-b">
         <h2 className="text-xl font-semibold">Documents List</h2>
         {selectedDocuments.length > 0 && (
@@ -53,7 +69,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="bg-gray-100 border-b">
+            <tr className="bg-gray-600 border-b">
               <th className="p-3 text-left">
                 <input
                   type="checkbox"
@@ -78,7 +94,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
             {documents.map((doc) => (
               <tr
                 key={doc._id}
-                className="hover:bg-gray-50 border-b"
+                className="hover:bg-gray-500 border-b"
               >
                 <td className="p-3">
                   <input
@@ -91,14 +107,14 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                 <td className="p-3">{doc.title}</td>
                 <td className="p-3">{doc.vectorId}</td>
                 <td className="p-3 flex gap-2">
-                {doc.tags?.map((tag, i) => (
-                  <span
-                    key={i}
-                    className="px-2 py-1 bg-gray-100 text-sm rounded-full"
-                  >
-                    {tag}
-                  </span>
-                ))}
+                  {doc.tags?.map((tag, i) => (
+                    <span
+                      key={i}
+                      className="px-2 py-1 bg-blue-800 text-sm rounded-full"
+                    >
+                      {tag}
+                    </span>
+                  ))}
 
                 </td>
                 <td className="p-3"><a href={doc.editLink}>Edit</a></td>

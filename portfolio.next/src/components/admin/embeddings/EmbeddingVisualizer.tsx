@@ -79,11 +79,11 @@ export const EmbeddingWaveVisualizer: React.FC<EmbeddingWaveVisualizerProps> = (
     );
     if (highSimilarity) return 'bg-blue-500';
 
-    return 'bg-gray-200';
+    return 'dark:bg-gray-200 bg-gray-400';
   };
 
   return (
-    <div className="bg-white shadow-md rounded-lg p-4">
+    <div className="shadow-md rounded-lg p-4">
       <h2 className="text-xl font-semibold mb-4">Embedding Wave Visualization</h2>
       
       <div className="w-full h-64 relative">

@@ -42,7 +42,7 @@ export const EmbeddingComparisonView: React.FC<EmbeddingComparisonViewProps> = (
   }, [documents, documentVectors]);
 
   return (
-    <div className="bg-white shadow-md rounded-lg overflow-hidden">
+    <div className="shadow-md rounded-lg overflow-hidden">
       <div className="p-4 border-b">
         <h2 className="text-xl font-semibold">Document Embedding Similarity Matrix</h2>
       </div>
@@ -76,13 +76,13 @@ export const EmbeddingComparisonView: React.FC<EmbeddingComparisonViewProps> = (
                 return (
                   <div 
                     key={`${documents[rowIndex]._id}-${documents[colIndex]._id}`}
-                    className="w-100 h-100"
+                    className="w-100 h-100 text-center items-center flex"
                     style={{ 
                       backgroundColor: `rgb(0, 0, ${intensity})`,
                       opacity: similarity > 0.8 ? 1 : 0.5
                     }}
                     title={`Similarity: ${similarity.toFixed(4)}`}
-                  />
+                  ><span className='flex-1'>{(similarity * 100).toFixed(2)}%</span></div>
                 );
               })}
             </React.Fragment>
