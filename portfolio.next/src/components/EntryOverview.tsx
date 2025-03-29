@@ -18,7 +18,7 @@ const EntryOverview: React.FC<EntryProps> = ({ title, company, startDate, endDat
       onClick={onClick}
     >
       <h3 className="text-lg font-bold">{title}</h3>
-      <p className="text-sm text-gray-600">{company}</p>
+      <p className="text-sm text-gray-500">{company}</p>
       <p className="text-sm">
         {startDate} - {endDate}
       </p>

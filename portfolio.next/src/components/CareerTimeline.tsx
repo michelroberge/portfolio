@@ -37,13 +37,13 @@ export default function CareerTimeline() {
   return (
     <div className="relative">
       {/* Dark vertical timeline bar */}
-      <div className="absolute left-3 top-0 bottom-0 w-6 bg-gray-800"></div>
+      <div className="absolute left-3 top-0 bottom-0 w-6 bg-gray-700"></div>
       
       <div className="relative space-y-6 pl-10">
         {entries.map((entry) => (
           <div key={entry._id} className="relative">
             {/* Timeline connector */}
-            <div className="absolute left-0 top-6 w-6 h-6 bg-gray-800 rounded-full"></div>
+            <div className="absolute left-0 top-6 w-6 h-6 bg-gray-700 rounded-full"></div>
             <div className="ps-8">
               {/* Entry Overview */}
               <EntryOverview
@@ -58,10 +58,10 @@ export default function CareerTimeline() {
               
               {/* Expanded Details (In-Place) */}
               {entry._id && expandedEntryId === entry._id && (
-                <div className="mt-2 p-4 border-l-4 border-blue-500 bg-gray-100 rounded-md">
+                <div className="ms-4 mt-2 p-4 border-l-4 border-blue-500 rounded-md bg-primary ">
                   <p className="text-sm text-gray-500">{entry.location}</p>
                   <div
-                    className="mt-2 text-gray-700 prose prose-sm max-w-none"
+                    className="mt-2 prose prose-sm max-w-none text-gray-500"
                     dangerouslySetInnerHTML={{ __html: marked(entry.description) }}
                   />
                   
