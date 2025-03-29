@@ -9,6 +9,9 @@ import Search from "@/components/Search";
 import { SearchProvider } from "@/context/SearchContext";
 import { ChatProvider } from "@/context/ChatContext";
 import { Suspense } from "react";
+import { LoadingProvider } from '@/context/LoadingContext';
+import AppInitializer from '@/components/AppInitializer';
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -33,10 +36,12 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Suspense>
+        <LoadingProvider>
           <AuthProvider>
             <ChatProvider>
               <SearchProvider>
                 <Header />
+                <AppInitializer/>
                 <main className="p-6 mx-auto w-full max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-7xl">
                   <Search />
                   {children}
@@ -46,6 +51,7 @@ export default function RootLayout({
               </SearchProvider>
             </ChatProvider>
           </AuthProvider>
+          </LoadingProvider>
         </Suspense>
       </body>
     </html>
