@@ -37,15 +37,15 @@ export default function AdminLogin() {
   }, [isAuthenticated, returnUrl, router]);
 
   return (
-    <div className="flex min-h-screen flex-col justify-center items-center bg-gray-100 space-y-6">
-      <form onSubmit={handleLogin} className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
+    <div className="flex min-h-screen flex-col justify-center items-center space-y-6">
+      <form onSubmit={handleLogin} className="bg-gray-800 p-6 rounded-lg shadow-md w-full max-w-md">
         <h2 className="text-2xl font-semibold mb-4 text-center">Admin Login</h2>
         {error && <p className="text-red-500 mb-4">{error}</p>}
         <input
           placeholder="Username or email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="border p-2 w-full mb-2"
+          className="border p-2 w-full mb-2 text-gray-800"
           required
         />
         <input
@@ -53,7 +53,7 @@ export default function AdminLogin() {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="border p-2 w-full mb-4"
+          className="border p-2 w-full mb-4 text-gray-800"
           required
         />
         <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded w-full">
@@ -61,7 +61,7 @@ export default function AdminLogin() {
         </button>
       </form>
 
-      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
+      <div className="bg-gray-800 p-6 rounded-lg shadow-md w-full max-w-md">
         <h3 className="text-xl font-semibold mb-4 text-center">Or Login with</h3>
         <div className="flex flex-col gap-2">
           <Link

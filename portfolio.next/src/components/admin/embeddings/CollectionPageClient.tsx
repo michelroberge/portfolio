@@ -5,7 +5,7 @@ import { DocumentEmbedding } from '@/models/Embeddings/DocumentEmbedding';
 import DocumentsView from "./DocumentView";
 import EmbeddingVisualizer from "./EmbeddingVisualizer";
 import EmbeddingComparisonView from "./EmbeddingComparisonView";
-import EmbeddingsMetadataView from "./EmbeddingMetadataView";
+// import EmbeddingsMetadataView from "./EmbeddingMetadataView";
 
 interface CollectionPageClientProps {
   documents: Document[];

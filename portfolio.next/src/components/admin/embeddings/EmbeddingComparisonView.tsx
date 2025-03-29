@@ -28,9 +28,9 @@ export const EmbeddingComparisonView: React.FC<EmbeddingComparisonViewProps> = (
 }) => {
 
   const similarityMatrix = useMemo(() => {
-    return documents.map((rowDoc, rowIndex) => {
+    return documents.map((rowDoc) => {
       const rowVector = documentVectors.find(v => v.vectorId === rowDoc.vectorId)?.embedding;
-      return documents.map((colDoc, colIndex) => {
+      return documents.map((colDoc) => {
         const colVector = documentVectors.find(v => v.vectorId === colDoc.vectorId)?.embedding;
         
         if (!rowVector || !colVector) return 0;

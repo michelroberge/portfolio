@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faAlignLeft, faCog, faContactCard, faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+import { faAlignLeft, faCog, faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 import { usePathname } from "next/navigation";
 import { AUTH_API } from "@/lib/constants";
 
