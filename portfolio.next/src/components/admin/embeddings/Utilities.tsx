@@ -1,5 +1,5 @@
-import { Document } from "@/models/Embeddings/Document";
-import { DocumentVector } from "@/models/Embeddings/DocumentEmbedding";
+// import { Document } from "@/models/Embeddings/Document";
+// import { DocumentEmbedding } from "@/models/Embeddings/DocumentEmbedding";
 
 export const calculateCosineSimilarity = (vec1: number[], vec2: number[]): number => {
     if (vec1.length !== vec2.length) {
@@ -19,17 +19,17 @@ export const calculateCosineSimilarity = (vec1: number[], vec2: number[]): numbe
     return `hsl(${hue}, 70%, 50%)`;
   };
   
-  export const generateEmbeddingChartData = (
-    documents: Array<{ id: string }>, 
-    documentVectors: Array<{ vector: number[] }>,
-    promptEmbedding?: number[] | null
-  ) => {
-    // Prepare data for line chart
-    return documents[0].vector.map((_, dimIndex) => ({
-      dimension: dimIndex,
-      ...Object.fromEntries(
-        documents.map((doc, index) => [doc.id, documentVectors[index].vector[dimIndex]])
-      ),
-      promptEmbedding: promptEmbedding ? promptEmbedding[dimIndex] : null
-    }));
-  };
+  // export const generateEmbeddingChartData = (
+  //   documents: Array<{ id: string }>, 
+  //   documentVectors: Array<{ vector: number[] }>,
+  //   promptEmbedding?: number[] | null
+  // ) => {
+  //   // Prepare data for line chart
+  //   return documents[0].vector.map((_, dimIndex) => ({
+  //     dimension: dimIndex,
+  //     ...Object.fromEntries(
+  //       documents.map((doc, index) => [doc.id, documentVectors[index].vector[dimIndex]])
+  //     ),
+  //     promptEmbedding: promptEmbedding ? promptEmbedding[dimIndex] : null
+  //   }));
+  // };

@@ -1,4 +1,3 @@
-// portfolio.next/src/components/CareerTimeline.tsx
 'use client';
 
 import React, { useState, useEffect } from "react";
@@ -15,7 +14,7 @@ const formatDate = (date: string | null | undefined): string => {
 export default function CareerTimeline() {
   const [entries, setEntries] = useState<CareerEntry[]>([]);
   const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
-
+  
   useEffect(() => {
     async function loadData() {
       try {
@@ -27,12 +26,19 @@ export default function CareerTimeline() {
     }
     loadData();
   }, []);
-
+  
+  // Function to handle toggling the expanded entry
+  const toggleExpanded = (id: string): void => {
+    // If current expanded ID matches clicked ID, collapse it by setting to null
+    // Otherwise, expand the clicked entry by setting its ID
+    setExpandedEntryId(expandedEntryId === id ? null : id);
+  };
+  
   return (
     <div className="relative">
       {/* Dark vertical timeline bar */}
       <div className="absolute left-3 top-0 bottom-0 w-6 bg-gray-800"></div>
-
+      
       <div className="relative space-y-6 pl-10">
         {entries.map((entry) => (
           <div key={entry._id} className="relative">
@@ -47,20 +53,20 @@ export default function CareerTimeline() {
                 endDate={formatDate(entry.endDate)}
                 location={entry.location}
                 skills={entry.skills}
-                onClick={() => setExpandedEntryId(expandedEntryId === entry._id ? null : entry._id)}
+                onClick={() => entry._id && toggleExpanded(entry._id)}
               />
-
+              
               {/* Expanded Details (In-Place) */}
-              {expandedEntryId === entry._id && (
+              {entry._id && expandedEntryId === entry._id && (
                 <div className="mt-2 p-4 border-l-4 border-blue-500 bg-gray-100 rounded-md">
                   <p className="text-sm text-gray-500">{entry.location}</p>
                   <div
                     className="mt-2 text-gray-700 prose prose-sm max-w-none"
                     dangerouslySetInnerHTML={{ __html: marked(entry.description) }}
                   />
-
-                  <button 
-                    onClick={() => setExpandedEntryId(null)} 
+                  
+                  <button
+                    onClick={() => setExpandedEntryId(null)}
                     className="mt-2 text-blue-500 hover:underline"
                   >
                     Close

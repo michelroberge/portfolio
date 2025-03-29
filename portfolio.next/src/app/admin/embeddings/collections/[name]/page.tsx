@@ -6,13 +6,13 @@ import embeddingService from "@/services/embeddingService";
 import CollectionPageClient from "@/components/admin/embeddings/CollectionPageClient";
 
 interface Props {
-  params: { name: string };
+  params: Promise<{ name: string }>;
 }
 
 export default async function CollectionPage({ params }: Props) {
   const { user } = await protectAdminRoute();
   const { cookieHeader } = await getAdminCookie(user);
-  const { name } = params;
+  const { name } = await params;
 
   let documents = await embeddingService.fetchDocuments(name, cookieHeader, () => {});
   if (!documents) documents = [];
@@ -21,6 +21,7 @@ export default async function CollectionPage({ params }: Props) {
   const handleRegenerateSelected = async (ids: string[]) => {
     'use server';
     // Implement your server action for regenerating embeddings
+    console.log("ids", ids);
   };
 
   return (

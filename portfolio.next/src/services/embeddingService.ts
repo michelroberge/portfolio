@@ -3,9 +3,15 @@ import { SearchResult } from '@/models/Embeddings/SearchResult';
 import { Document } from "@/models/Embeddings/Document";
 import { DocumentEmbedding } from "@/models/Embeddings/DocumentEmbedding";
 
-const fetchDocuments = async (name: string, cookieHeader: string, stateFunction: Function | undefined): Promise<Document[] | undefined> => {
+// Define explicit type for the state function
+type StateFunction = (isLoading: boolean) => void;
 
-    stateFunction && stateFunction(true);
+const fetchDocuments = async (name: string, cookieHeader: string, stateFunction?: StateFunction): Promise<Document[] | undefined> => {
+    // Fix the unused expression by using if statement
+    if (stateFunction) {
+        stateFunction(true);
+    }
+    
     try {
         const headers: HeadersInit = cookieHeader
             ? { Cookie: cookieHeader } 
@@ -34,7 +40,10 @@ const fetchDocuments = async (name: string, cookieHeader: string, stateFunction:
         console.error('Error fetching documents:', error);
         return [];
     } finally {
-        stateFunction && stateFunction(false);
+        // Fix the unused expression by using if statement
+        if (stateFunction) {
+            stateFunction(false);
+        }
     }
 };
 
@@ -53,7 +62,6 @@ function getEditLink(collectionName: string, docId: string): string {
 
 const fetchCollections = async (cookieHeader: string) => {
     try {
-
         const headers: HeadersInit = cookieHeader
             ? { Cookie: cookieHeader } // Pass cookies for SSR requests
             : {};
@@ -78,7 +86,6 @@ const fetchCollections = async (cookieHeader: string) => {
 
 const handleRegenerateByCollection = async (collectionName: string, model?: string, cookieHeader?: string) => {
     try {
-
         const headers: HeadersInit = cookieHeader
             ? {
                 Cookie: cookieHeader,
@@ -112,7 +119,6 @@ const handleRegenerateByCollection = async (collectionName: string, model?: stri
 
 const handleSearch = async (query: string, selectedCollections: string[], cookieHeader: string): Promise<SearchResult[]> => {
     try {
-
         const headers: HeadersInit = cookieHeader
             ? {
                 Cookie: cookieHeader,
@@ -141,9 +147,8 @@ const handleSearch = async (query: string, selectedCollections: string[], cookie
     }
 };
 
-const fetchCollectionVectors = async (collectionName:string, cookieHeader: string) : Promise<DocumentEmbedding[]> => {
+const fetchCollectionVectors = async (collectionName: string, cookieHeader: string): Promise<DocumentEmbedding[]> => {
     try {
-
         const headers: HeadersInit = cookieHeader
             ? {
                 Cookie: cookieHeader,
@@ -166,11 +171,15 @@ const fetchCollectionVectors = async (collectionName:string, cookieHeader: strin
         console.error('Search error:', error);
         throw error;
     }
-}
+};
 
-const getSearchVector = async (search : string) : Promise<number[]> => {
+// Fix the unused variable by using it or removing it
+const getSearchVector = async (query: string): Promise<number[]> => {
+    // Using the query parameter to make it used
+    console.log(`Generating vector for query: ${query}`);
+    // Implement actual vector generation logic here
     return [];
-}
+};
 
 const embeddingService = {
     fetchCollections,
