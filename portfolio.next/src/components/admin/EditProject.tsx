@@ -1,10 +1,12 @@
 'use client';
 
 import { Project, ProjectCreate } from '@/models/Project';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createProject, updateProject } from '@/services/projectService';
 import { useRouter } from 'next/navigation';
 import MarkdownEditor from '@/components/MarkdownEditor';
+import { useLoading } from '@/context/LoadingContext';
+import { useTransition } from 'react';
 
 interface EditProjectProps {
   initialProject?: Project;
@@ -12,6 +14,10 @@ interface EditProjectProps {
 
 export default function EditProject({ initialProject }: EditProjectProps) {
   const router = useRouter();
+
+  const [isPending, startTransition] = useTransition();
+  const { showLoading, hideLoading } = useLoading();
+
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<ProjectCreate>({
@@ -30,38 +36,55 @@ export default function EditProject({ initialProject }: EditProjectProps) {
     technologies: initialProject?.technologies || []
   });
 
+  useEffect(() => {
+    if (isPending) {
+      showLoading();
+    } else {
+      hideLoading();
+    }
+  }, [isPending, showLoading, hideLoading]);
+
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSaving(true);
-    setError(null);
 
-    try {
-      if (initialProject) {
-        await updateProject(initialProject._id, formData);
-      } else {
-        await createProject(formData);
+    startTransition(async () => {
+      setSaving(true);
+      setError(null);
+      try {
+        if (initialProject) {
+          await updateProject(initialProject._id, formData);
+        } else {
+          await createProject(formData);
+        }
+      } catch (err) {
+        console.error('Failed to save project:', err);
+        setError('Failed to save project');
+      } finally {
+        setSaving(false);
       }
-      router.push('/admin/projects');
-    } catch (err) {
-      console.error('Failed to save project:', err);
-      setError('Failed to save project');
-    } finally {
-      setSaving(false);
-    }
+    });
   }
 
+  const [tags, setTags] = useState<string>(initialProject?.tags?.join(',') || '');
+  const [technologies, setTechnologies] = useState<string>(initialProject?.technologies?.join(',') || '');
+
   function handleTagsChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const tags = e.target.value.split(',').map(tag => tag.trim()).filter(Boolean);
-    setFormData(prev => ({ ...prev, tags }));
+    const rawInput = e.target.value;
+    const tmpTags = rawInput.split(',').map(tag => tag.trim()).filter(Boolean);
+    setFormData(prev => ({ ...prev, tags: tmpTags }));
+    setTags(rawInput);
   }
 
   function handleTechnologiesChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const technologies = e.target.value.split(',').map(tech => tech.trim()).filter(Boolean);
-    setFormData(prev => ({ ...prev, technologies }));
+    const rawInput = e.target.value;
+    const tmpTech = rawInput.split(',').map(tag => tag.trim()).filter(Boolean);
+    setFormData(prev => ({ ...prev, technologies: tmpTech }));
+    setTechnologies(rawInput);
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6 text-gray-900">
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
           Title
@@ -188,7 +211,7 @@ export default function EditProject({ initialProject }: EditProjectProps) {
         </label>
         <input
           type="text"
-          value={formData.tags.join(', ')}
+          value={tags}
           onChange={handleTagsChange}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
         />
@@ -200,7 +223,7 @@ export default function EditProject({ initialProject }: EditProjectProps) {
         </label>
         <input
           type="text"
-          value={formData.technologies.join(', ')}
+          value={technologies}
           onChange={handleTechnologiesChange}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           required

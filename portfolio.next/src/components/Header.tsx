@@ -35,7 +35,8 @@ export default function Header() {
               Curious Coder: A Portfolio
             </h1>
             <p className="text-lg">a.k.a. michel-roberge.com</p>
-            <p className="text-xs">(the Northern Developer)</p>
+            <p className="text-xs underline"><a href="https://www.linkedin.com/in/michel-roberge-7011b614/">Contact me on Linked In</a> </p>
+            
           </div>
         </Link>
         <div className="flex items-center gap-4">
