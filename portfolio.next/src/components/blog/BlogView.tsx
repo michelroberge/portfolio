@@ -1,7 +1,7 @@
 "use client";
 
 import { marked } from "marked";
-import CommentSection from "@/components/CommentSection";
+// import CommentSection from "@/components/CommentSection";
 import { BlogEntry } from "@/models/BlogEntry";
 
 export default function BlogView({ blog }: { blog: BlogEntry }) {
