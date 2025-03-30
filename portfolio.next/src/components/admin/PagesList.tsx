@@ -67,7 +67,7 @@ export default function PagesList({ initialPages = [], cookieHeader }: PagesList
 
       <div className="grid gap-4">
         {pages.map((page) => (
-          <div key={page._id} className="bg-white p-4 rounded-lg shadow">
+          <div key={page._id} className="border border-gray-500 p-4 rounded-lg shadow">
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="text-lg font-medium">{page.title}</h3>

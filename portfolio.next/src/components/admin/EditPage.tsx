@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useTransition, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Page, PageFormData } from '@/models/Page';
 import MarkdownEditor from '@/components/MarkdownEditor';
 import { createPage, updatePage } from '@/services/pageService';
+import { useLoading } from '@/context/LoadingContext';
 
 interface EditPageProps {
   initialPage?: Page;
@@ -21,33 +22,46 @@ export default function EditPage({ initialPage }: EditPageProps) {
     tags: initialPage?.tags || [],
   });
 
+  const [isPending, startTransition] = useTransition();
+  const { showLoading, hideLoading } = useLoading();
+
+  useEffect(() => {
+    if (isPending) {
+      showLoading();
+    } else {
+      hideLoading();
+    }
+  }, [isPending, showLoading, hideLoading]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSaving(true);
-    setError(null);
+    startTransition(async () => {
+      setSaving(true);
+      setError(null);
 
-    try {
-      if (initialPage) {
-        await updatePage(initialPage._id, formData);
-      } else {
-        // Create a new page without _id field
-        const newPage: Omit<Page, '_id'> = {
-          title: formData.title,
-          slug: formData.slug,
-          content: formData.content,
-          tags: formData.tags,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        await createPage(newPage);
+      try {
+        if (initialPage) {
+          await updatePage(initialPage._id, formData);
+        } else {
+          // Create a new page without _id field
+          const newPage: Omit<Page, '_id'> = {
+            title: formData.title,
+            slug: formData.slug,
+            content: formData.content,
+            tags: formData.tags,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          await createPage(newPage);
+        }
+      } catch (err) {
+        console.error('Failed to save page:', err);
+        setError('Failed to save page');
+      } finally {
+        setSaving(false);
       }
-      router.push('/admin/pages');
-    } catch (err) {
-      console.error('Failed to save page:', err);
-      setError('Failed to save page');
-    } finally {
-      setSaving(false);
-    }
+    });
+
   }
 
   function handleTagsChange(e: React.ChangeEvent<HTMLInputElement>) {

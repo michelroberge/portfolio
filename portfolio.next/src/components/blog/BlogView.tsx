@@ -6,9 +6,9 @@ import { BlogEntry } from "@/models/BlogEntry";
 
 export default function BlogView({ blog }: { blog: BlogEntry }) {
   return ( 
-    <main className="container mx-auto px-6 py-10 flex flex-col flex-1">
+    <main className="container prose mx-auto px-6 py-10 flex flex-col flex-1 bg-gray-50 mt-2">
       <h1 className="text-3xl font-bold">{blog.title}</h1>
-      <p className="text-gray-500">
+      <p className="">
         {blog.publishAt && new Date(blog.publishAt).toLocaleString(undefined, {
           weekday: "long",
           year: "numeric",
@@ -22,12 +22,12 @@ export default function BlogView({ blog }: { blog: BlogEntry }) {
 
       {/* Markdown rendering */}
       <div
-        className="mt-4 lg:prose-lg xl:prose-xl max-w-none"
+        className="mt-4 prose lg:prose-lg xl:prose-xl max-w-none"
         dangerouslySetInnerHTML={{ __html: marked.parse(blog.body) }}
       />
 
       {/* Interactive comment section */}
-      <CommentSection blogId={String(blog._id)} />
+      {/* <CommentSection blogId={String(blog._id)} /> */}
     </main>
   );
 }
