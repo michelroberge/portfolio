@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Project } from '@/models/Project';
 import { BlogEntry } from '@/models/BlogEntry';
 import Link from 'next/link';
-
+import Latest from './Latest';
 interface HomeProps {
   blogEntries: BlogEntry[];
   projects: Project[];
@@ -16,6 +16,7 @@ export default function Home({ blogEntries, projects }: HomeProps) {
 
   return (
     <main className="container mx-auto px-4 py-8">
+      <Latest />
       {/* Mobile Toggle */}
       <div className="md:hidden mb-6">
         <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
