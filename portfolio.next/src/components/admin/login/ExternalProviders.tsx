@@ -1,3 +1,12 @@
+import Link from "next/link";
+import { AUTH_API } from "@/lib/constants";
+
+interface Props {
+  returnUrl: string;
+}
+
+export default function ExternalProviders({ returnUrl }: Props) {
+
 return (
           <div className="bg-gray-800 p-6 rounded-lg shadow-md w-full max-w-md">
             <h3 className="text-xl font-semibold mb-4 text-center">Or Login with</h3>
@@ -18,3 +27,4 @@ return (
           </div>
     
 );
+}
