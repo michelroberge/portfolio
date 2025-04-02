@@ -16,7 +16,7 @@ const ProjectSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 ProjectSchema.pre('save', async function(next) {
-  this.vectorId = this.vectorId || await counterService.getNextVectorI("project_vectorid");
+  this.vectorId = this.vectorId || await counterService.getNextVectorId("projectsVectorId");
   next();
 });
 

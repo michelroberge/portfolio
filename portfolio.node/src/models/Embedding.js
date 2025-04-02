@@ -10,7 +10,7 @@ const EmbeddingSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 EmbeddingSchema.pre('save', async function(next) {
-  this.vectorId = this.vectorId || await counterService.getNextVectorI("embedding_vectorid");
+  this.vectorId = this.vectorId || await counterService.getNextVectorId("embedding_vectorid");
   next();
 });
 

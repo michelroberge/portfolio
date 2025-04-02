@@ -161,7 +161,7 @@ export const APP_ROUTES = {
     },
     projects: {
       list: '/admin/projects',
-      create: '/admin/projects/create',
+      create: '/admin/projects/new',
       edit: (id: string) => `/admin/projects/edit/${id}`,
       get: (id: string) => `/admin/projects/${id}`,
     },
