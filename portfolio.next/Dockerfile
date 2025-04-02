@@ -4,17 +4,18 @@ FROM node:22-alpine AS builder
 # Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json
-COPY package.json package-lock.json ./
-
+# Copy necessary files
+COPY package.json package-lock.json tsconfig.json next.config.js ./
+COPY .env.production ./ 
+COPY .env.production ./.env
 # Install dependencies
 RUN npm install --production
 
-# Copy the entire source code from `src/`
-COPY src ./src
+# Copy the entire source code
+COPY . .
 
 # Build the Next.js app
-RUN npm run build --workspace=src
+RUN npm run build 
 
 # Use a smaller base image for production
 FROM node:22-alpine
@@ -24,9 +25,10 @@ WORKDIR /app
 
 # Copy only necessary files from the builder stage
 COPY --from=builder /app/package.json ./
-COPY --from=builder /app/src/.next ./.next
-COPY --from=builder /app/src/public ./public
-COPY --from=builder /app/src/node_modules ./node_modules
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/.env.production ./  
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -36,4 +38,4 @@ ENV PORT=3000
 EXPOSE 3000
 
 # Start the Next.js server
-CMD ["npm", "start", "--workspace=src"]
+CMD ["npm", "start"]

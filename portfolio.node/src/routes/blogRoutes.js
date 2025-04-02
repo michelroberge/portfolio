@@ -1,93 +1,121 @@
-// portfolio.node/src/routes/blogRoutes.js
 const express = require("express");
-const authMiddleware = require("../middlewares/auth");
 const blogService = require("../services/blogService");
+const BlogEntry = require("../models/BlogEntry");
+const { searchEntitiesHybrid } = require("../services/searchService");
+
 const router = express.Router();
-const validate = require("../middlewares/validate");
-const { createBlogSchema } = require("../validators/blogValidator");
 
+/**
+ * Sanitize blog data for public consumption
+ * @param {Object} blog - The blog entry to sanitize
+ * @returns {Object} - Sanitized blog entry
+ */
+function sanitizeBlogForPublic(blog) {
+    if (!blog) return null;
 
-// Create a new blog entry using the service module
-router.post("/", authMiddleware, validate(createBlogSchema), async (req, res) => {
-  try {
-    if  (!req.user?.isAdmin === true){
-      res.status(403);
+    // Remove sensitive or admin-only fields
+    const {
+        isDraft,
+        publishAt,
+        createdBy,
+        updatedBy,
+        __v,
+        embedding,
+        ...publicBlog
+    } = blog.toObject();
+
+    // Only include publishAt if it's in the past
+    if (publishAt && publishAt <= new Date()) {
+        publicBlog.publishAt = publishAt;
     }
-    else{
-      const newEntry = await blogService.createBlogEntry(req.body);
-      res.status(201).json(newEntry);
-    }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
-// Get all blog entries using the service module
+    return publicBlog;
+}
+
+/**
+ * @route GET /api/blogs
+ * @desc Retrieve all published blog posts
+ * @access Public
+ */
 router.get("/", async (req, res) => {
-  try {
-    let filter = {};
-    // If no auth token, assume a public request.
-    if (!req.user?.isAdmin === true) {
-      filter = { 
-        isDraft: false, 
-        publishAt: { $lte: new Date() } // only posts scheduled for now or earlier
-      };
+    try {
+        // Always filter for public posts
+        const filter = { 
+            isDraft: false, 
+            publishAt: { $lte: new Date() }
+        };
+
+        const blogs = await blogService.getAllBlogs(filter);
+        
+        // Sanitize each blog for public consumption
+        const sanitizedBlogs = blogs.map(blog => sanitizeBlogForPublic(blog))
+            .filter(blog => blog !== null)
+            .sort((a, b) => new Date(b.publishAt) - new Date(a.publishAt));
+
+        res.json(sanitizedBlogs);
+    } catch (error) {
+        console.error("❌ Error fetching blogs:", error.message);
+        res.status(500).json({ error: "Failed to fetch blogs" }); // Generic error for public
     }
-    const blogs = await blogService.getAllBlogEntries(filter);
-    res.json(blogs);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
 });
 
+/**
+ * @route GET /api/blogs/search
+ * @desc Search published blog posts
+ * @access Public
+ */
+router.get("/search", async (req, res) => {
+    try {
+        const { q: query, limit = 10, minScore = 0.7 } = req.query;
+        if (!query) return res.status(400).json({ error: "Search query is required" });
 
-// Get a single blog entry by ID using the service module
+        // Only search public posts
+        const filter = {
+            isDraft: false,
+            publishAt: { $lte: new Date() }
+        };
+
+        const results = await searchEntitiesHybrid(BlogEntry, query, limit, minScore, filter);
+        
+        // Sanitize search results
+        const sanitizedResults = results.map(result => ({
+            ...result,
+            document: sanitizeBlogForPublic(result.document)
+        })).filter(result => result.document !== null);
+
+        res.json(sanitizedResults);
+    } catch (error) {
+        console.error("❌ Error searching blogs:", error.message);
+        res.status(500).json({ error: "Search failed" }); // Generic error for public
+    }
+});
+
+/**
+ * @route GET /api/blogs/:id
+ * @desc Retrieve a single published blog post by ID
+ * @access Public
+ */
 router.get("/:id", async (req, res) => {
-  try {
-    const blog = await blogService.getBlogEntryById(req.params.id);
-    if (!blog) return res.status(404).json({ error: "Entry not found" });
-    
-    // For public requests, ensure the post is published.
-    if (!req.cookies["auth-token"] && (blog.isDraft || (blog.publishAt && blog.publishAt > new Date()))) {
-      return res.status(404).json({ error: "Entry not found" });
+    try {
+        const blog = await blogService.getBlogById(req.params.id);
+        if (!blog) return res.status(404).json({ error: "Blog not found" });
+
+        // Check if blog is published
+        if (blog.isDraft || (blog.publishAt && blog.publishAt > new Date())) {
+            return res.status(404).json({ error: "Blog not found" });
+        }
+
+        // Sanitize blog for public consumption
+        const sanitizedBlog = sanitizeBlogForPublic(blog);
+        if (!sanitizedBlog) {
+            return res.status(404).json({ error: "Blog not found" });
+        }
+
+        res.json(sanitizedBlog);
+    } catch (error) {
+        console.error("❌ Error fetching blog:", error.message);
+        res.status(500).json({ error: "Failed to fetch blog" }); // Generic error for public
     }
-    res.json(blog);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-
-// Update a blog entry by ID using the service module
-router.put("/:id", authMiddleware, validate(createBlogSchema), async (req, res) => {
-  try {
-
-    if  (!req.user?.isAdmin === true){
-      res.status(403);
-    }
-
-    const updatedEntry = await blogService.updateBlogEntry(req.params.id, req.body);
-    if (!updatedEntry) return res.status(404).json({ error: "Entry not found" });
-    res.json(updatedEntry);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Delete a blog entry by ID using the service module
-router.delete("/:id", authMiddleware, async (req, res) => {
-  try {
-
-    if  (!req.user?.isAdmin === true){
-      res.status(403);
-    }
-
-    const deletedEntry = await blogService.deleteBlogEntry(req.params.id);
-    if (!deletedEntry) return res.status(404).json({ error: "Entry not found" });
-    res.json({ message: "Entry deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
 });
 
 module.exports = router;

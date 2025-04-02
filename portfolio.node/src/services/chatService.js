@@ -1,45 +1,39 @@
 // portfolio.node/src/services/chatService.js
 const ChatMessage = require("../models/ChatMessage");
-const {searchQdrant, generateEmbedding} = require("../services/qdrantService");
-const ollamaService = require("../services/ollamaService"); // AI Model Integration
+const cache = require("../utils/cache");
+const { executePipeline } = require("../services/pipelineService");
 
 /**
- * Stores user messages and AI responses in the chat history.
- * @param {string} sessionId - The chat session identifier.
- * @param {string} userQuery - The user's input message.
+ * Processes a user query using the AI model.
+ * @param {string} sessionId - Chat session ID.
+ * @param {string} query - User's chat message.
+ * @param {array} history - Previous chat messages.
+ * @param {string} webContext - Extracted web page content (if available).
  * @returns {Promise<{ response: string, sources: string[] }>} - AI response with sources.
  */
-async function processChatMessage(sessionId, userQuery) {
-  // Store user message
-  await ChatMessage.create({ sessionId, role: "user", text: userQuery });
+async function processChat(sessionId, query, history = [], webContext = "") {
+    try {
+        console.log(`📡 Processing chat for session: ${sessionId}`);
 
-  // Retrieve relevant knowledge from Qdrant
-  const vectors = await generateEmbedding(userQuery);
-  const relatedDocs = await searchQdrant(vectors, "projects");
+        // Use the AI pipeline for structured processing
+        const responseData = await executePipeline("chat-response", {
+            userQuery: query,
+            chatHistory: JSON.stringify(history),
+            context: webContext
+        }, true); // Enable search
 
-  // Structure a prompt for AI based on retrieved context
-  const context = relatedDocs.map((doc) => doc.payload.text).join("\n");
-  const structuredPrompt = `
-  You are an AI assistant helping showcase my portfolio. You ONLY use the provided context to answer questions.
-  If a question is about my projects, focus specifically on projects in the provided context.
-  If the question is unrelated to my work, say "I'm here to discuss my portfolio. Ask me about my projects or skills!"
-  
-  ### Context:
-  ${context || "No relevant projects found in the database."}
-  
-  ### User Question:
-  ${userQuery}
-  
-  ### AI Response:
-  `.trim();
-  // Get AI response
-  const aiResponse = await ollamaService.generateResponse(structuredPrompt);
+        // Store chat messages
+        await ChatMessage.create({ sessionId, role: "user", text: query });
+        await ChatMessage.create({ sessionId, role: "ai", text: responseData.response });
 
-  // Store AI response
-  await ChatMessage.create({ sessionId, role: "ai", text: aiResponse.response });
-
-  return { response: aiResponse.response, sources: relatedDocs.map((doc) => doc.source) };
+        return responseData;
+    } catch (error) {
+        console.error("❌ Chat processing error:", error);
+        return { response: "Sorry, an error occurred.", sources: [] };
+    }
 }
+
+
 
 /**
  * Retrieves chat history for a session.
@@ -50,4 +44,43 @@ async function getChatHistory(sessionId) {
   return await ChatMessage.find({ sessionId }).sort({ createdAt: 1 });
 }
 
-module.exports = { processChatMessage, getChatHistory };
+async function requestOpenAIResponse(query, history, clientId, clientSecret) {
+  
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${clientSecret}`,
+      "OpenAI-Organization": clientId,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4",
+      messages: history.concat([{ role: "user", content: query }]),
+      temperature: 0.7,
+    }),
+  });
+
+  return response.data.choices[0].message.content;
+}
+
+/**
+ * Returns a random pre-generated greeting from cache.
+ */
+async function getRandomGreeting() {
+
+  let greetings = cache.get("chat_greetings");
+   if (!greetings){
+    console.log('no greetings here');
+    greetings =  ["Hello! How can I assist you today?"];
+   }
+  return greetings[Math.floor(Math.random() * greetings.length)];
+}
+
+/**
+ * Returns the pre-generated starting context for chat.
+ */
+async function getChatStartingContext() {
+  return cache.get("chat_context") || "This is an AI assistant for answering questions about projects and skills.";
+}
+
+module.exports = { processChat, getChatHistory, getRandomGreeting, getChatStartingContext };

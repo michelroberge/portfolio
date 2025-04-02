@@ -7,6 +7,7 @@ const createBlogSchema = Joi.object({
   isDraft: Joi.boolean().required(),
   excerpt: Joi.string().max(500).required(),
   body: Joi.string().required(),
+  tags: Joi.array().required(),
 });
 
 module.exports = {

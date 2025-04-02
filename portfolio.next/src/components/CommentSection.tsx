@@ -1,7 +1,10 @@
 "use client";
+
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePathname } from "next/navigation";
+import { PUBLIC_API, AUTH_API } from "@/lib/constants";
+
 interface Comment {
   _id: string;
   author: string;
@@ -23,33 +26,33 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
   const { isAuthenticated, user } = useAuth();
   const pathname = usePathname();
 
-  // ✅ Wrap fetchComments with useCallback to prevent unnecessary re-renders
   const fetchComments = useCallback(async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/comments/blog/${blogId}`);
+      const res = await fetch(`${PUBLIC_API.comment.list}/blog/${blogId}`);
       const data = await res.json();
       if (!Array.isArray(data)) {
         setComments([]);
       } else {
         setComments(data);
       }
-    } catch {
+    } catch (err) {
+      console.error('Failed to load comments:', err);
       setError("Failed to load comments");
     }
-  }, [blogId]); // ✅ Only re-create function when blogId changes
+  }, [blogId]);
 
   useEffect(() => {
     fetchComments();
-  }, [fetchComments]); // ✅ Now safe to include fetchComments
+  }, [fetchComments]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!newComment.trim()) return;
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/comments`, {
+      const res = await fetch(AUTH_API.comment.create, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // Ensures auth cookie is sent
+        credentials: "include",
         body: JSON.stringify({
           author: user?.username,
           text: newComment,
@@ -59,13 +62,15 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
       });
       if (!res.ok) {
         const errData = await res.json();
+        console.error('Failed to post comment:', errData);
         setError(errData.error || "Failed to post comment");
         return;
       }
       setNewComment("");
       setReplyTo(null);
-      fetchComments(); // ✅ Re-fetch comments after submitting
-    } catch {
+      fetchComments();
+    } catch (err) {
+      console.error('Failed to post comment:', err);
       setError("Failed to post comment");
     }
   }
@@ -84,7 +89,7 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
           </p>
           <p className="text-xs text-gray-500">{new Date(comment.createdAt).toLocaleString()}</p>
           {!comment.redacted && (
-            <button onClick={() => setReplyTo(comment._id)} className="text-blue-500 text-sm">
+            <button onClick={() => setReplyTo(comment._id)} className="text-blue-500 text-sm hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
               Reply
             </button>
           )}
@@ -97,7 +102,7 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
   return (
     <div className="mt-8">
       <h2 className="text-2xl font-bold mb-4">Comments</h2>
-      {error && <p className="text-red-500">{error}</p>}
+      {error && <p className="text-red-500 mb-4">{error}</p>}
       <div>{renderComments(comments)}</div>
       {isAuthenticated ? (
         <form onSubmit={handleSubmit} className="mt-4">
@@ -106,17 +111,20 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Write your comment here..."
-            className="w-full p-2 border rounded mb-2"
+            className="w-full p-2 border rounded mb-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
           />
           <div className="flex items-center">
-            <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
+            <button 
+              type="submit" 
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
               Post Comment
             </button>
             {replyTo && (
               <button
                 type="button"
                 onClick={() => setReplyTo(null)}
-                className="ml-2 text-sm text-gray-500 underline"
+                className="ml-2 text-sm text-gray-500 hover:text-gray-700 underline focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
               >
                 Cancel Reply
               </button>
@@ -127,7 +135,7 @@ export default function CommentSection({ blogId }: CommentSectionProps) {
         <p>
           <a
             href={`/admin/login?returnUrl=${encodeURIComponent(pathname)}`}
-            className="text-blue-500 underline"
+            className="text-blue-500 hover:text-blue-600 underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             Login to comment
           </a>

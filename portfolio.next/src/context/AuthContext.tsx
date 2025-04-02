@@ -2,55 +2,109 @@
 "use client";
 import { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation"; 
+import { AUTH_API, APP_ROUTES } from "@/lib/constants";
+import { User } from '@/models/User';
+import { checkAuthStatus } from '@/services/authService';
 
 interface AuthContextType {
-  isAdmin: boolean;
-  isAuthenticated: boolean;
   user: User | null;
-  setIsAuthenticated: (val: boolean) => void;
-  setUser: (user: User | null) => void;
-  refreshAuth: () => Promise<void>;
-} 
-
-interface User {
-  username: string;
+  loading: boolean;
+  error: string | null;
+  isAuthenticated: boolean;
   isAdmin: boolean;
-  // Add other user properties as needed.
+  login: (username: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  refreshAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(false); // Start as not loading
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  async function refreshAuth() {
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/check`, {
-        credentials: "include",
-      });
-      const data = await res.json();
-      if ( data.setupRequired){
-        router.push("/admin/setup"); // Redirect to setup page
-        return;
-      }
-      setIsAuthenticated(data.authenticated);
-      setUser(data.authenticated ? data.user : null);
-      setIsAdmin(data.user?.isAdmin || false);
-    } catch (error) {
-      console.error(error);
-      setIsAuthenticated(false);
-    }
-  }
+  const isAuthenticated = !!user;
+  const isAdmin = user?.isAdmin ?? false;
 
+  // Check auth status when component mounts
   useEffect(() => {
     refreshAuth();
   }, []);
 
+  async function refreshAuth() {
+    try {
+      const { authenticated, user: authUser } = await checkAuthStatus();
+      
+      if (!authenticated) {
+        setUser(null);
+        return;
+      }
+
+      setUser(authUser);
+    } catch (err) {
+      console.error('Failed to refresh auth:', err);
+      setUser(null);
+      setError("Authentication failed");
+    }
+  }
+
+  async function login(username: string, password: string): Promise<void> {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch(AUTH_API.auth.login, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.message || "Login failed");
+        return;
+      }
+
+      await refreshAuth(); // Use refreshAuth instead of directly setting user
+    } catch (err) {
+      console.error('Failed to login:', err);
+      setError("Login failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function logout(): Promise<void> {
+    try {
+      await fetch(AUTH_API.auth.logout, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (err) {
+      console.error('Failed to logout:', err);
+    } finally {
+      setUser(null);
+      router.push(APP_ROUTES.auth.login);
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ isAdmin, isAuthenticated, user, setIsAuthenticated, setUser, refreshAuth }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      error, 
+      isAuthenticated,
+      isAdmin,
+      login, 
+      logout, 
+      refreshAuth 
+    }}>
       {children}
     </AuthContext.Provider>
   );

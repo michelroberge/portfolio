@@ -1,141 +1,30 @@
 // portfolio.next/src/app/admin/projects/edit/[id]/page.tsx
-"use client";
+import { notFound } from "next/navigation";
+import { protectAdminRoute, getAdminCookie } from "@/lib/auth";
+import AdminLayout from "@/components/layouts/AdminLayout";
+import EditProject from "@/components/admin/EditProject";
+import { fetchProject } from "@/services/projectService";
 
-import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
+  // This will automatically redirect if not authenticated or not admin
+  const { user } = await protectAdminRoute();
+  const { cookieHeader } = await getAdminCookie(user);
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const { id } = await params;
+  if (!id) return notFound();
 
-export default function EditProject() {
-  const router = useRouter();
-  const { id } = useParams();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [image, setImage] = useState("");
-  const [link, setLink] = useState("");
-  const [isDraft, setIsDraft] = useState(false);
-  const [publishAt, setPublishAt] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [tags, setTags] = useState<string[]>([]);
-  const [industry, setIndustry] = useState("General");
+  try {
+    // Fetch project data server-side for SSR
+    const project = await fetchProject(id, true, cookieHeader);
+    if (!project) return notFound();
 
-  const { isAuthenticated, user } = useAuth();
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    async function fetchProject() {
-      try {
-        const response = await fetch(`${apiUrl}/api/projects/${id}`);
-        if (!response.ok) throw new Error("Failed to fetch project");
-        const data = await response.json();
-        setTitle(data.title);
-        setDescription(data.description);
-        setImage(data.image);
-        setLink(data.link);
-        setIsDraft(data.isDraft);
-        setPublishAt(data.publishAt ? new Date(data.publishAt).toISOString().split("T")[0] : null);
-        setLoading(false);
-      } catch (err) {
-        setError((err as Error).message);
-        setLoading(false);
-      }
-    }
-    fetchProject();
-  }, [isAuthenticated, id]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const projectData = { title, description, image, link, isDraft, publishAt, tags, industry };
-    try {
-      const response = await fetch(`${apiUrl}/api/projects/${id}`, {
-        method: "PUT",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(projectData),
-      });
-      if (!response.ok) throw new Error("Failed to update project");
-      router.push("/admin/projects");
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  };
-
-    if (loading) return <p>Loading...</p>;
-    if (!isAuthenticated) return <p>You are not authenticated.</p>;
-    if (!user?.isAdmin) return <p>Only admins can access this page.</p>;
-
-  return (
-    <>
-      <h1 className="text-2xl font-bold mb-4">Edit Project</h1>
-      {error && <p className="text-red-500">{error}</p>}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="text"
-          placeholder="Project Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full p-2 border rounded"
-          required
-        />
-        <textarea
-          placeholder="Project Description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="w-full p-2 border rounded h-32"
-          required
-        />
-        <input
-          type="text"
-          placeholder="Image URL"
-          value={image}
-          onChange={(e) => setImage(e.target.value)}
-          className="w-full p-2 border rounded"
-        />
-        <input
-          type="text"
-          placeholder="Project Link"
-          value={link}
-          onChange={(e) => setLink(e.target.value)}
-          className="w-full p-2 border rounded"
-        />
-        <label className="block">
-          <input
-            type="checkbox"
-            checked={isDraft}
-            onChange={(e) => setIsDraft(e.target.checked)}
-            className="mr-2"
-          />
-          Save as Draft
-        </label>
-        <label className="block">
-          Publish Date:
-          <input
-            type="date"
-            value={publishAt || ""}
-            onChange={(e) => setPublishAt(e.target.value)}
-            className="w-full p-2 border rounded"
-          />
-        </label>
-        <input
-          type="text"
-          placeholder="Tags (comma-separated)"
-          value={tags.join(", ")}
-          onChange={(e) => setTags(e.target.value.split(",").map((t) => t.trim()))}
-          className="w-full p-2 border rounded"
-        />
-
-        <select value={industry} onChange={(e) => setIndustry(e.target.value)} className="w-full p-2 border rounded">
-          <option>General</option>
-          <option>Healthcare</option>
-          <option>Finance</option>
-          <option>Education</option>
-        </select>
-        <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
-          Save Changes
-        </button>
-      </form>
-    </>
-  );
+    return (
+      <AdminLayout>
+        <EditProject initialProject={project} />
+      </AdminLayout>
+    );
+  } catch (error) {
+    console.error('Failed to fetch project:', error);
+    return notFound();
+  }
 }

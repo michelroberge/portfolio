@@ -64,7 +64,17 @@ async function prepopulateDefaultConfigs() {
     }
   }
 
+  async function getAIConfig() {
+    let config = await ProviderConfig.findOne();
+    if (!config) {
+      config = new ProviderConfig({ provider: "ollama" });
+      await config.save();
+    }
+    return config;
+  }
+  
 module.exports = {
+  getAIConfig,
   getAllConfigs,
   getConfigByProvider,
   updateConfig,

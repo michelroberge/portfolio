@@ -13,10 +13,6 @@ const adminAuth = require("../middlewares/admin");
 router.post("/", authMiddleware, async (req, res) => {
   try {
 
-    if  (!req.user?.isAdmin === true){
-      res.status(403);
-    }
-
     const { author, text, blog, parent } = req.body;
     if (!author || !text || !blog) {
       return res.status(400).json({ error: "author, text, and blog fields are required" });
@@ -54,10 +50,6 @@ router.get("/blog/:blogId", async (req, res) => {
 router.put("/:id", authMiddleware, async (req, res) => {
   try {
 
-    if  (!req.user?.isAdmin === true){
-      res.status(403);
-    }
-
     const { text, redacted } = req.body;
     const updateData = {};
     if (text !== undefined) updateData.text = text;
@@ -65,25 +57,6 @@ router.put("/:id", authMiddleware, async (req, res) => {
     const updatedComment = await commentService.updateComment(req.params.id, updateData);
     if (!updatedComment) return res.status(404).json({ error: "Comment not found" });
     res.json(updatedComment);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-/**
- * Redact (soft-delete) a comment by marking it as redacted.
- */
-router.delete("/:id", authMiddleware, adminAuth, async (req, res) => {
-  const updatedComment = await commentService.redactComment(req.params.id);
-  if (!updatedComment) return res.status(404).json({ message: "Comment not found" });
-  res.json({ message: "Comment redacted", comment: updatedComment });
-});
-
-
-router.get("/all", authMiddleware, async (req, res) => {
-  try {
-    const comments = await commentService.getAllComments();
-    res.json(comments);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

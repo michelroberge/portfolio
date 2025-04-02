@@ -1,56 +1,68 @@
 // Telemetry first
 require('./tracing');
 // The rest.
-require("dotenv").config();
+require("dotenv").config({ path: `.env.${process.env.NODE_ENV}.local` });
+
+console.log(`✅ Loaded environment: .env.${process.env.NODE_ENV}.local`);
+
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 
 const connectDB = require("./config/db");
 const { passport, setupStrategies } = require("./config/passport");
+const { warmupLLM } = require("./services/warmUpService");
 
+const requestLogger = require("./middlewares/requestLogger");
 
 const authRoutes = require("./routes/authRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const blogRoutes = require("./routes/blogRoutes");
 const oauthRoutes = require("./routes/oauthRoutes");
 const commentRoutes = require("./routes/commentRoutes");
-const userRoutes = require("./routes/userRoutes");
-const providerConfigRoutes = require("./routes/providerConfigRoutes");
 const searchRoutes = require("./routes/searchRoutes");
 const chatRoutes = require("./routes/chatRoutes");
+const fileRoutes = require("./routes/fileRoutes");
+const careerTimelineRoutes = require("./routes/careerTimelineRoutes");
+const pageRoutes = require("./routes/pageRoutes");
+const aiRoutes = require("./routes/aiRoutes");
 
 const { prepopulateDefaultConfigs } = require("./services/providerConfigService");
-const { initCollection } = require("./services/qdrantService");
 const metricsMiddleware = require("./middlewares/metrics");
 
 const { swaggerMiddleware, swaggerSetup } = require('./config/swagger');
 
-const { dropCollection } = require('./services/qdrantService');
+const adminRoutes = require("./routes/admin");
 
 async function createApp() {
   // Connect to the database
   await connectDB();
 
-  try{
-
-    // await dropCollection();
-    await initCollection();
-  }
-  catch(err){
-    console.error("Cannot initialize collections", err);
-  }
   // default configuration population
   await prepopulateDefaultConfigs();
 
   const app = express();
+  
+  if ( process.env.ALLOW_CORS){
+    app.use(cors({
+      origin: process.env.ALLOW_CORS || "http://localhost:3000",
+      credentials: true, // Allow cookies to be sent
+    }));
+  }
+  
+  if ( process.env.LOG_HTTP_REQUESTS==="true"){
+    app.use(requestLogger);
+  }
+  else{
+      app.use((req, res, next) => {
+      console.log(`${req.method} ${req.url}`);
+      next();
+    });
+  }
 
-  app.use(cors({
-    origin: process.env.ALLOW_CORS || "http://localhost:3000",
-    credentials: true, // Allow cookies to be sent
-  }));
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
   app.use(cookieParser());
 
   app.use(metricsMiddleware);
@@ -65,19 +77,37 @@ setupStrategies()
   });
 
   app.use(passport.initialize());  
-
-  // Set up routes
+  
+  // Swagger Documentation
   app.use('/api/docs', swaggerMiddleware, swaggerSetup);
+
+  // Public Routes (no auth required)
+  app.use("/api/blogs", blogRoutes);
+  app.use("/api/projects", projectRoutes);
+  app.use("/api/pages", pageRoutes);
+  app.use("/api/career", careerTimelineRoutes);
+  app.use("/api/search", searchRoutes);
+  app.use("/api/files", fileRoutes);
+
+  // Authentication Routes
   app.use("/api/auth", authRoutes);
   app.use("/api/auth/oauth2", oauthRoutes);
-  app.use("/api/projects", projectRoutes);
-  app.use("/api/blogs", blogRoutes);
-  app.use("/api/users", userRoutes);
-  app.use("/api/comments", commentRoutes);
-  app.use("/api/provider-configs", providerConfigRoutes);
-  app.use("/api/search", searchRoutes);
-  app.use("/api/chat", chatRoutes);
 
+  // Protected Routes (require authentication)
+  app.use("/api/comments", commentRoutes);
+  app.use("/api/chat", chatRoutes);
+  app.use("/api/ai", aiRoutes);
+
+  // Admin Routes (require authentication and admin role)
+  app.use("/api/admin", adminRoutes);
+
+  // Warm-up LLM at startup
+  warmupLLM().then(() => {
+    console.log("🚀 Warm-up complete!");
+  }).catch(err => {
+    console.error("⚠️ Warm-up encountered an issue:", err);
+  });
+  
   return app;
 }
 

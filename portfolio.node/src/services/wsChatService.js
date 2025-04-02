@@ -1,69 +1,78 @@
-// portfolio.node/src/services/wsChatService.js
 const WebSocket = require("ws");
-const ChatMessage = require("../models/ChatMessage");
-const {generateEmbedding, searchQdrant} = require("../services/qdrantService");
-const ollamaService = require("../services/ollamaService");
+const { executePipeline } = require("../services/pipelineService");
+
+const logColor = (message, colorCode = 94) => {
+    if ( process.env.NODE_ENV === 'development'){
+        console.log(`\x1b[${colorCode}m${message}\x1b[0m`);
+    }
+};
 
 const setupWebSocketServer = (server) => {
-  const wss = new WebSocket.Server({ server });
+    const wss = new WebSocket.Server({ server });
 
-  wss.on("connection", (ws) => {
-    console.log("New WebSocket connection established.");
+    wss.on("connection", (ws) => {
+        logColor("✅ New WebSocket connection established.");
 
-    ws.on("message", async (message) => {
-      try {
-        const { sessionId, query } = JSON.parse(message);
-        if (!sessionId || !query) {
-          ws.send(JSON.stringify({ error: "sessionId and query are required." }));
-          return;
-        }
-
-        // Store user message in DB
-        await ChatMessage.create({ sessionId, role: "user", text: query });
-
-
-        const vectors = await generateEmbedding(query);
-        const relatedDocs = await searchQdrant(vectors, "projects");
-      
-        // Structure a prompt for AI based on retrieved context
-        const context = relatedDocs.map((doc) => doc.payload.text).join("\n");
-
-        const structuredPrompt = `
-        You are an AI assistant helping showcase my portfolio. You ONLY use the provided context to answer questions.
-        If a question is about my projects, focus specifically on projects in the provided context.
-        If the question is unrelated to my work, say "I'm here to discuss my portfolio. Ask me about my projects or skills!"
+        ws.on("message", async (message) => {
+            try {
+                logColor("Server: received socket message", 94);
+                const parsedMessage = JSON.parse(message);
+                const sessionId = parsedMessage.sessionId || "default";
+                const query = parsedMessage.message || parsedMessage.query; // Ensure correct field
+                const history = parsedMessage.history || [];
         
-        ### Context:
-        ${context || "No relevant projects found in the database."}
+                if ( parsedMessage.type == "ping"){
+                    // just ignore ping
+                    return;
+                }
+
+                if (!query) {
+                    logColor("Server: No query", 91);
+                    ws.send(JSON.stringify({ error: "Query is required." }));
+                    return;
+                }
         
-        ### User Question:
-        ${query}
+                // **DEBUG LOG: Ensure WebSocket can write messages**
+                logColor("✅ Sending step response: Searching information...", 96);
         
-        ### AI Response:
-        `.trim();
-
-        // Stream AI response
-        const responseStream = await ollamaService.generateResponseStream(structuredPrompt);
-
-        // Send streamed data
-        for await (const chunk of responseStream) {
-          ws.send(JSON.stringify({ response: chunk }));
-        }
-
-        ws.send(JSON.stringify({ done: true }));
-
-      } catch (error) {
-        console.error("WebSocket error:", error);
-        ws.send(JSON.stringify({ error: "An error occurred while processing your request." }));
-      }
+                ws.send(JSON.stringify({
+                    response: "Searching information...",
+                    step: true
+                }));
+        
+                // Execute pipeline with streaming enabled
+                const streamCallback = (update) => {
+                    if (update.response && update.response.trim().length > 0) {
+                        ws.send(JSON.stringify({ response: update.response, step: update.step, done: update.done }));
+                    }
+                };
+                                                        
+                // Call pipeline function with streaming
+                await executePipeline("chat-response", {
+                    userQuery: query,
+                    chatHistory: JSON.stringify(history),
+                }, true, streamCallback);
+        
+                logColor("✅ Pipeline execution completed, sending final AI response", 96);
+                ws.send(JSON.stringify({done: true}));
+        
+            } catch (error) {
+                logColor("❌ WebSocket error in processing message", 91);
+                console.error(error);
+                ws.send(JSON.stringify({ error: "An error occurred while processing your request.", done: true }));
+            }
+        });
+        
+        ws.on("close", (code, reason) => {
+            logColor(`WebSocket connection closed. Code ${code}\nReason: ${reason}`, 92);
+        });
+        ws.on("error", (error) => {
+            logColor("❌ WebSocket encountered an error", 91);
+            console.error(error);
+        });
     });
 
-    ws.on("close", () => {
-      console.log("WebSocket connection closed.");
-    });
-  });
-
-  return wss;
+    return wss;
 };
 
 module.exports = { setupWebSocketServer };
