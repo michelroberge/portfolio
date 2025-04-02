@@ -6,7 +6,7 @@ import { BlogEntry } from "@/models/BlogEntry";
 
 export default function BlogView({ blog }: { blog: BlogEntry }) {
   return ( 
-    <main className="container prose mx-auto px-6 py-10 flex flex-col flex-1 bg-gray-50 mt-2">
+    <main className="max-w-fit lg:prose-lg xl:prose-xl mx-auto p-6 flex flex-col flex-1">
       <h1 className="text-3xl font-bold">{blog.title}</h1>
       <p className="">
         {blog.publishAt && new Date(blog.publishAt).toLocaleString(undefined, {
@@ -22,8 +22,14 @@ export default function BlogView({ blog }: { blog: BlogEntry }) {
 
       {/* Markdown rendering */}
       <div
-        className="mt-4 prose lg:prose-lg xl:prose-xl max-w-none"
-        dangerouslySetInnerHTML={{ __html: marked.parse(blog.body) }}
+        className="prose 
+        dark:prose-headings:text-gray-300
+        dark:prose-p:text-gray-400 
+        dark:prose-a:text-blue-400 
+        dark:prose-li:text-gray-500 
+        dark:prose-strong:text-gray-400
+        p-2 lg:prose-lg xl:prose-xl max-w-fit" 
+      dangerouslySetInnerHTML={{ __html: marked.parse(blog.body) }}
       />
 
       {/* Interactive comment section */}
