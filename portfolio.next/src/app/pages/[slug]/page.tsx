@@ -13,9 +13,16 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
     if (!page) return notFound();
 
     return (
-      <div className="max-w-3xl mx-auto p-6">
-        <h1 className="text-4xl font-bold mb-4">{page.title}</h1>
-        <div className="lg:prose-lg xl:prose-xl" dangerouslySetInnerHTML={{ __html: marked.parse(page.content) }} />
+      <div className="max-w-fit mx-auto p-6">
+        <div 
+        className="prose 
+          dark:prose-headings:text-gray-300
+          dark:prose-p:text-gray-400 
+          dark:prose-a:text-blue-400 
+          dark:prose-li:text-gray-500 
+          dark:prose-strong:text-gray-400
+          p-2 lg:prose-lg xl:prose-xl max-w-fit" 
+        dangerouslySetInnerHTML={{ __html: marked.parse(page.content) }} />
       </div>
     );
   } catch (err) {
