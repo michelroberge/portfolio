@@ -4,8 +4,12 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import {  APP_ROUTES } from "@/lib/constants";
+import { useLoading } from '@/context/LoadingContext';
 
 export default function AdminLogin() {
+
+  const { withLoading } = useLoading();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -18,11 +22,15 @@ export default function AdminLogin() {
     e.preventDefault();
     setError("");
     try {
-      await login(email, password);
-      await refreshAuth();
-      if (returnUrl) {
-        router.push(returnUrl);
-      }
+      await withLoading(
+        (async () => {
+          await login(email, password);
+          await refreshAuth();
+          if (returnUrl) {
+            router.push(returnUrl);
+          }
+        })()
+      );
     } catch (err) {
       console.error("Login failed:", err);
       setError("Invalid credentials");
