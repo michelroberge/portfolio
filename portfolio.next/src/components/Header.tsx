@@ -29,27 +29,27 @@ export default function Header() {
   return (
     <header className="bg-gray-800 text-white py-6 relative">
       <div className="container mx-auto px-4 flex justify-between items-center">
-        <Link href="/">
-          <div>
+        <div>
+          <Link href="/">
             <h1 className="text-3xl font-bold hover:text-gray-300 transition">
               Curious Coder: A Portfolio
             </h1>
-            <p className="text-lg">a.k.a. michel-roberge.com</p>
-            <p className="text-xs underline"><a href="https://www.linkedin.com/in/michel-roberge-7011b614/">Contact me on Linked In</a> </p>
-            
-          </div>
-        </Link>
+          </Link>
+          <p className="text-lg">a.k.a. michel-roberge.com</p>
+          <a href="https://www.linkedin.com/in/michel-roberge-7011b614"><p className="text-xs underline">Contact me on LinkedIn</p></a> 
+
+        </div>
         <div className="flex items-center gap-4">
 
-        {/* <Link href="/pages/about" className="flex items-center gap-2 text-white hover:text-gray-300">
+          {/* <Link href="/pages/about" className="flex items-center gap-2 text-white hover:text-gray-300">
               <FontAwesomeIcon icon={faContactCard} className="w-6 h-6" />
               <span>About me</span>
             </Link> */}
 
-        <Link href="/career" className="flex items-center gap-2 text-white hover:text-gray-300">
-              <FontAwesomeIcon icon={faAlignLeft} className="w-6 h-6" />
-              <span>Resume</span>
-            </Link>
+          <Link href="/career" className="flex items-center gap-2 text-white hover:text-gray-300">
+            <FontAwesomeIcon icon={faAlignLeft} className="w-6 h-6" />
+            <span>Resume</span>
+          </Link>
 
 
           {isAuthenticated && isAdmin && (
