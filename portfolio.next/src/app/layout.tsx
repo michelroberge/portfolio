@@ -4,7 +4,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/context/AuthContext";
-import ChatWrapper from "@/components/ChatWrapper";
+// import ChatWrapper from "@/components/ChatWrapper";
 // import Search from "@/components/Search";
 import { SearchProvider } from "@/context/SearchContext";
 import { ChatProvider } from "@/context/ChatContext";
@@ -45,7 +45,7 @@ export default function RootLayout({
                   {children}
                 </main>
                 <Footer />
-                <ChatWrapper />
+                {/* <ChatWrapper /> */}
               </SearchProvider>
             </ChatProvider>
           </AuthProvider>
