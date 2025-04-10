@@ -16,6 +16,7 @@ const aiRoutes = require("./aiRoutes");
 const careerTimelineRoutes = require("./careerTimelineRoutes");
 const promptRoutes = require("./promptRoutes");
 const commentRoutes = require("./commentRoutes");
+const fileRoutes = require("./fileRoutes");
 const embeddingRoutes = require("./embeddings/index.js");
 
 const router = express.Router();
@@ -25,6 +26,7 @@ router.use(authMiddleware);
 router.use(adminAuth);
 
 // Mount admin-specific routes
+router.use("/files", fileRoutes);
 router.use("/blogs", blogRoutes);
 router.use("/projects", projectRoutes);
 router.use("/users", userRoutes);

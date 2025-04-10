@@ -58,6 +58,7 @@ export async function uploadFile(
         url.searchParams.append("entityId", entityId);
         url.searchParams.append("context", context);
         url.searchParams.append("isPublic", isPublic.toString());
+        url.searchParams.append("uploadName", file.name);
 
         const headers: HeadersInit = cookieHeader
             ? { Cookie: cookieHeader }

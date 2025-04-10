@@ -24,7 +24,7 @@ export default async function AdminBlogEditPage({ params }: Props) {
     
     return (
       <AdminLayout>
-        <EditBlogEntry initialData={blog} />
+        <EditBlogEntry initialData={blog} cookieHeader={cookieHeader} />
       </AdminLayout>
     );
   } catch (error) {

@@ -8,21 +8,22 @@ import { User } from '@/models/User';
  */
 export async function getAuthStatus(): Promise<{ isAuthenticated: boolean; user: User | null, isAdmin: boolean }> {
     try {
+        const cookie = await cookies();
         const res = await fetch(AUTH_API.auth.status, {
             headers: {
-                Cookie: cookies().toString(),
+                Cookie: cookie.toString(),
             },
             cache: 'no-store',
         });
 
-        console.log('🔍 [DEBUG] getAuthStatus res.ok:', res.ok);
+        // console.log('🔍 [DEBUG] getAuthStatus res.ok:', res.ok);
 
         if (!res.ok) {
             return { isAuthenticated: false, user: null, isAdmin: false };
         }
 
         const {user} = await res.json();
-        console.log('🔍 [DEBUG] getAuthStatus user:', user);
+        // console.log('🔍 [DEBUG] getAuthStatus user:', user);
 
         return { isAuthenticated: true, user, isAdmin: user.isAdmin };
     } catch (error) {
@@ -38,7 +39,7 @@ export async function getAuthStatus(): Promise<{ isAuthenticated: boolean; user:
 export async function protectAdminRoute() {
     const { isAuthenticated, user, isAdmin } = await getAuthStatus();
 
-    console.log('🔍 [DEBUG] protectAdminRoute isAuthenticated:', isAuthenticated, 'isAdmin:', isAdmin);
+    // console.log('🔍 [DEBUG] protectAdminRoute isAuthenticated:', isAuthenticated, 'isAdmin:', isAdmin);
 
     if (!isAuthenticated || !isAdmin) {
         redirect(APP_ROUTES.auth.login);
@@ -57,7 +58,7 @@ export async function getAdminCookie(user : User | null = null) {
         redirect(APP_ROUTES.auth.login);
     }
 
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const cookieHeader = cookieStore.toString(); 
     
     return { cookieHeader };

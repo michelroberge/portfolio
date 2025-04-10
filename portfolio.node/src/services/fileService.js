@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+
 const Grid = require("gridfs-stream");
 const { generateEmbeddings } = require("./embeddingService");
 const { storeEmbedding, deleteEmbedding, initCollection } = require("./qdrantService");
@@ -28,43 +29,55 @@ conn.once("open", () => {
 /**
  * Upload a file to GridFS and process embeddings if applicable.
  */
-async function uploadFile(req, entityId, context, isPublic) {
+async function uploadFile(req) {
+
+  const { entityId, context, isPublic, uploadName } = req.query;
+
   return new Promise((resolve, reject) => {
     if (!req.headers["content-type"]) {
       return reject("Invalid request: No file detected");
     }
 
-    const filename = req.headers["x-filename"] || "uploaded_file";
+    const filename = uploadName || req.headers["x-filename"] || "uploaded_file";
     const contentType = req.headers["content-type"];
     const size = req.headers["content-length"];
+    const metadata = {
+      contentType,
+      uploadedBy: req.user._id,
+      isPublic: isPublic === "true",
+      entityId : entityId,
+      context : context,
+      size,
+    };
+
+    console.log(`metadata`, metadata);
 
     const uploadStream = gridFSBucket.openUploadStream(filename, {
-      metadata: {
-        contentType,
-        uploadedBy: req.user._id,
-        isPublic: isPublic === "true",
-        entityId,
-        context,
-        size,
-      },
+      metadata,
     });
 
     req.pipe(uploadStream);
 
-    uploadStream.on("finish", async (file) => {
+    uploadStream.on("finish", async () => {
+
+      const file = uploadStream.gridFSFile;
+
       // Generate vectorId for new files
       const vectorId = await counterService.getNextVectorId();
-      await updateFileMetadata(file._id, { vectorId });
+      await updateFileMetadata(file._id, { ...metadata, vectorId });
 
       // Process embeddings for text-based files
       if (contentType.startsWith("text/") || contentType === "application/pdf") {
         await updateFileEmbeddings(file._id, filename, contentType);
       }
       resolve({ message: "File uploaded successfully", filename });
+
+      return file;
     });
 
     uploadStream.on("error", (err) => reject(err));
   });
+
 }
 
 /**
@@ -148,7 +161,13 @@ async function deleteFile(id) {
  * Get files by entity reference & context.
  */
 async function getFilesByContext(entityId, context) {
-  return await gfs.files.find({ "metadata.entityId": entityId, "metadata.context": context }).toArray();
+  
+  const files = await gfs.files.find({ 
+    "metadata.entityId": entityId, 
+    "metadata.context": context 
+  }).toArray();
+
+  return files;
 }
 
 /**
@@ -184,7 +203,7 @@ async function updateFileMetadata(fileId, metadata) {
 
   try {
       const result = await bucketFiles.updateOne(
-          { _id: new mongoose.Types.ObjectId(fileId) },
+          { _id: fileId },
           { $set: { metadata: metadata } }  // ✅ Updates metadata
       );
 
