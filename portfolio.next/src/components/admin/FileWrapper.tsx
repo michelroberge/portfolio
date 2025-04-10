@@ -20,7 +20,7 @@ export default function FileWrapper({ entityId, context, cookieHeader }: FileWra
 
   return (
     <div className="p-4 border rounded mt-4">
-      <h2 className="text-lg font-bold mb-2">Manage Files</h2>
+      <h2 className="text-lg font-bold mb-2">Manage Files - {context}</h2>
       <UploadSpecificFile entityId={entityId} context={context} refreshFiles={refreshFiles} cookieHeader={cookieHeader} />
       <FileList key={refreshKey} entityId={entityId} context={context} refreshFiles={refreshFiles} cookieHeader={cookieHeader} />
     </div>

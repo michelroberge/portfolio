@@ -5,12 +5,15 @@ import { useRouter } from 'next/navigation';
 import { type BlogEntry, BaseBlogEntry, BlogEntryCreate } from '@/models/BlogEntry';
 import MarkdownEditor from '@/components/MarkdownEditor';
 import { createBlogEntry, updateBlogEntry } from '@/services/blogService';
+import FileWrapper from './FileWrapper';
 
 interface Props {
   initialData?: BlogEntry;
+  cookieHeader: string;
 }
 
-export default function EditBlogEntry({ initialData }: Props) {
+export default function EditBlogEntry({ initialData, cookieHeader }: Props) {
+  
   const router = useRouter();
   const [formData, setFormData] = useState<BaseBlogEntry>({
     title: initialData?.title || '',
@@ -116,6 +119,7 @@ export default function EditBlogEntry({ initialData }: Props) {
           {initialData ? 'Update' : 'Create'} Blog Entry
         </button>
       </div>
+      <FileWrapper context='blogs' entityId={initialData?._id || ''}  cookieHeader={cookieHeader}/>
     </form>
   );
 }

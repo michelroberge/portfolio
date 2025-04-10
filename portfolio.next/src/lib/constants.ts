@@ -89,7 +89,7 @@ export const ADMIN_API = {
   file: {
     list: `${REMOTE_URL}${API_BASE}/admin/files`,
     get: (id: string) => `${REMOTE_URL}${API_BASE}/admin/files/${id}`,
-    upload: `${REMOTE_URL}${API_BASE}/admin/files/upload`,
+    upload: `${REMOTE_URL}${API_BASE}/admin/files`,
     update: (id: string) => `${REMOTE_URL}${API_BASE}/admin/files/${id}`,
     delete: (id: string) => `${REMOTE_URL}${API_BASE}/admin/files/${id}`,
   },

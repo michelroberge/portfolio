@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/context/AuthContext";
 import ChatWrapper from "@/components/ChatWrapper";
-import Search from "@/components/Search";
+// import Search from "@/components/Search";
 import { SearchProvider } from "@/context/SearchContext";
 import { ChatProvider } from "@/context/ChatContext";
 import { Suspense } from "react";
@@ -41,7 +41,7 @@ export default function RootLayout({
               <SearchProvider>
                 <Header />
                 <main className="p-6 mx-auto w-full max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-7xl">
-                  <Search />
+                  {/* <Search /> */}
                   {children}
                 </main>
                 <Footer />
