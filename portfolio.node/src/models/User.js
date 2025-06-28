@@ -6,6 +6,12 @@ const UserSchema = new mongoose.Schema({
   passwordHash: { type: String, required: true },
   // New field to indicate if the user has admin privileges.
   isAdmin: { type: Boolean, default: false },
+  // OIDC-related fields
+  name: { type: String },
+  oidcProvider: { type: String },
+  oidcSub: { type: String },
+}, {
+  timestamps: true
 });
 
 // Hash password before saving

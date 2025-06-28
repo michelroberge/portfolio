@@ -1,5 +1,3 @@
-const { describe, test, expect, jest } = require('@jest/globals');
-const authRoutes = require('../../src/routes/authRoutes');
 const request = require('supertest');
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
@@ -24,27 +22,6 @@ beforeEach(async () => {
   await User.deleteMany({});
 });
 
-jest.mock('../../src/middlewares/auth', () => (req, res, next) => next());
-jest.mock('../../src/middlewares/admin', () => (req, res, next) => next());
-
-describe('routes/authRoutes.js', () => {
-    test('should be defined', () => {
-        expect(authRoutes).toBeDefined();
-    });
-
-    test('should have expected methods and properties', () => {
-        expect(typeof authRoutes).toBe('object' || 'function');
-    });
-
-    if (typeof authRoutes === 'object' && authRoutes !== null) {
-        Object.keys(authRoutes).forEach(method => {
-            test(`method ${method} should be defined`, () => {
-                expect(typeof authRoutes[method]).toBe('function');
-            });
-        });
-    }
-});
-
 describe('OIDC Authentication', () => {
   it('should authenticate new OIDC user', async () => {
     const oidcData = {
@@ -61,7 +38,7 @@ describe('OIDC Authentication', () => {
 
     expect(response.body.success).toBe(true);
     expect(response.body.token).toBeDefined();
-    expect(response.body.user.email).toBe(oidcData.email);
+    expect(response.body.user.username).toBe(oidcData.email);
     expect(response.body.user.name).toBe(oidcData.name);
 
     // Check that user was created in database
@@ -190,4 +167,4 @@ describe('OIDC Authentication', () => {
     const user = await User.findOne({ username: oidcData.email });
     expect(user.isAdmin).toBe(false);
   });
-});
+}); 

@@ -61,8 +61,20 @@ function verifyToken(token) {
   }
 }
 
+/**
+ * Generates a JWT token for a user.
+ * @param {Object} userData - User data to include in the token.
+ * @returns {string} - JWT token.
+ */
+function generateToken(userData) {
+  return jwt.sign(userData, SECRET_KEY, {
+    expiresIn: "1h",
+  });
+}
+
 module.exports = {
   registerUser,
   loginUser,
   verifyToken,
+  generateToken,
 };
