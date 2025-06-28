@@ -1,6 +1,6 @@
 // portfolio.node/src/services/ollamaService.js
 
-const OLLAMA_URL = process.env.OLLAMA_API_URL || "http://10.0.0.42:11434";
+const OLLAMA_API_URL = process.env.OLLAMA_API_URL || "http://10.0.0.42:11434";
 const PROMPT_MODEL = process.env.PROMPT_MODEL || "mistral";
 const TEMPERATURE = 0.4;
 /**
@@ -11,7 +11,7 @@ const TEMPERATURE = 0.4;
  */
 async function generateResponse(prompt) {
   try {
-    const response = await fetch(`${OLLAMA_URL}/api/generate`, {
+    const response = await fetch(`${OLLAMA_API_URL}/api/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -67,7 +67,7 @@ async function generateResponse(prompt) {
  * @returns {ReadableStream} A stream of response chunks
  */
 async function generateResponseStream(prompt, format = 'text') {
-  const url = `${OLLAMA_URL}/api/generate`;
+  const url = `${OLLAMA_API_URL}/api/generate`;
 
   const options = {
     model: PROMPT_MODEL,
