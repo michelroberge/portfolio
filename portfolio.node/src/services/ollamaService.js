@@ -1,6 +1,6 @@
 // portfolio.node/src/services/ollamaService.js
 
-const OLLAMA_URL = process.env.OLLAMA_URL || "http://10.0.0.42:11434";
+const OLLAMA_URL = process.env.OLLAMA_API_URL || "http://10.0.0.42:11434";
 const PROMPT_MODEL = process.env.PROMPT_MODEL || "mistral";
 const TEMPERATURE = 0.4;
 /**
