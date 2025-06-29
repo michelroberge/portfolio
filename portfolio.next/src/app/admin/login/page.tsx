@@ -57,8 +57,9 @@ export default function AdminLogin() {
 
   return (
     <div className="flex min-h-screen flex-col justify-center items-center space-y-6">
+      <div className="bg-gray-800 p-6 rounded-lg shadow-md w-full max-w-md">
       {config.localAuthEnabled && (
-        <form onSubmit={handleLogin} className="bg-gray-800 p-6 rounded-lg shadow-md w-full max-w-md">
+        <form onSubmit={handleLogin} >
           <h2 className="text-2xl font-semibold mb-4 text-center">Admin Login</h2>
           {error && <p className="text-red-500 mb-4">{error}</p>}
           <input
@@ -81,7 +82,10 @@ export default function AdminLogin() {
           </button>
         </form>
       )}
-      {config.oidcEnabled && <OIDCLogin />}
+      {config.oidcEnabled && (
+          <OIDCLogin />
+      )}
+      </div>
     </div>
   );
 }

@@ -67,7 +67,7 @@ router.post("/login", async (req, res) => {
 // OIDC authentication endpoint
 router.post("/oidc", async (req, res) => {
   try {
-    const { email, name, sub, provider } = req.body;
+    const { email, name, sub, provider, isAdmin } = req.body;
     
     if (!email) {
       return res.status(400).json({ 
@@ -85,7 +85,7 @@ router.post("/oidc", async (req, res) => {
       user = await authService.registerUser({ 
         username: email, 
         password: password,
-        isAdmin: false // Default to non-admin, can be updated later
+        isAdmin: isAdmin || false // Use OIDC admin status or default to false
       });
       
       // Update user with OIDC information
@@ -94,11 +94,15 @@ router.post("/oidc", async (req, res) => {
       user.oidcSub = sub;
       await user.save();
     } else {
-      // Update existing user's OIDC information
+      // Update existing user's OIDC information and admin status
       user.oidcProvider = provider;
       user.oidcSub = sub;
       if (name && !user.name) {
         user.name = name;
+      }
+      // Update admin status from OIDC claims (allows role changes in Keycloak)
+      if (typeof isAdmin === 'boolean') {
+        user.isAdmin = isAdmin;
       }
       await user.save();
     }
@@ -181,7 +185,7 @@ router.get('/oidc/login', async (req, res) => {
     const params = querystring.stringify({
       client_id: process.env.OIDC_CLIENT_ID,
       response_type: 'code',
-      scope: process.env.OIDC_SCOPE || 'openid profile email',
+      scope: process.env.OIDC_SCOPE || 'openid profile email roles',
       redirect_uri: process.env.OIDC_REDIRECT_URI,
       state,
     });
@@ -249,6 +253,9 @@ router.get('/oidc/callback', async (req, res) => {
     
     const userInfo = await userInfoRes.json();
     
+    // Check for admin role in OIDC claims
+    const isAdmin = checkAdminRole(userInfo, tokenData);
+    
     // Authenticate or create user
     const authRes = await fetch(`${process.env.BACKEND_URL || 'http://localhost:5000'}/api/auth/oidc`, {
       method: 'POST',
@@ -258,6 +265,7 @@ router.get('/oidc/callback', async (req, res) => {
         name: userInfo.name,
         sub: userInfo.sub,
         provider: 'oidc',
+        isAdmin: isAdmin,
       }),
     });
     
@@ -281,5 +289,72 @@ router.get('/oidc/callback', async (req, res) => {
     res.redirect(`${frontendUrl}/admin/login?error=oidc_failed`);
   }
 });
+
+// Helper function to check for admin role in OIDC claims
+function checkAdminRole(userInfo, tokenData) {
+  // Check multiple possible locations for admin role
+  const adminRoleNames = ['admin', 'portfolio-admin', 'realm-admin'];
+  
+  console.log('🔍 [OIDC] Checking admin role in userInfo:', JSON.stringify(userInfo, null, 2));
+  
+  // Check in userInfo (from userinfo endpoint)
+  if (userInfo.roles && Array.isArray(userInfo.roles)) {
+    console.log('🔍 [OIDC] Checking userInfo.roles:', userInfo.roles);
+    if (userInfo.roles.some(role => adminRoleNames.includes(role))) {
+      console.log('✅ [OIDC] Admin role found in userInfo.roles');
+      return true;
+    }
+  }
+  
+  // Check in realm_access.roles (Keycloak specific)
+  if (userInfo.realm_access && userInfo.realm_access.roles) {
+    console.log('🔍 [OIDC] Checking userInfo.realm_access.roles:', userInfo.realm_access.roles);
+    if (userInfo.realm_access.roles.some(role => adminRoleNames.includes(role))) {
+      console.log('✅ [OIDC] Admin role found in realm_access.roles');
+      return true;
+    }
+  }
+  
+  // Check in resource_access (client-specific roles)
+  if (userInfo.resource_access) {
+    console.log('🔍 [OIDC] Checking userInfo.resource_access:', userInfo.resource_access);
+    for (const clientId in userInfo.resource_access) {
+      const clientRoles = userInfo.resource_access[clientId].roles;
+      if (clientRoles && clientRoles.some(role => adminRoleNames.includes(role))) {
+        console.log(`✅ [OIDC] Admin role found in resource_access.${clientId}.roles`);
+        return true;
+      }
+    }
+  }
+  
+  // Check in ID token claims (if available)
+  if (tokenData.id_token) {
+    try {
+      const idTokenPayload = JSON.parse(Buffer.from(tokenData.id_token.split('.')[1], 'base64').toString());
+      console.log('🔍 [OIDC] Checking ID token payload:', JSON.stringify(idTokenPayload, null, 2));
+      
+      if (idTokenPayload.roles && Array.isArray(idTokenPayload.roles)) {
+        console.log('🔍 [OIDC] Checking idTokenPayload.roles:', idTokenPayload.roles);
+        if (idTokenPayload.roles.some(role => adminRoleNames.includes(role))) {
+          console.log('✅ [OIDC] Admin role found in idTokenPayload.roles');
+          return true;
+        }
+      }
+      
+      if (idTokenPayload.realm_access && idTokenPayload.realm_access.roles) {
+        console.log('🔍 [OIDC] Checking idTokenPayload.realm_access.roles:', idTokenPayload.realm_access.roles);
+        if (idTokenPayload.realm_access.roles.some(role => adminRoleNames.includes(role))) {
+          console.log('✅ [OIDC] Admin role found in idTokenPayload.realm_access.roles');
+          return true;
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ [OIDC] Failed to parse ID token for role checking:', e);
+    }
+  }
+  
+  console.log('❌ [OIDC] No admin role found in any claims');
+  return false;
+}
 
 module.exports = router;
