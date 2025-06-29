@@ -9,7 +9,7 @@ const adminAuth = require("../../middlewares/admin");
 
 const blogRoutes = require("./blogRoutes");
 const projectRoutes = require("./projectRoutes");
-const userRoutes = require("../../routes/userRoutes");
+const userRoutes = require("./userRoutes");
 const providerConfigRoutes = require("./providerConfigRoutes");
 const pageRoutes = require("./pageRoutes");
 const aiRoutes = require("./aiRoutes");
