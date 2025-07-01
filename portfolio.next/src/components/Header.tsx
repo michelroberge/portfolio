@@ -15,11 +15,17 @@ export default function Header() {
   async function handleLogout() {
     try {
       const res = await fetch(AUTH_API.auth.logout, {
+        method: "POST",
         credentials: "include",
       });
       if (res.ok) {
-        await refreshAuth();
-        router.refresh();
+        const data = await res.json();
+        if (data.logoutUrl) {
+          window.location.assign(data.logoutUrl);
+        } else {
+          await refreshAuth();
+          router.refresh();
+        }
       }
     } catch (error) {
       console.error("Logout failed", error);

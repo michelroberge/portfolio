@@ -158,8 +158,21 @@ router.get("/status", async (req, res) => {
 });
 
 // Logout by clearing the token cookie
-router.get("/logout", (req, res) => {
+router.post("/logout", (req, res) => {
+
   res.clearCookie("auth-token");
+
+  const idToken = req.session.id_token;
+  
+  if (idToken) {
+    console.log("oidc logout triggered");
+    // Build OIDC logout URL
+    const logoutUrl = `${process.env.KEYCLOAK_BASE_URL}/realms/${process.env.KEYCLOAK_REALM}/protocol/openid-connect/logout?id_token_hint=${encodeURIComponent(idToken)}&post_logout_redirect_uri=${encodeURIComponent(process.env.FRONTEND_URL)}`;
+    return res.json({ logoutUrl });
+  }
+
+  console.log('No oidc logout');
+
   res.json({ message: "Logged out" });
 });
 
@@ -280,6 +293,8 @@ router.get('/oidc/callback', async (req, res) => {
       maxAge: 3600000,
     });
     
+    req.session.id_token = tokenData.id_token;
+
     // Redirect to frontend with the auth cookie
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     res.redirect(`${frontendUrl}${returnUrl}`);

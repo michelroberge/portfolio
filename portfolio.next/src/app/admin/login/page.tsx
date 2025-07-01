@@ -17,14 +17,24 @@ export default function AdminLogin() {
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get("returnUrl") || APP_ROUTES.admin.home;
   const { isAuthenticated, login, refreshAuth } = useAuth();
+  const {showLoading, hideLoading} = useLoading();
 
   useEffect(() => {
+    showLoading();
     // Fetch login config from backend
     fetch(`${REMOTE_URL}/api/auth/config`)
       .then((res) => res.json())
       .then(setConfig)
-      .catch(() => setConfig({ oidcEnabled: false, localAuthEnabled: true }));
+      .catch(() => setConfig({ oidcEnabled: false, localAuthEnabled: true }))
+      .finally(() => hideLoading());
   }, []);
+
+  useEffect(()=>{
+    if (config?.oidcEnabled && (!config?.localAuthEnabled)){
+        // Redirect to backend OIDC login endpoint
+        window.location.href = `${REMOTE_URL}/api/auth/oidc/login?returnUrl=${encodeURIComponent(returnUrl)}`;
+    }
+  }, [config]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +64,15 @@ export default function AdminLogin() {
   if (!config) {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
   }
+
+  if (config?.oidcEnabled && (!config?.localAuthEnabled)){
+    // Redirect to backend OIDC login endpoint
+    return (
+      <div className="flex min-h-screen flex-col justify-center items-center space-y-6">
+      <p>Redirecting to Identity Provider...</p>
+      </div> 
+    )
+}
 
   return (
     <div className="flex min-h-screen flex-col justify-center items-center space-y-6">
