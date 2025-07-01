@@ -1,66 +1,122 @@
 const User = require("../models/User");
+const keycloakService = require("./keycloakService");
 
 /**
- * Creates a new user.
- * 
- * @param {Object} userData - An object containing user details.
- * @param {string} userData.username - The username.
- * @param {string} userData.password - The plain-text password.
- * @returns {Promise<Object>} - The newly created user.
- * @throws {Error} - If username or password is missing or if the user already exists.
+ * Creates or links a user in Keycloak, then mirrors in local DB.
+ * @param {Object} userData - { username, email, password, isAdmin }
+ * @returns {Promise<Object>} - The newly created or linked user.
  */
-async function createUser({ username, password, isAdmin = false }) {
-    if (!username || !password) {
-      throw new Error("Username and password are required");
-    }
-  
-    // Check for an existing user with the same username.
-    const existingUser = await User.findOne({ username });
-    if (existingUser) {
-      throw new Error("User already exists");
-    }
-  
-    // Create the user instance.
-    // The User model's pre-save hook will hash the password automatically.
-    const newUser = new User({ username, passwordHash: password, isAdmin });
-    await newUser.save();
-    return newUser;
+async function createUser({ username, email, password, isAdmin = false }) {
+  try {
+    const kcUserCreate = await keycloakService.findOrCreateUser({ username, email, password, isAdmin });
+    const dbUserCreate = await User.findOneAndUpdate(
+      { username: kcUserCreate.username },
+      {
+        username: kcUserCreate.username,
+        passwordHash: password || '',
+        isAdmin: isAdmin,
+        name: kcUserCreate.firstName || '',
+        oidcProvider: 'keycloak',
+        oidcSub: kcUserCreate.id,
+      },
+      { upsert: true, new: true }
+    );
+    return dbUserCreate;
+  } catch (err) {
+    console.error('User creation failed:', err.message);
+    return null;
   }
+}
 
 /**
- * Retrieves all users.
- * @returns {Promise<Array>} - Array of user.
+ * Retrieves all users from Keycloak, mirrors in local DB, and returns them.
+ * @returns {Promise<Array>} - Array of users.
  */
 async function getAllUsers() {
-  return User.find();
+  try {
+    await keycloakService.authenticate();
+    const kcUsersAll = await keycloakService.kcAdminClient.users.find();
+    const mirroredUsers = await Promise.all(kcUsersAll.map(async (kcUserAll) => {
+      return User.findOneAndUpdate(
+        { username: kcUserAll.username },
+        {
+          username: kcUserAll.username,
+          passwordHash: '',
+          isAdmin: false,
+          name: kcUserAll.firstName || '',
+          oidcProvider: 'keycloak',
+          oidcSub: kcUserAll.id,
+        },
+        { upsert: true, new: true }
+      );
+    }));
+    return mirroredUsers;
+  } catch (err) {
+    console.error('Get all users failed:', err.message);
+    return [];
+  }
 }
 
 /**
- * Retrieves a users by its ID.
- * @param {string} id - The user ID.
- * @returns {Promise<Object|null>} - The found user  or null.
+ * Retrieves a user by ID from Keycloak, mirrors in local DB, and returns it.
+ * @param {string} id - The user ID (Keycloak ID).
+ * @returns {Promise<Object|null>} - The found user or null.
  */
 async function getUserById(id) {
-  return User.findById(id);
+  try {
+    await keycloakService.authenticate();
+    const kcUserById = await keycloakService.kcAdminClient.users.findOne({ id });
+    if (!kcUserById) return null;
+    const dbUserById = await User.findOneAndUpdate(
+      { username: kcUserById.username },
+      {
+        username: kcUserById.username,
+        passwordHash: '',
+        isAdmin: false,
+        name: kcUserById.firstName || '',
+        oidcProvider: 'keycloak',
+        oidcSub: kcUserById.id,
+      },
+      { upsert: true, new: true }
+    );
+    return dbUserById;
+  } catch (err) {
+    console.error('Get user by ID failed:', err.message);
+    return null;
+  }
 }
 
 /**
- * Updates a user by its ID.
- * @param {string} id - The user ID.
- * @param {Object} data - Data to update.
+ * Updates a user by ID in Keycloak, then mirrors in local DB.
+ * @param {string} id - The user ID (Keycloak ID).
+ * @param {Object} data - Data to update (e.g., isAdmin).
  * @returns {Promise<Object|null>} - The updated user or null.
  */
 async function updateUser(id, data) {
-  return User.findByIdAndUpdate(id, data, { new: true });
+  try {
+    if (typeof data.isAdmin === 'boolean') {
+      await keycloakService.setAdminRole(id, data.isAdmin);
+    }
+    return getUserById(id);
+  } catch (err) {
+    console.error('Update user failed:', err.message);
+    return null;
+  }
 }
 
 /**
- * Deletes a user by its ID.
- * @param {string} id - The user ID.
- * @returns {Promise<Object|null>} - The deleted user or null.
+ * Removes user from client in Keycloak, then mirrors in local DB.
+ * @param {string} id - The user ID (Keycloak ID).
+ * @returns {Promise<Object|null>} - The updated user or null.
  */
 async function deleteUser(id) {
-  return User.findByIdAndDelete(id);
+  try {
+    await keycloakService.removeUserFromClient(id);
+    return getUserById(id);
+  } catch (err) {
+    console.error('Delete user failed:', err.message);
+    return null;
+  }
 }
 
 module.exports = {
