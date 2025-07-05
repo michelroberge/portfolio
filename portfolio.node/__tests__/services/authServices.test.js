@@ -3,8 +3,8 @@ jest.setTimeout(30000); // Extend timeout for database operations
 
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
-const authService = require('../src/services/authService');
-const User = require('../src/models/User');
+const authService = require('../../src/services/authService');
+const User = require('../../src/models/User');
 
 let mongoServer;
 

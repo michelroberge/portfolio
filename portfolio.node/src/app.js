@@ -8,11 +8,12 @@ console.log(`✅ Loaded environment: .env.${process.env.NODE_ENV}.local`);
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
+const mongoose = require('mongoose');
 
 const connectDB = require("./config/db");
 const { passport, setupStrategies } = require("./config/passport");
 const { warmupLLM } = require("./services/warmUpService");
-
+const sessionMiddleware = require("./config/session");
 const requestLogger = require("./middlewares/requestLogger");
 
 const authRoutes = require("./routes/authRoutes");
@@ -38,11 +39,14 @@ async function createApp() {
   // Connect to the database
   await connectDB();
 
+
   // default configuration population
   await prepopulateDefaultConfigs();
 
   const app = express();
   
+  app.use(sessionMiddleware(mongoose.connection));
+
   if ( process.env.ALLOW_CORS){
     app.use(cors({
       origin: process.env.ALLOW_CORS || "http://localhost:3000",

@@ -1,4 +1,3 @@
-const { describe, test, expect, jest } = require('@jest/globals');
 const ollamaService = require('../../src/services/ollamaService');
 
 

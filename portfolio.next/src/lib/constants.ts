@@ -47,7 +47,8 @@ export const AUTH_API = {
     oauth: {
       google: `${REMOTE_URL}${API_BASE}/auth/oauth2/google`,
       facebook: `${REMOTE_URL}${API_BASE}/auth/oauth2/facebook`,
-    }
+    },
+    oidc: `${REMOTE_URL}${API_BASE}/auth/oidc`,
   },
   comment: {
     create: `${REMOTE_URL}${API_BASE}/comments`,

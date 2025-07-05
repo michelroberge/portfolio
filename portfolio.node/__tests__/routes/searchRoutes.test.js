@@ -1,4 +1,3 @@
-const { describe, test, expect, jest } = require('@jest/globals');
 const searchRoutes = require('../../src/routes/searchRoutes');
 
 

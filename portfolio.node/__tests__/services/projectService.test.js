@@ -1,4 +1,3 @@
-const { describe, test, expect, jest } = require('@jest/globals');
 const projectService = require('../../src/services/projectService');
 
 

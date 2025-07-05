@@ -1,4 +1,3 @@
-const { describe, test, expect, jest } = require('@jest/globals');
 const BlogEntry = require('../../src/models/BlogEntry');
 
 

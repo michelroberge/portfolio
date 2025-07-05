@@ -3,7 +3,6 @@ const CareerTimeline = require("../models/CareerTimeline");
 const router = express.Router();
 const isAuth = require("../middlewares/auth");
 const isAdmin = require("../middlewares/admin");
-const cheerio = require("cheerio");
 
 // GET all career timeline entries
 router.get("/timeline", async (req, res) => {

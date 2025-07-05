@@ -89,6 +89,7 @@ export async function checkAuthStatus(): Promise<AuthResponse> {
  */
 export async function logout(): Promise<void> {
   try {
+    // Step 1: Clear local session
     const res = await fetch(AUTH_API.auth.logout, {
       method: "POST",
       credentials: "include",
@@ -97,6 +98,22 @@ export async function logout(): Promise<void> {
     if (!res.ok) {
       const error = await res.json();
       throw new Error(error.message || "Logout failed");
+    }
+
+    // Step 2: Get OIDC logout URL
+    const oidcRes = await fetch("/api/oidc/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+    if (!oidcRes.ok) {
+      const error = await oidcRes.json();
+      throw new Error(error.message || "OIDC Logout failed");
+    }
+    const { logoutUrl } = await oidcRes.json();
+
+    // Step 3: Redirect to OIDC logout
+    if (logoutUrl) {
+      window.location.assign(logoutUrl);
     }
   } catch (error) {
     console.error("Logout failed:", error);

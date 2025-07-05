@@ -1,5 +1,4 @@
-const { describe, test, expect, jest } = require('@jest/globals');
-const app = require('../../src/app');
+const app = require('../src/app')
 
 
 
