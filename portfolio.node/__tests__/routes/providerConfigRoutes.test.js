@@ -1,5 +1,4 @@
-const { describe, test, expect, jest } = require('@jest/globals');
-const providerConfigRoutes = require('../../src/routes/providerConfigRoutes');
+const providerConfigRoutes = require('../../src/routes/admin/providerConfigRoutes');
 
 
 jest.mock('../../src/middlewares/auth', () => (req, res, next) => next());

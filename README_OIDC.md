@@ -55,16 +55,16 @@ Add these variables to your `.env.local` file:
 
 ```bash
 # OIDC Configuration (Next.js Frontend)
-NEXT_OIDC_CLIENT_ID=your_oidc_client_id
-NEXT_OIDC_CLIENT_SECRET=your_oidc_client_secret
-NEXT_OIDC_ISSUER=https://your-oidc-provider.com
-NEXT_OIDC_REDIRECT_URI=http://localhost:3000/api/oidc/callback
-NEXT_OIDC_SCOPE=openid profile email
+OIDC_CLIENT_ID=your_oidc_client_id
+OIDC_CLIENT_SECRET=your_oidc_client_secret
+OIDC_ISSUER=https://your-oidc-provider.com
+OIDC_REDIRECT_URI=http://localhost:3000/api/oidc/callback
+OIDC_SCOPE=openid profile email
 
 # Authentication Configuration
 # Set to 'true' to disable local username/password authentication
 # When true, only OIDC authentication will be available
-NEXT_LOCAL_AUTH_DISABLE=false
+LOCAL_AUTH_DISABLE=false
 
 # JWT Secret (should be the same as backend)
 SECRET_KEY=your_jwt_secret_key
@@ -72,12 +72,12 @@ SECRET_KEY=your_jwt_secret_key
 
 ## Configuration Options
 
-### NEXT_LOCAL_AUTH_DISABLE
+### LOCAL_AUTH_DISABLE
 
 - `false` (default): Shows both local login form and OIDC button
 - `true`: Automatically redirects to OIDC provider, no local login form
 
-### NEXT_OIDC_SCOPE
+### OIDC_SCOPE
 
 Default scope is `openid profile email`. You can customize this based on your OIDC provider's requirements.
 
@@ -86,8 +86,8 @@ Default scope is `openid profile email`. You can customize this based on your OI
 1. **User visits** `/admin/login`
 2. **Configuration check**: App checks if OIDC is enabled and local auth is disabled
 3. **Authentication method**:
-   - If `NEXT_LOCAL_AUTH_DISABLE=true`: Automatically redirects to OIDC provider
-   - If `NEXT_LOCAL_AUTH_DISABLE=false`: Shows login form with OIDC button
+   - If `LOCAL_AUTH_DISABLE=true`: Automatically redirects to OIDC provider
+   - If `LOCAL_AUTH_DISABLE=false`: Shows login form with OIDC button
 4. **OIDC authentication**: User authenticates with OIDC provider
 5. **Callback handling**: OIDC provider redirects back to `/api/oidc/callback`
 6. **Token exchange**: App exchanges authorization code for access token
@@ -121,20 +121,6 @@ Default scope is `openid profile email`. You can customize this based on your OI
 5. **Token Validation**: JWT tokens are properly validated and signed
 6. **CSRF Protection**: State parameter is used to prevent CSRF attacks
 
-## Testing
-
-### Frontend Tests
-- `portfolio.next/__tests__/components/admin/login/OIDCLogin.test.tsx`
-- Tests OIDC component behavior and user interactions
-
-### API Tests
-- `portfolio.next/__tests__/api/oidc/config.test.ts`
-- Tests OIDC configuration API endpoint
-
-### Backend Tests
-- `portfolio.node/__tests__/routes/oidcAuthRoutes.test.js`
-- Tests OIDC authentication routes and user management
-
 ## Supported OIDC Providers
 
 The implementation supports any OIDC-compliant provider, including:
@@ -145,6 +131,19 @@ The implementation supports any OIDC-compliant provider, including:
 - Google Identity Platform
 - Keycloak
 - Any custom OIDC provider
+
+## KeyCloak integration
+The app has an integration with keycloak to manage the users and roles.
+
+```
+KEYCLOAK_BASE_URL = 'http://localhost:8080/auth';
+KEYCLOAK_REALM = 'your-realm';
+KEYCLOAK_ADMIN_USER = 'admin';
+KEYCLOAK_ADMIN_PASSWORD = 'admin';
+KEYCLOAK_CLIENT_ID = 'admin-cli';
+```
+
+> TODO: Current solution is based on username and password, but this needs to be changed to service account.
 
 ## Troubleshooting
 
@@ -167,9 +166,9 @@ NODE_ENV=development
 To migrate from local authentication to OIDC:
 
 1. Configure OIDC environment variables
-2. Set `NEXT_LOCAL_AUTH_DISABLE=false` initially
+2. Set `LOCAL_AUTH_DISABLE=false` initially
 3. Test OIDC authentication
-4. Set `NEXT_LOCAL_AUTH_DISABLE=true` when ready
+4. Set `LOCAL_AUTH_DISABLE=true` when ready
 5. Update existing users with OIDC information if needed
 
 ## Future Enhancements

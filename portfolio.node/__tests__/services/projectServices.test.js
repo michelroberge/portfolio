@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const { MongoMemoryServer } = require("mongodb-memory-server");
-const projectService = require("../src/services/projectService");
-const Project = require("../src/models/Project");
+const projectService = require("../../src/services/projectService");
+const Project = require("../../src/models/Project");
 
 let mongoServer;
 
@@ -25,6 +25,7 @@ describe("Project Service", () => {
       title: "Test Project",
       description: "A test project",
       image: "test.jpg",
+      excerpt: "excerpt test",
       link: "http://example.com",
     };
     const project = await projectService.createProject(data);
@@ -38,11 +39,13 @@ describe("Project Service", () => {
       title: "Project 1",
       description: "Description 1",
       image: "image1.jpg",
+      excerpt: "excerpt test",
       link: "http://project1.com",
     };
     const data2 = {
       title: "Project 2",
       description: "Description 2",
+      excerpt: "excerpt test",
       image: "image2.jpg",
       link: "http://project2.com",
     };
@@ -57,6 +60,7 @@ describe("Project Service", () => {
     const data = {
       title: "GetById Project",
       description: "Test get project by id",
+      excerpt: "excerpt test",
       image: "getbyid.jpg",
       link: "http://getbyid.com",
     };
@@ -70,6 +74,7 @@ describe("Project Service", () => {
     const data = {
       title: "Old Project Title",
       description: "Old description",
+      excerpt: "excerpt test",
       image: "old.jpg",
       link: "http://old.com",
     };
@@ -78,6 +83,7 @@ describe("Project Service", () => {
     const updateData = {
       title: "New Project Title",
       description: "New description",
+      excerpt: "updated excerpt test",
     };
     const updatedProject = await projectService.updateProject(createdProject._id, updateData);
     expect(updatedProject.title).toBe("New Project Title");
@@ -88,6 +94,7 @@ describe("Project Service", () => {
     const data = {
       title: "Project to delete",
       description: "This project will be deleted",
+      excerpt: "excerpt test",
       image: "delete.jpg",
       link: "http://delete.com",
     };

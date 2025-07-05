@@ -1,4 +1,3 @@
-const { describe, test, expect, jest } = require('@jest/globals');
 const authRoutes = require('../../src/routes/authRoutes');
 const request = require('supertest');
 const mongoose = require('mongoose');
