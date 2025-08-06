@@ -1,11 +1,13 @@
 'use client';
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSearch } from "@/context/SearchContext";
 import { useLoading } from '@/context/LoadingContext';
 
 export default function Search() {
     const { query, setQuery, results, handleSearch } = useSearch();
     const { showLoading, hideLoading } = useLoading();
+    const [showNoResults, setShowNoResults] = useState(false);
+    const [isVisible, setIsVisible] = useState(false);
 
     const doSearch = async () => {
       showLoading();
@@ -16,6 +18,25 @@ export default function Search() {
         hideLoading();
       }
     }
+
+    // Debounced function to show no results message
+    const debouncedShowNoResults = useCallback(() => {
+      const timer = setTimeout(() => {
+        if (query.trim() && results.length === 0) {
+          setShowNoResults(true);
+          // Trigger grow in effect
+          setTimeout(() => setIsVisible(true), 10);
+          // Auto-hide after 3 seconds
+          setTimeout(() => {
+            setIsVisible(false);
+            // Wait for grow out animation to complete before hiding
+            setTimeout(() => setShowNoResults(false), 300);
+          }, 3000);
+        }
+      }, 500); // 500ms debounce
+
+      return () => clearTimeout(timer);
+    }, [query, results]);
 
     useEffect(() => {
       const loadData = async () => {
@@ -28,6 +49,17 @@ export default function Search() {
   
       loadData();
     }, [showLoading, hideLoading]);
+
+    // Effect to handle showing no results message with debouncing
+    useEffect(() => {
+      if (query.trim() && results.length === 0) {
+        const cleanup = debouncedShowNoResults();
+        return cleanup;
+      } else {
+        setIsVisible(false);
+        setTimeout(() => setShowNoResults(false), 300);
+      }
+    }, [query, results, debouncedShowNoResults]);
     
   return (
     <div className="relative w-full max-w-lg mx-auto mt-6">
@@ -45,7 +77,7 @@ export default function Search() {
       >
         Search
       </button>
-      {results.length > 0 && (
+      {results.length > 0 ? (
         <div className="mt-4 p-4 border rounded bg-white shadow-md">
           <h3 className="text-lg font-semibold">Results:</h3>
           <ul>
@@ -59,6 +91,16 @@ export default function Search() {
               </li>
             ))}
           </ul>
+        </div>
+      ) : showNoResults && (
+        <div 
+          className={`mt-4 p-4 border rounded bg-yellow-50 shadow-md transition-all duration-300 ease-in-out transform ${
+            isVisible 
+              ? 'scale-100 opacity-100' 
+              : 'scale-95 opacity-0'
+          }`}
+        >
+          <p className="text-yellow-800 font-medium">Nothing found, something's fishy with the search still...</p>
         </div>
       )}
     </div>
