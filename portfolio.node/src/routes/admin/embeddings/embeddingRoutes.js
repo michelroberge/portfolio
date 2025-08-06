@@ -40,10 +40,13 @@ router.post("/", async (req, res) => {
         }
 
         const embedding = await generateEmbeddings(text);
-        if (!embedding) throw new Error("Failed to generate embedding");
-
-        await storeEmbedding(collection, id, embedding, metadata);
-        res.status(201).json({ message: "Embedding stored successfully" });
+        if (embedding){
+            await storeEmbedding(collection, id, embedding, metadata);
+            res.status(201).json({ message: "Embedding stored successfully" });
+        }
+        else{
+            res.status(500).json({ error: "Error storing embedding. More details on server logs." });
+        }
     } catch (error) {
         console.error("❌ Error storing embedding:", error.message);
         res.status(500).json({ error: error.message });

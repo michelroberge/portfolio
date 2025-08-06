@@ -2,7 +2,8 @@
 
 const OLLAMA_API_URL = process.env.OLLAMA_API_URL || "http://10.0.0.42:11434";
 const PROMPT_MODEL = process.env.PROMPT_MODEL || "mistral";
-const TEMPERATURE = 0.4;
+const TEMPERATURE = process.env.MODEL_TEMPERATURE || 0.4;
+
 /**
  * Sends a structured prompt to the Ollama AI model and retrieves a response.
  * @param {string} prompt - The structured prompt with context and user query.
@@ -24,7 +25,9 @@ async function generateResponse(prompt) {
     });
 
     if (!response.ok) {
-      throw new Error(`⚠️ API returned an error: ${response.statusText}`);
+      // throw new Error(`⚠️ API returned an error: ${response.statusText}`);
+      console.error(`⚠️ API returned an error: ${response.statusText}`);
+      return { response: "I'm having trouble generating a response right now. Try again later." };
     }
 
     // Read the response as a stream
