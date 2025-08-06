@@ -13,7 +13,14 @@ interface ChatbotRequestLog {
   referer?: string;
   host?: string;
   requestPayload: any;
-  responsePayload?: any;
+  responsePayload?: {
+    fullResponse?: string;
+    conversationContext?: {
+      userQuery: string;
+      chatHistory: any[];
+      sessionId: string;
+    };
+  };
   status: "success" | "error" | "blocked" | "other";
   error?: string;
   blacklisted: boolean;
@@ -35,6 +42,8 @@ export default function ChatbotHistoryList({ initialHistory }: ChatbotHistoryLis
   const router = useRouter();
   const [history, setHistory] = useState(initialHistory);
   const [loading, setLoading] = useState(false);
+  const [selectedConversation, setSelectedConversation] = useState<ChatbotRequestLog | null>(null);
+  const [showConversationModal, setShowConversationModal] = useState(false);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this log entry?")) {
@@ -70,6 +79,16 @@ export default function ChatbotHistoryList({ initialHistory }: ChatbotHistoryLis
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleViewConversation = (log: ChatbotRequestLog) => {
+    setSelectedConversation(log);
+    setShowConversationModal(true);
+  };
+
+  const closeConversationModal = () => {
+    setShowConversationModal(false);
+    setSelectedConversation(null);
   };
 
   const formatDate = (dateString: string) => {
@@ -175,15 +194,25 @@ export default function ChatbotHistoryList({ initialHistory }: ChatbotHistoryLis
                       {log.userAgent ? truncateText(log.userAgent, 60) : "-"}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => handleDelete(log._id)}
-                      disabled={loading}
-                      className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                    >
-                      Delete
-                    </button>
-                  </td>
+                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                     <div className="flex space-x-2">
+                       {log.responsePayload?.fullResponse && (
+                         <button
+                           onClick={() => handleViewConversation(log)}
+                           className="text-blue-600 hover:text-blue-900"
+                         >
+                           View
+                         </button>
+                       )}
+                       <button
+                         onClick={() => handleDelete(log._id)}
+                         disabled={loading}
+                         className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                       >
+                         Delete
+                       </button>
+                     </div>
+                   </td>
                 </tr>
               ))}
             </tbody>
@@ -215,8 +244,85 @@ export default function ChatbotHistoryList({ initialHistory }: ChatbotHistoryLis
               Next
             </button>
           </nav>
-        </div>
-      )}
-    </div>
-  );
-} 
+                 </div>
+       )}
+
+       {/* Conversation Modal */}
+       {showConversationModal && selectedConversation && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+           <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+             <div className="flex justify-between items-center mb-4">
+               <h2 className="text-xl font-bold">Conversation Details</h2>
+               <button
+                 onClick={closeConversationModal}
+                 className="text-gray-500 hover:text-gray-700"
+               >
+                 ✕
+               </button>
+             </div>
+             
+             <div className="space-y-4">
+               {/* Request Details */}
+               <div className="bg-gray-50 p-4 rounded">
+                 <h3 className="font-semibold mb-2">Request Details</h3>
+                 <div className="text-sm space-y-1">
+                   <div><strong>IP:</strong> {selectedConversation.ip}</div>
+                   <div><strong>Country:</strong> {selectedConversation.country || 'Unknown'}</div>
+                   <div><strong>User Agent:</strong> {selectedConversation.userAgent || 'Unknown'}</div>
+                   <div><strong>Timestamp:</strong> {formatDate(selectedConversation.createdAt)}</div>
+                   <div><strong>Status:</strong> {selectedConversation.status}</div>
+                 </div>
+               </div>
+
+               {/* User Query */}
+               {selectedConversation.responsePayload?.conversationContext?.userQuery && (
+                 <div className="bg-blue-50 p-4 rounded">
+                   <h3 className="font-semibold mb-2">User Query</h3>
+                   <div className="text-sm">
+                     {selectedConversation.responsePayload.conversationContext.userQuery}
+                   </div>
+                 </div>
+               )}
+
+               {/* Chat History */}
+               {selectedConversation.responsePayload?.conversationContext?.chatHistory && 
+                selectedConversation.responsePayload.conversationContext.chatHistory.length > 0 && (
+                 <div className="bg-yellow-50 p-4 rounded">
+                   <h3 className="font-semibold mb-2">Previous Conversation History</h3>
+                   <div className="text-sm space-y-2 max-h-40 overflow-y-auto">
+                     {selectedConversation.responsePayload.conversationContext.chatHistory.map((msg, index) => (
+                       <div key={index} className={`p-2 rounded ${msg.role === 'user' ? 'bg-blue-100' : 'bg-green-100'}`}>
+                         <div className="font-semibold text-xs">{msg.role === 'user' ? 'User' : 'AI'}:</div>
+                         <div>{msg.text || msg.content}</div>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+               )}
+
+               {/* AI Response */}
+               {selectedConversation.responsePayload?.fullResponse && (
+                 <div className="bg-green-50 p-4 rounded">
+                   <h3 className="font-semibold mb-2">AI Response</h3>
+                   <div className="text-sm whitespace-pre-wrap">
+                     {selectedConversation.responsePayload.fullResponse}
+                   </div>
+                 </div>
+               )}
+
+               {/* Error (if any) */}
+               {selectedConversation.error && (
+                 <div className="bg-red-50 p-4 rounded">
+                   <h3 className="font-semibold mb-2 text-red-700">Error</h3>
+                   <div className="text-sm text-red-700">
+                     {selectedConversation.error}
+                   </div>
+                 </div>
+               )}
+             </div>
+           </div>
+         </div>
+       )}
+     </div>
+   );
+ } 

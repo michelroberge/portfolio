@@ -11,7 +11,14 @@ export interface ChatbotRequestLog {
   referer?: string;
   host?: string;
   requestPayload: any;
-  responsePayload?: any;
+  responsePayload?: {
+    fullResponse?: string;
+    conversationContext?: {
+      userQuery: string;
+      chatHistory: any[];
+      sessionId: string;
+    };
+  };
   status: "success" | "error" | "blocked" | "other";
   error?: string;
   blacklisted: boolean;

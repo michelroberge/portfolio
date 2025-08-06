@@ -63,8 +63,10 @@ const setupWebSocketServer = (server) => {
                 }));
 
                 // Execute pipeline with streaming enabled
+                let fullResponse = "";
                 const streamCallback = (update) => {
                     if (update.response && update.response.trim().length > 0) {
+                        fullResponse += update.response;
                         ws.send(JSON.stringify({ response: update.response, step: update.step, done: update.done }));
                     }
                 };
@@ -77,8 +79,20 @@ const setupWebSocketServer = (server) => {
 
                 logColor("✅ Pipeline execution completed, sending final AI response", 96);
                 ws.send(JSON.stringify({done: true}));
-                // Log success
-                await logChatbotRequest({ ...logData, status: "success" });
+                
+                // Log success with full conversation context
+                await logChatbotRequest({ 
+                    ...logData, 
+                    status: "success",
+                    responsePayload: {
+                        fullResponse,
+                        conversationContext: {
+                            userQuery: query,
+                            chatHistory: history,
+                            sessionId
+                        }
+                    }
+                });
 
             } catch (error) {
                 logColor("❌ WebSocket error in processing message", 91);
