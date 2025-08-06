@@ -1,9 +1,9 @@
 const fetch = require("node-fetch");
 
 const EMBEDDING_SERVICE = process.env.EMBEDDING_SERVICE?.toLowerCase() || "ollama"; // Default to Ollama
-const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || "mistral"; // Default model for Ollama
+const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || "mistral:7b"; // Default model for Ollama
 const VECTOR_SIZE = parseInt(process.env.VECTOR_SIZE, 10) || (EMBEDDING_SERVICE === "openai" ? 1536 : 4096);
-const OLLAMA_API_URL = process.env.OLLAMA_API_URL || "http://10.0.0.42:11434";
+const OLLAMA_API_URL = process.env.OLLAMA_API_URL || "http://10.0.0.57:11434";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_API_URL = "https://api.openai.com/v1";
 
@@ -25,7 +25,7 @@ async function generateEmbeddings(text) {
  */
 async function generateOllamaEmbeddings(text) {
     try {
-        console.log(`Generating embeddings with Ollama endpoint`, `${OLLAMA_API_URL}/api/embeddings`);
+        console.log(`Generating embeddings with Ollama endpoint using model ${EMBEDDING_MODEL}`, `${OLLAMA_API_URL}/api/embeddings`);
         const response = await fetch(`${OLLAMA_API_URL}/api/embeddings`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },

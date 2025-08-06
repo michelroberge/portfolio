@@ -144,6 +144,10 @@ export const ADMIN_API = {
     update: (id: string) => `${REMOTE_URL}${API_BASE}/admin/prompts/${id}`,
     delete: (id: string) => `${REMOTE_URL}${API_BASE}/admin/prompts/${id}`
   },
+  chatbotHistory: {
+    list: `${REMOTE_URL}${API_BASE}/admin/chatbot-history`,
+    delete: (id: string) => `${REMOTE_URL}${API_BASE}/admin/chatbot-history/${id}`,
+  },
 
 } as const;
 
