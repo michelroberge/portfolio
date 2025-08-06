@@ -20,7 +20,8 @@ export default function AdminDashboard() {
           { href: "/admin/career", title: "Manage Timeline", description: "Add and update events on your timeline." },
           { href: "/admin/pages", title: "Manage Custom Pages", description: "Add and update Pages." },
           { href: "/admin/embeddings", title: "Refresh Embeddings", description: "Reset and update AI embeddings for blogs, projects, and files" },
-          { href: "/admin/prompts", title: "Tune prompts", description: "Fine tune all prompts" }
+          { href: "/admin/prompts", title: "Tune prompts", description: "Fine tune all prompts" },
+          { href: "/admin/chatbot-history", title: "Chatbot History", description: "View chatbot history" }
         ].map(({ href, title, description }) => (
           <Link
             key={href}

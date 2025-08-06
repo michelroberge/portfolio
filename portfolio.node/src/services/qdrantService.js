@@ -1,5 +1,5 @@
 const { QdrantClient } = require("@qdrant/js-client-rest");
-const QDRANT_URL = process.env.QDRANT_URL || "http://10.0.0.42:6333";
+const QDRANT_URL = process.env.QDRANT_URL || "http://10.0.0.57:6333";
 const QDRANT_API_KEY = process.env.QDRANT_API_KEY || "";
 const EMBEDDING_SERVICE = process.env.EMBEDDING_SERVICE?.toLowerCase() || "ollama"; // Default to Ollama
 const VECTOR_SIZE = parseInt(process.env.VECTOR_SIZE, 10) || (EMBEDDING_SERVICE === "openai" ? 1536 : 4096);

@@ -18,6 +18,7 @@ const promptRoutes = require("./promptRoutes");
 const commentRoutes = require("./commentRoutes");
 const fileRoutes = require("./fileRoutes");
 const embeddingRoutes = require("./embeddings/index.js");
+const chatbotHistoryRoutes = require("./chatbotHistoryRoutes");
 
 const router = express.Router();
 
@@ -37,5 +38,6 @@ router.use("/career", careerTimelineRoutes);
 router.use("/prompts", promptRoutes);
 router.use("/comments", commentRoutes);
 router.use("/embeddings", embeddingRoutes);
+router.use("/chatbot-history", chatbotHistoryRoutes);
 
 module.exports = router;
