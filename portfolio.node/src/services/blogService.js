@@ -92,13 +92,16 @@ async function updateBlogEmbeddings(blog) {
     const text = `${blog.title} ${blog.content}`;
 
     const embedding = await generateEmbeddings(text);
-    if (!embedding) throw new Error(`Failed to generate embedding for blog: ${blog._id}`);
-
-    await storeEmbedding(BlogEntry.collection.collectionName, blog.vectorId, embedding, {
-        title: blog.title,
-        tags: blog.tags || [],
-        author: blog.author || "",
-    });
+    if (embedding){
+        await storeEmbedding(BlogEntry.collection.collectionName, blog.vectorId, embedding, {
+            title: blog.title,
+            tags: blog.tags || [],
+            author: blog.author || "",
+        });
+    }
+    else{
+        res.status(500).json({ error: "Error storing embedding. More details on server logs." });
+    }
 }
 
 /**

@@ -112,10 +112,13 @@ async function updateFileEmbeddings(fileId, filename, contentType) {
   if (!text) return;
 
   const embedding = await generateEmbeddings(text);
-  if (!embedding) throw new Error(`Failed to generate embedding for file: ${fileId}`);
-
-  const fileMetadata = await getFileMetadata(fileId);
-  await storeEmbedding("files", fileMetadata.vectorId, embedding, { filename });
+  if (embedding){
+    const fileMetadata = await getFileMetadata(fileId);
+    await storeEmbedding("files", fileMetadata.vectorId, embedding, { filename });
+  }
+  else{
+      res.status(500).json({ error: "Error storing embedding. More details on server logs." });
+  }
 }
 
 /**

@@ -63,12 +63,15 @@ async function updateChapterEmbeddings(chapter) {
   const text = `${chapter.title} ${chapter.content}`;
 
   const embedding = await generateEmbeddings(text);
-  if (!embedding) throw new Error(`Failed to generate embedding for chapter: ${chapter._id}`);
-
-  await storeEmbedding(BookChapter.collection.collectionName, chapter.vectorId, embedding, {
-    title: chapter.booktitle,
-    tags: chapter.tags || [],
-  });
+  if (embedding){
+    await storeEmbedding(BookChapter.collection.collectionName, chapter.vectorId, embedding, {
+      title: chapter.booktitle,
+      tags: chapter.tags || [],
+    });
+  }
+  else{
+    res.status(500).json({ error: "Error storing embedding. More details on server logs." });
+  }
 }
 
 /**
