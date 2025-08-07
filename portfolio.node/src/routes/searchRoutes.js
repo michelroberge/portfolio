@@ -21,17 +21,19 @@ router.post("/", async (req, res) => {
 
   const searchResults = await Promise.allSettled(
     coll.map(async collection => {
-      try {
-        console.log(`searching collection ${collection.name}`);
-        const results = await searchQdrant(embedding, collection.name);
-        return results.map(result => ({
-          collection: collection.name,
-          score: result.score,
-          vectorId: result.id
-        }));
-      }
-      catch (err) {
-        console.err("Could not search qdrant", err);
+      if (collection.name === "blogs" || collection.name === "projects" ) {
+        try {
+          console.log(`searching collection ${collection.name}`);
+          const results = await searchQdrant(embedding, collection.name);
+          return results.map(result => ({
+            collection: collection.name,
+            score: result.score,
+            vectorId: result.id
+          }));
+        }
+        catch (err) {
+          console.err("Could not search qdrant", err);
+        }
       }
     })
   );

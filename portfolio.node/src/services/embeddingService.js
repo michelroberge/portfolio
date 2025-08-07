@@ -1,7 +1,7 @@
 const fetch = require("node-fetch");
 
 const EMBEDDING_SERVICE = process.env.EMBEDDING_SERVICE?.toLowerCase() || "ollama"; // Default to Ollama
-const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || "mistral:7b"; // Default model for Ollama
+const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || "nomic-embed-text"; // Default model for Ollama
 const VECTOR_SIZE = parseInt(process.env.VECTOR_SIZE, 10) || (EMBEDDING_SERVICE === "openai" ? 1536 : 4096);
 const OLLAMA_API_URL = process.env.OLLAMA_API_URL || "http://10.0.0.57:11434";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -36,7 +36,7 @@ async function generateOllamaEmbeddings(text) {
 
         const data = await response.json();
         if (!data.embedding || data.embedding.length !== VECTOR_SIZE) {
-            throw new Error(`Expected vector size ${VECTOR_SIZE}, but got ${data.embedding?.length}`);
+            throw new Error(`err 1, Expected vector size ${VECTOR_SIZE}, but got ${data.embedding?.length}`);
         }
 
         return data.embedding;
@@ -61,14 +61,14 @@ async function generateOpenAIEmbeddings(text) {
                 Authorization: `Bearer ${OPENAI_API_KEY}`,
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({ model: "text-embedding-ada-002", input: text }),
+            body: JSON.stringify({ model: EMBEDDING_MODEL, input: text }),
         });
 
         if (!response.ok) throw new Error(`OpenAI API Error: ${response.statusText}`);
 
         const data = await response.json();
         if (!data.data || !data.data[0].embedding || data.data[0].embedding.length !== VECTOR_SIZE) {
-            throw new Error(`Expected vector size ${VECTOR_SIZE}, but got ${data.data[0].embedding?.length}`);
+            throw new Error(`err 2, Expected vector size ${VECTOR_SIZE}, but got ${data.data[0].embedding?.length}`);
         }
 
         return data.data[0].embedding;

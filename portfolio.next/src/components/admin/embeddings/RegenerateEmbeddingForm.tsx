@@ -62,6 +62,7 @@ const RegenerateEmbeddingForm: React.FC<RegenerateEmbeddingFormProps> = ({
             onChange={(e) => setSelectedModel(e.target.value)}
           >
             <option value="default">Default Model</option>
+            <option value="nomic-embed-text">nomic-embed-text</option>
             <option value="text-embedding-ada-002">text-embedding-ada-002</option>
             <option value="text-embedding-3-small">text-embedding-3-small</option>
             <option value="text-embedding-3-large">text-embedding-3-large</option>

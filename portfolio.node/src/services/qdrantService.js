@@ -68,7 +68,7 @@ async function storeEmbedding(collection, id, vectors, metadata = {}) {
             ],
         });
     } catch (error) {
-        console.error(`❌ Error storing embedding in Qdrant:`, error.message);
+        console.error(`❌ Error storing embedding in Qdrant:`, error);
     }
 }
 
@@ -114,7 +114,7 @@ async function searchQdrant(queryVector, collection, limit = 5, minScore = 0.3) 
                 metadata: doc.payload,
             }));
     } catch (error) {
-        console.error(`❌ Qdrant Search on ${collection} Error: ${error.message}`);
+        console.error(`❌ Qdrant Search on ${collection} Error: ${error.message}`, error);
         return [];
     }
 }
@@ -172,7 +172,7 @@ async function getVectorsByCollectionName(collectionName) {
                         : point.vector;        // Fallback
 
                     // Ensure embedding is an array and has 4096 elements
-                    if (!Array.isArray(embedding) || embedding.length !== 4096) {
+                    if (!Array.isArray(embedding) || embedding.length !== VECTOR_SIZE) {
                         return null;
                     }
 

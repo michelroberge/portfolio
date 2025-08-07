@@ -93,7 +93,7 @@ const handleRegenerateByCollection = async (collectionName: string, model?: stri
             } // Pass cookies for SSR requests
             : {};
 
-        const response = await fetch(`${ADMIN_API.base}/embeddings/regenerate`, {
+        const response = await fetch(`${ADMIN_API.base}/embeddings/collections/${collectionName}/regenerate`, {
             method: 'POST',
             credentials: "include",
             headers,
