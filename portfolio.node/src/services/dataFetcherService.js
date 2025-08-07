@@ -18,8 +18,8 @@ const COLLECTION_NAMES = {
 const collectionOrder = {
     "project_search": [COLLECTION_NAMES.projects, COLLECTION_NAMES.blogs, COLLECTION_NAMES.jobs, "files", COLLECTION_NAMES.pages],
     "blog_lookup": [COLLECTION_NAMES.blogs, COLLECTION_NAMES.projects, COLLECTION_NAMES.jobs, COLLECTION_NAMES.pages, "files"],
-    "professional_lookup": [COLLECTION_NAMES.jobs, COLLECTION_NAMES.projects,COLLECTION_NAMES.blogs, COLLECTION_NAMES.pages, "files"],
-    "general_knowledge": [COLLECTION_NAMES.pages, COLLECTION_NAMES.jobs, COLLECTION_NAMES.blogs, COLLECTION_NAMES.projects, "files"]
+    "professional_lookup": [COLLECTION_NAMES.jobs, COLLECTION_NAMES.projects, COLLECTION_NAMES.books, COLLECTION_NAMES.blogs, COLLECTION_NAMES.pages, "files"],
+    "general_knowledge": [COLLECTION_NAMES.books, COLLECTION_NAMES.pages, COLLECTION_NAMES.jobs, COLLECTION_NAMES.blogs, COLLECTION_NAMES.projects, "files"]
 };
 
 /**
@@ -47,7 +47,7 @@ async function fetchRelevantData(parameters, intent) {
         return { userQuery: parameters.userQuery, retrievedDocs };
     }
 
-    const collectionLimits = { primary: 5, secondary: 3, tertiary: 2 };
+    const collectionLimits = { primary: 5, secondary: 3, tertiary: 3, quaternary: 2 };
     let collectionIndex = 0;
     const docIdsByCollection = {}; // Store retrieved vector IDs by collection
 
@@ -55,8 +55,9 @@ async function fetchRelevantData(parameters, intent) {
         if (retrievedDocs.length >= targetDocCount) break; // Stop if enough results found
 
         const limit = collectionIndex === 0 ? collectionLimits.primary :
-            collectionIndex === 1 ? collectionLimits.secondary :
-                collectionLimits.tertiary;
+            collectionIndex === 1 ? collectionLimits.secondary : 
+            collectionIndex === 2 ? collectionLimits.tertiary : 
+            collectionLimits.quaternary;
 
         const minScore = (collectionIndex * 0.1); // Increase threshold for less relevant collections
 
