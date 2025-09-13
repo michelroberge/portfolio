@@ -37,6 +37,7 @@ export default function RootLayout({
         <Suspense>
         <LoadingProvider>
           <AuthProvider>
+            <ChatProvider>
               <SearchProvider>
                 <Header />
                 <main className="p-6 mx-auto w-full max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-7xl">
@@ -44,8 +45,8 @@ export default function RootLayout({
                   {children}
                 </main>
                 <Footer />
-                <ChatWrapper />
               </SearchProvider>
+              </ChatProvider>
           </AuthProvider>
           </LoadingProvider>
         </Suspense>
