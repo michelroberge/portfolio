@@ -64,10 +64,16 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
  */
 export async function checkAuthStatus(): Promise<AuthResponse> {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    
     const res = await fetch(AUTH_API.auth.status, {
       method: "GET",
-      credentials: "include"
+      credentials: "include",
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       return { authenticated: false, user: null };
@@ -75,10 +81,14 @@ export async function checkAuthStatus(): Promise<AuthResponse> {
 
     const data = await res.json();
     return {
-      authenticated: true,
-      user: data.user,
+      authenticated: data.authenticated || false,
+      user: data.user || null,
     };
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.log("Auth check was cancelled");
+      return { authenticated: false, user: null, message: "Auth check cancelled" };
+    }
     console.error("Auth check failed:", error);
     return { authenticated: false, user: null, message: "Auth check failed" };
   }
