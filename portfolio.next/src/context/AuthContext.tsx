@@ -71,10 +71,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // If backend returns a token and indicates cross-domain setup, set it as a cookie
-      if (data.token && data.crossDomain && typeof window !== 'undefined') {
-        document.cookie = `auth-token=${data.token}; path=/; max-age=3600; samesite=lax`;
-      }
 
       await refreshAuth(); // Use refreshAuth instead of directly setting user
     } catch (err) {
