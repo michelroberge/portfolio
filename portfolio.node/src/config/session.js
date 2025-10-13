@@ -15,8 +15,10 @@ module.exports = (mongooseConnection) => {
       ttl: 60 * 60 * 24, // 1 day in seconds
     }),
     cookie: {
-      secure: process.env.NODE_ENV === 'production', // true if behind HTTPS
+      secure: true, // Always true for HTTPS
       httpOnly: true,
+      sameSite: 'none', // Required for cross-domain
+      domain: process.env.COOKIE_DOMAIN || undefined,
       maxAge: 1000 * 60 * 60 * 24, // 1 day in milliseconds
     },
   });

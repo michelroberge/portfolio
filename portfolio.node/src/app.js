@@ -49,8 +49,10 @@ async function createApp() {
 
   if ( process.env.ALLOW_CORS){
     app.use(cors({
-      origin: process.env.ALLOW_CORS || "http://localhost:3000",
-      credentials: true, // Allow cookies to be sent
+      origin: process.env.ALLOW_CORS, // e.g., "https://domain.name"
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
     }));
   }
   
