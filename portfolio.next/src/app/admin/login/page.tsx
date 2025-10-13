@@ -16,7 +16,7 @@ export default function AdminLogin() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get("returnUrl") || APP_ROUTES.admin.home;
-  const { isAuthenticated, login, refreshAuth } = useAuth();
+  const { isAuthenticated, login, refreshAuth, loading: authLoading } = useAuth();
   const {showLoading, hideLoading} = useLoading();
 
   useEffect(() => {
@@ -55,11 +55,15 @@ export default function AdminLogin() {
     }
   };
 
-  // Remove the automatic redirect - let OIDC callback handle it
-  // This prevents conflicts with the OIDC flow
-
-  if (!config) {
+  // Don't show login form until auth state is initialized
+  if (!config || authLoading) {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+  }
+
+  // If already authenticated, redirect to admin
+  if (isAuthenticated) {
+    router.push(returnUrl);
+    return <div className="flex min-h-screen items-center justify-center">Redirecting...</div>;
   }
 
   if (config?.oidcEnabled && (!config?.localAuthEnabled)){
