@@ -71,8 +71,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // If backend returns a token, set it as a cookie (for development cross-origin issue)
-      if (data.token && typeof window !== 'undefined') {
+      // If backend returns a token and indicates cross-domain setup, set it as a cookie
+      if (data.token && data.crossDomain && typeof window !== 'undefined') {
         document.cookie = `auth-token=${data.token}; path=/; max-age=3600; samesite=lax`;
       }
 
