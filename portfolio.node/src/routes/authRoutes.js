@@ -53,8 +53,9 @@ router.post("/login", async (req, res) => {
     // Set the token in an HTTP-only cookie
     res.cookie("auth-token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "Strict" : "Lax",
+      secure: true, // Always true for HTTPS
+      sameSite: "none", // Required for cross-domain
+      domain: process.env.COOKIE_DOMAIN || undefined, // e.g., ".domain.name"
       maxAge: 3600000, // 1 hour
     });
     
@@ -159,20 +160,28 @@ router.get("/status", async (req, res) => {
 
 // Logout by clearing the token cookie
 router.post("/logout", (req, res) => {
-
-  res.clearCookie("auth-token");
-
   const idToken = req.session.id_token;
   
+  // Clear auth cookie
+  res.clearCookie("auth-token", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    domain: process.env.COOKIE_DOMAIN || undefined,
+  });
+  
+  // Destroy session
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('Session destruction error:', err);
+    }
+  });
+  
   if (idToken) {
-    console.log("oidc logout triggered");
-    // Build OIDC logout URL
     const logoutUrl = `${process.env.KEYCLOAK_BASE_URL}/realms/${process.env.KEYCLOAK_REALM}/protocol/openid-connect/logout?id_token_hint=${encodeURIComponent(idToken)}&post_logout_redirect_uri=${encodeURIComponent(process.env.FRONTEND_URL)}`;
     return res.json({ logoutUrl });
   }
-
-  console.log('No oidc logout');
-
+  
   res.json({ message: "Logged out" });
 });
 
@@ -191,7 +200,11 @@ router.get('/config', (req, res) => {
 router.get('/oidc/login', async (req, res) => {
   try {
     const { returnUrl = '/' } = req.query;
-    const state = Buffer.from(JSON.stringify({ returnUrl, csrf: crypto.randomBytes(16).toString('hex') })).toString('base64');
+    const csrfToken = crypto.randomBytes(16).toString('hex');
+    const state = Buffer.from(JSON.stringify({ returnUrl, csrf: csrfToken })).toString('base64');
+
+    // Store CSRF in session for validation
+    req.session.oidcState = csrfToken;
     
     const oidcConfig = await getOIDCConfig();
     
@@ -216,12 +229,22 @@ router.get('/oidc/callback', async (req, res) => {
   const { code, state } = req.query;
   let returnUrl = '/admin'; // Default to admin dashboard
   
+  // Validate CSRF state
   if (state) {
     try {
       const stateObj = JSON.parse(Buffer.from(state, 'base64').toString('utf8'));
       returnUrl = stateObj.returnUrl || '/admin';
+      
+      // Validate CSRF token
+      if (!req.session.oidcState || req.session.oidcState !== stateObj.csrf) {
+        console.error('CSRF state mismatch');
+        return res.redirect(`${process.env.FRONTEND_URL}/admin/login?error=csrf_failed`);
+      }
+      // Clear used state
+      delete req.session.oidcState;
     } catch (e) {
       console.error('Failed to parse OIDC state:', e);
+      return res.redirect(`${process.env.FRONTEND_URL}/admin/login?error=invalid_state`);
     }
   }
   
@@ -295,8 +318,9 @@ router.get('/oidc/callback', async (req, res) => {
     
     res.cookie('auth-token', authData.token, {
       httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'Strict' : 'Lax',
+      secure: true,
+      sameSite: 'none',
+      domain: process.env.COOKIE_DOMAIN || undefined,
       maxAge: 3600000,
     });
     

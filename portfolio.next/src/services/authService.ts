@@ -99,34 +99,28 @@ export async function checkAuthStatus(): Promise<AuthResponse> {
  */
 export async function logout(): Promise<void> {
   try {
-    // Step 1: Clear local session
+    // Call backend logout endpoint
     const res = await fetch(AUTH_API.auth.logout, {
       method: "POST",
       credentials: "include",
     });
 
     if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || "Logout failed");
+      throw new Error("Logout failed");
     }
 
-    // Step 2: Get OIDC logout URL
-    const oidcRes = await fetch("/api/oidc/logout", {
-      method: "POST",
-      credentials: "include",
-    });
-    if (!oidcRes.ok) {
-      const error = await oidcRes.json();
-      throw new Error(error.message || "OIDC Logout failed");
-    }
-    const { logoutUrl } = await oidcRes.json();
+    const data = await res.json();
 
-    // Step 3: Redirect to OIDC logout
-    if (logoutUrl) {
-      window.location.assign(logoutUrl);
+    // If OIDC logout URL is provided, redirect to it
+    if (data.logoutUrl) {
+      window.location.assign(data.logoutUrl);
+    } else {
+      // For local auth, just reload to clear state
+      window.location.assign('/admin/login');
     }
   } catch (error) {
     console.error("Logout failed:", error);
-    throw error;
+    // Even if logout fails, redirect to login
+    window.location.assign('/admin/login');
   }
 }
