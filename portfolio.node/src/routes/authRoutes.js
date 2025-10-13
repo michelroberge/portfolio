@@ -50,15 +50,18 @@ router.post("/login", async (req, res) => {
     const { username, password } = req.body;
     const token = await authService.loginUser({ username, password });
     
+    // Store token in session
+    req.session.auth_token = token;
+    
     // Set the token in an HTTP-only cookie
     res.cookie("auth-token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "Strict",
+      sameSite: process.env.NODE_ENV === "production" ? "Strict" : "Lax",
       maxAge: 3600000, // 1 hour
     });
     
-    res.json({ message: "Login successful" });
+    res.json({ message: "Login successful", token });
   } catch (error) {
     res.status(401).json({ message: error.message });
   }
@@ -285,19 +288,28 @@ router.get('/oidc/callback', async (req, res) => {
     const authData = await authRes.json();
     if (!authData.success) throw new Error('OIDC backend auth failed');
     
-    // Set auth cookie and redirect to frontend
-    res.cookie('auth-token', authData.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Strict',
-      maxAge: 3600000,
-    });
-    
+    // Store the token in session for the backend
+    req.session.auth_token = authData.token;
     req.session.id_token = tokenData.id_token;
 
-    // Redirect to frontend with the auth cookie
+    // In development, we need to pass the token to the frontend since we can't set cross-origin cookies
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    res.redirect(`${frontendUrl}${returnUrl}`);
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    
+    if (isDevelopment) {
+      // Pass token as query parameter for frontend to set cookie
+      const tokenParam = encodeURIComponent(authData.token);
+      res.redirect(`${frontendUrl}/admin/auth-callback?token=${tokenParam}&returnUrl=${encodeURIComponent(returnUrl)}`);
+    } else {
+      // In production, set cookie and redirect (same domain)
+      res.cookie('auth-token', authData.token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'Strict',
+        maxAge: 3600000,
+      });
+      res.redirect(`${frontendUrl}${returnUrl}`);
+    }
   } catch (err) {
     console.error('OIDC callback error:', err);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';

@@ -71,6 +71,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      // If backend returns a token, set it as a cookie (for development cross-origin issue)
+      if (data.token && typeof window !== 'undefined') {
+        document.cookie = `auth-token=${data.token}; path=/; max-age=3600; samesite=lax`;
+      }
+
       await refreshAuth(); // Use refreshAuth instead of directly setting user
     } catch (err) {
       console.error('Failed to login:', err);
