@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(req: NextRequest) {
-  // Simple middleware: just redirect /admin to /admin/login if no auth token
-  // Let the existing server-side protection handle the real authentication
+  // Only redirect /admin to login if no auth token
+  // Server-side protection will handle the rest
   if (req.nextUrl.pathname === "/admin" && !req.cookies.get("auth-token")) {
     return NextResponse.redirect(new URL("/admin/login", req.url));
   }

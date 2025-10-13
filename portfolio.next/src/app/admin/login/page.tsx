@@ -55,11 +55,8 @@ export default function AdminLogin() {
     }
   };
 
-  useEffect(() => {
-    if (isAuthenticated && returnUrl) {
-      router.push(returnUrl);
-    }
-  }, [isAuthenticated, returnUrl, router]);
+  // Remove the automatic redirect - let OIDC callback handle it
+  // This prevents conflicts with the OIDC flow
 
   if (!config) {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
