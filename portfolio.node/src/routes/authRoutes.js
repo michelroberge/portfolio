@@ -53,15 +53,27 @@ router.post("/login", async (req, res) => {
     // Store token in session
     req.session.auth_token = token;
     
-    // Set the token in an HTTP-only cookie
-    res.cookie("auth-token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "Strict" : "Lax",
-      maxAge: 3600000, // 1 hour
-    });
+    // Check if this is a cross-domain setup
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+    const frontendDomain = new URL(frontendUrl).hostname;
+    const backendDomain = new URL(backendUrl).hostname;
+    const isCrossDomain = frontendDomain !== backendDomain;
     
-    res.json({ message: "Login successful", token });
+    if (isCrossDomain) {
+      // Cross-domain: return token for frontend to set cookie
+      res.json({ message: "Login successful", token, crossDomain: true });
+    } else {
+      // Same domain: set cookie directly
+      const isProduction = process.env.NODE_ENV === "production";
+      res.cookie("auth-token", token, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? "Strict" : "Lax",
+        maxAge: 3600000, // 1 hour
+      });
+      res.json({ message: "Login successful", token });
+    }
   } catch (error) {
     res.status(401).json({ message: error.message });
   }
@@ -292,20 +304,25 @@ router.get('/oidc/callback', async (req, res) => {
     req.session.auth_token = authData.token;
     req.session.id_token = tokenData.id_token;
 
-    // In development, we need to pass the token to the frontend since we can't set cross-origin cookies
+    // Check if frontend and backend are on different domains/subdomains
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const isDevelopment = process.env.NODE_ENV !== 'production';
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
     
-    if (isDevelopment) {
-      // Pass token as query parameter for frontend to set cookie
+    const frontendDomain = new URL(frontendUrl).hostname;
+    const backendDomain = new URL(backendUrl).hostname;
+    const isCrossDomain = frontendDomain !== backendDomain;
+    
+    if (isCrossDomain) {
+      // Cross-domain setup: pass token as query parameter for frontend to set cookie
       const tokenParam = encodeURIComponent(authData.token);
       res.redirect(`${frontendUrl}/admin/auth-callback?token=${tokenParam}&returnUrl=${encodeURIComponent(returnUrl)}`);
     } else {
-      // In production, set cookie and redirect (same domain)
+      // Same domain: set cookie directly
+      const isProduction = process.env.NODE_ENV === 'production';
       res.cookie('auth-token', authData.token, {
         httpOnly: true,
-        secure: true,
-        sameSite: 'Strict',
+        secure: isProduction,
+        sameSite: isProduction ? 'Strict' : 'Lax',
         maxAge: 3600000,
       });
       res.redirect(`${frontendUrl}${returnUrl}`);
