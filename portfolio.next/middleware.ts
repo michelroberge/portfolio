@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(req: NextRequest) {
-  // Only redirect /admin to login if no auth token
-  // Server-side protection will handle the rest
-  if (req.nextUrl.pathname === "/admin" && !req.cookies.get("auth-token")) {
-    return NextResponse.redirect(new URL("/admin/login", req.url));
-  }
-
+  // Don't redirect /admin - let server-side protection handle it
+  // This prevents loops when coming from OIDC callback
   return NextResponse.next();
 }
 
