@@ -15,8 +15,31 @@ export default function AdminLogin() {
   const [config, setConfig] = useState<{ oidcEnabled: boolean; localAuthEnabled: boolean } | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+  
+  // Check for OIDC error parameters
+  useEffect(() => {
+    const errorParam = searchParams.get('error');
+    if (errorParam) {
+      switch (errorParam) {
+        case 'csrf_failed':
+          setError('Security validation failed. Please try again.');
+          break;
+        case 'invalid_state':
+          setError('Invalid authentication state. Please try again.');
+          break;
+        case 'oidc_failed':
+          setError('Authentication failed. Please try again.');
+          break;
+        case 'missing_code':
+          setError('Authentication incomplete. Please try again.');
+          break;
+        default:
+          setError('Authentication error occurred. Please try again.');
+      }
+    }
+  }, [searchParams]);
   const returnUrl = searchParams.get("returnUrl") || APP_ROUTES.admin.home;
-  const { isAuthenticated, login, refreshAuth, loading: authLoading } = useAuth();
+  const { isAuthenticated, login, refreshAuth, loading: authLoading, initialized } = useAuth();
   const {showLoading, hideLoading} = useLoading();
 
   useEffect(() => {
@@ -29,12 +52,31 @@ export default function AdminLogin() {
       .finally(() => hideLoading());
   }, []);
 
-  useEffect(()=>{
-    if (config?.oidcEnabled && (!config?.localAuthEnabled)){
-        // Redirect to backend OIDC login endpoint
-        window.location.href = `${REMOTE_URL}/api/auth/oidc/login?returnUrl=${encodeURIComponent(returnUrl)}`;
+  // Force auth refresh when component mounts to catch OIDC callback
+  useEffect(() => {
+    if (initialized) {
+      refreshAuth();
     }
-  }, [config, returnUrl]);
+  }, [initialized]);
+
+  useEffect(()=>{
+    // Only auto-redirect if we have config, OIDC is enabled, local auth is disabled, 
+    // AND we're not already authenticated (to prevent redirect loops after OIDC callback)
+    // Also check if we're not coming back from an OIDC callback (no error params)
+    const isComingFromOIDC = searchParams.has('error') || window.location.search.includes('oidc');
+    
+    if (config?.oidcEnabled && (!config?.localAuthEnabled) && !isAuthenticated && initialized && !isComingFromOIDC){
+        // Add a small delay to allow auth state to settle after OIDC callback
+        const timer = setTimeout(() => {
+          // Double-check auth status before redirecting
+          if (!isAuthenticated) {
+            window.location.href = `${REMOTE_URL}/api/auth/oidc/login?returnUrl=${encodeURIComponent(returnUrl)}`;
+          }
+        }, 500); // Increased delay to allow auth state to settle
+        
+        return () => clearTimeout(timer);
+    }
+  }, [config, returnUrl, isAuthenticated, initialized, searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
