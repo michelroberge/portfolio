@@ -34,7 +34,7 @@ export default function AdminLogin() {
         // Redirect to backend OIDC login endpoint
         window.location.href = `${REMOTE_URL}/api/auth/oidc/login?returnUrl=${encodeURIComponent(returnUrl)}`;
     }
-  }, [config]);
+  }, [config, returnUrl]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
