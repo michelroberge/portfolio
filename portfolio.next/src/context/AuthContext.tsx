@@ -12,6 +12,7 @@ interface AuthContextType {
   error: string | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  initialized: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshAuth: () => Promise<void>;
@@ -109,6 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       error, 
       isAuthenticated,
       isAdmin,
+      initialized,
       login, 
       logout, 
       refreshAuth 
