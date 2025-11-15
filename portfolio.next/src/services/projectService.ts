@@ -17,7 +17,7 @@ export async function fetchProject(id: string, isAdmin: boolean = false, cookieH
             : {};
 
         const res = await fetch(url, {
-            credentials: "include",
+            credentials: isAdmin ? "include" : "omit", // Only send credentials for admin endpoints
             headers,
             cache: "no-store",
         });
@@ -49,7 +49,7 @@ export async function fetchProjects(isAdmin: boolean = false, cookieHeader: stri
             : {};
 
         const res = await fetch(url, {
-            credentials: "include",
+            credentials: isAdmin ? "include" : "omit", // Only send credentials for admin endpoints
             headers,
             cache: "no-store",
         });
@@ -191,7 +191,7 @@ export async function searchProjects(query: string, cookieHeader: string | null 
             : {};
 
         const res = await fetch(url, {
-            credentials: "include",
+            credentials: "omit", // Public search endpoint doesn't need credentials
             headers,
             cache: "no-store",
         });

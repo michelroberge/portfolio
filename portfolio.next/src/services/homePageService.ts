@@ -10,10 +10,10 @@ export async function getHomePageData(): Promise<{ blogEntries: BlogEntry[]; pro
   try {
     const [blogsRes, projectsRes] = await Promise.all([
       fetch(PUBLIC_API.blog.list, {
-        credentials: "include",
+        credentials: "omit", // Public routes don't need cookies
       }),
       fetch(PUBLIC_API.project.list, {
-        credentials: "include",
+        credentials: "omit", // Public routes don't need cookies
       })
     ]);
 
