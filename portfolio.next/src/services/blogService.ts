@@ -15,7 +15,7 @@ export async function fetchBlogEntries(isAdmin: boolean = false, cookieHeader : 
     : {};
 
     const response = await fetch(url, {
-      credentials: "include",
+      credentials: isAdmin ? "include" : "omit", // Only send credentials for admin endpoints
       headers,
       cache: "no-store",
     });
@@ -43,7 +43,7 @@ export async function fetchBlogEntry(id: string, isAdmin: boolean = false, cooki
     : {};
 
     const response = await fetch(url, {
-      credentials: "include",
+      credentials: isAdmin ? "include" : "omit", // Only send credentials for admin endpoints
       headers,
       cache: "no-store",
     });
